@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace Z.BD.DATA
 {
-    internal class EntityBase
+    public class EntityBase : IEntityBase
     {
+        public int Id { get; set; }
+
     }
 }
