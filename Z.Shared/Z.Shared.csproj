@@ -10,4 +10,8 @@
     <ProjectReference Include="..\Z.BD\Z.BD.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOS\" />
+  </ItemGroup>
+
 </Project>

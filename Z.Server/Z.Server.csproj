@@ -12,6 +12,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Z.BD\Z.BD.csproj" />
+    <ProjectReference Include="..\Z.Shared\Z.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Mappers\" />
+    <Folder Include="Repositorios\" />
   </ItemGroup>
 
 </Project>
