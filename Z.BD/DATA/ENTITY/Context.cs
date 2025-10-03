@@ -10,7 +10,7 @@ namespace Z.BD.DATA
 {
     public class Context : DbContext
     {
-       
+
         public DbSet<Cliente> Clientes { get; set; }
 
 
@@ -19,6 +19,7 @@ namespace Z.BD.DATA
 
         }
 
-       
+
     }
 }
+
