@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Zetta.BD.DATA;
 
@@ -11,9 +12,11 @@ using Zetta.BD.DATA;
 namespace Zetta.BD.Migrations
 {
     [DbContext(typeof(Context))]
-    partial class ContextModelSnapshot : ModelSnapshot
+    [Migration("20251003112028_Comentario-Obra")]
+    partial class ComentarioObra
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -53,7 +56,7 @@ namespace Zetta.BD.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes");
+                    b.ToTable("Cliente");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.ItemPresupuesto", b =>
@@ -95,36 +98,7 @@ namespace Zetta.BD.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ItemPresupuestos");
-                });
-
-            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Obra", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ClienteId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EstadoObra")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaInicio")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PresupuestoId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClienteId");
-
-                    b.HasIndex("PresupuestoId");
-
-                    b.ToTable("Obras");
+                    b.ToTable("ItemsPresupuesto");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.PresItemDetalle", b =>
@@ -207,25 +181,6 @@ namespace Zetta.BD.Migrations
                     b.ToTable("Presupuestos");
                 });
 
-            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Obra", b =>
-                {
-                    b.HasOne("Zetta.BD.DATA.ENTITY.Cliente", "Cliente")
-                        .WithMany()
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Zetta.BD.DATA.ENTITY.Presupuesto", "Presupuesto")
-                        .WithMany()
-                        .HasForeignKey("PresupuestoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cliente");
-
-                    b.Navigation("Presupuesto");
-                });
-
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.PresItemDetalle", b =>
                 {
                     b.HasOne("Zetta.BD.DATA.ENTITY.ItemPresupuesto", "ItemPresupuesto")
@@ -250,7 +205,7 @@ namespace Zetta.BD.Migrations
                     b.HasOne("Zetta.BD.DATA.ENTITY.Cliente", "Cliente")
                         .WithMany("Presupuestos")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Cliente");

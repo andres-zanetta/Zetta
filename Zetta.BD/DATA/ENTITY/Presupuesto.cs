@@ -24,7 +24,7 @@ namespace Zetta.BD.DATA.ENTITY
         public decimal Subtotal => ItemsDetalle?.Sum(i => (i.PrecioUnitario * i.Cantidad)) ?? 0;
 
         public string? Observacion { get; set; } // Notas o comentarios adicionales.
-
+        
         [Precision(18, 2)]
         public decimal Total { get; set; } // Monto total final del presupuesto.
 
@@ -41,8 +41,8 @@ namespace Zetta.BD.DATA.ENTITY
         public OpcionDePago OpcionDePago { get; set; } // Opción de pago seleccionada.
 
         // Añadir estas líneas para establecer la relación con Cliente
-        //public int ClienteId { get; set; } // Clave foránea para la relación con Cliente
-        //public Cliente Cliente { get; set; } = null!; // Propiedad de navegación
+        public int ClienteId { get; set; } // Clave foránea para la relación con Cliente
+        public Cliente Cliente { get; set; } = null!; // Propiedad de navegación
 
     }
 

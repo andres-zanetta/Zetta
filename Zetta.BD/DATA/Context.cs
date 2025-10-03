@@ -10,17 +10,32 @@ namespace Zetta.BD.DATA
 {
     public class Context : DbContext
     {
-        public DbSet<Presupuesto>Presupuestos { get; set; } 
-
-        public DbSet<ItemPresupuesto> ItemsPresupuesto { get; set; }
-
+        public DbSet<Presupuesto> Presupuestos { get; set; }
+        public DbSet<ItemPresupuesto> ItemPresupuestos { get; set; }
         public DbSet<PresItemDetalle> PresItemDetalles { get; set; }
-
+        public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<Obra> Obras { get; set; }
 
         public Context(DbContextOptions options) : base(options)
         {
 
         }
-        //Definir las entidades
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Presupuesto>()
+                .Property(p => p.Total)
+                .HasPrecision(18, 2); // 18 dígitos en total, 2 decimales
+
+            modelBuilder.Entity<Presupuesto>()
+                .HasOne(p => p.Cliente)
+                .WithMany(c => c.Presupuestos)
+                .HasForeignKey(p => p.ClienteId)
+                .OnDelete(DeleteBehavior.Restrict); // O DeleteBehavior.NoAction
+
+            // Si querés, podés hacerlo para otras propiedades similares también
+        }
     }
 }
