@@ -16,6 +16,7 @@ namespace Zetta.BD.DATA.ENTITY
         public string? Email { get; set; }
 
         public ICollection<Presupuesto> Presupuestos { get; set; }
+        public ICollection<Obra> Obras { get; set; } = new List<Obra>();
     }
     #region Diccionario
     //| Nombre      | Tipo     | Descripción                    |

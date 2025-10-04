@@ -30,6 +30,9 @@ namespace Zetta.BD.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Apellido")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -63,6 +66,9 @@ namespace Zetta.BD.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Descripcion")
                         .HasColumnType("nvarchar(max)");
@@ -106,6 +112,9 @@ namespace Zetta.BD.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
 
@@ -122,7 +131,8 @@ namespace Zetta.BD.Migrations
 
                     b.HasIndex("ClienteId");
 
-                    b.HasIndex("PresupuestoId");
+                    b.HasIndex("PresupuestoId")
+                        .IsUnique();
 
                     b.ToTable("Obras");
                 });
@@ -134,6 +144,9 @@ namespace Zetta.BD.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Cantidad")
                         .HasColumnType("int");
@@ -166,6 +179,9 @@ namespace Zetta.BD.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<bool>("Aceptado")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
                     b.Property<int>("ClienteId")
@@ -210,15 +226,15 @@ namespace Zetta.BD.Migrations
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Obra", b =>
                 {
                     b.HasOne("Zetta.BD.DATA.ENTITY.Cliente", "Cliente")
-                        .WithMany()
+                        .WithMany("Obras")
                         .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Zetta.BD.DATA.ENTITY.Presupuesto", "Presupuesto")
-                        .WithMany()
-                        .HasForeignKey("PresupuestoId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithOne()
+                        .HasForeignKey("Zetta.BD.DATA.ENTITY.Obra", "PresupuestoId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Cliente");
@@ -258,6 +274,8 @@ namespace Zetta.BD.Migrations
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Cliente", b =>
                 {
+                    b.Navigation("Obras");
+
                     b.Navigation("Presupuestos");
                 });
 
