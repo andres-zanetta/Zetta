@@ -59,6 +59,34 @@ namespace Zetta.BD.Migrations
                     b.ToTable("Clientes");
                 });
 
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Comentario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ObraId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObraId");
+
+                    b.ToTable("Comentarios");
+                });
+
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.ItemPresupuesto", b =>
                 {
                     b.Property<int>("Id")
@@ -221,6 +249,17 @@ namespace Zetta.BD.Migrations
                     b.HasIndex("ClienteId");
 
                     b.ToTable("Presupuestos");
+                });
+
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Comentario", b =>
+                {
+                    b.HasOne("Zetta.BD.DATA.ENTITY.Obra", "Obra")
+                        .WithMany()
+                        .HasForeignKey("ObraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Obra");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Obra", b =>
