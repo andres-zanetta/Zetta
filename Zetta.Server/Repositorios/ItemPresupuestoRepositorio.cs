@@ -14,7 +14,7 @@ namespace Zetta.Server.Repositorios
             this._context = context;
         }
 
-       public async Task<ItemPresupuesto?> GetByNameAsync(string nombre)
+        public async Task<ItemPresupuesto?> GetByNameAsync(string nombre)
         {
             return await _context.ItemPresupuestos
                 .FirstOrDefaultAsync(i => i.Nombre == nombre);
