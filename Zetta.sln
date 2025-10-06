@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zetta.Server", "Zetta.Serve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zetta.BD", "Zetta.BD\Zetta.BD.csproj", "{F0BE5026-D515-4CCC-BF32-3775A8E61116}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zetta.Shared", "Zetta.Shared\Zetta.Shared.csproj", "{BD0D9AD7-2EE0-48ED-A5FD-48A548368E10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{F0BE5026-D515-4CCC-BF32-3775A8E61116}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0BE5026-D515-4CCC-BF32-3775A8E61116}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0BE5026-D515-4CCC-BF32-3775A8E61116}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD0D9AD7-2EE0-48ED-A5FD-48A548368E10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD0D9AD7-2EE0-48ED-A5FD-48A548368E10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD0D9AD7-2EE0-48ED-A5FD-48A548368E10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD0D9AD7-2EE0-48ED-A5FD-48A548368E10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
