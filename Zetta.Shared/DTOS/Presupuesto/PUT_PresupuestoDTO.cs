@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zetta.BD.DATA.ENTITY;
+using Zetta.Shared.DTOS.PresItemDetalle;
 
 namespace Zetta.Shared.DTOS.Presupuesto
 {

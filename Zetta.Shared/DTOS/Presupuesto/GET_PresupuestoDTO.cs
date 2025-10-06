@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zetta.BD.DATA.ENTITY;
 
 namespace Zetta.Shared.DTOS.Presupuesto
 {
@@ -24,8 +25,8 @@ namespace Zetta.Shared.DTOS.Presupuesto
 
         public string ValidacionDias { get; set; } = "30";
 
-       // public OpcionDePago OpcionDePago { get; set; }
+       public OpcionDePago OpcionDePago { get; set; }
 
-       // public Rubro Rubro { get; set; }
+       public Rubro Rubro { get; set; }
     }
 }

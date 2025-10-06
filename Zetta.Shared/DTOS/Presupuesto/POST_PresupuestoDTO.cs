@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zetta.BD.DATA.ENTITY;
+using Zetta.Shared.DTOS.PresItemDetalle;
 
 namespace Zetta.Shared.DTOS.Presupuesto
 {
@@ -19,7 +20,7 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public string ValidacionDias { get; set; }
         public OpcionDePago OpcionDePago { get; set; }
         public required int ClienteId { get; set; } // Añadir la propiedad para el cliente
-      //  public List<POST_PresItemDetalleDTO>? ItemsDetalle { get; set; }
+        public List<POST_PresItemDetalleDTO>? ItemsDetalle { get; set; }
 
     }
 }
