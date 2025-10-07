@@ -1,109 +1,83 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Zetta.BD.DATA;
+using Zetta.Server.Repositorios;
+using Zetta.Shared.DTOS.PresItemDetalle;
 using Zetta.BD.DATA.ENTITY;
+using AutoMapper;
 
 namespace Zetta.Server.Controllers
 {
     [ApiController]
-    [Route("api/PressItemDetalle")]
+    [Route("api/[controller]")]
     public class PresItemDetalleController : ControllerBase
     {
-        private readonly Context context;
+        private readonly IPresItemDetalleRepositorio _repositorio;
+        private readonly IMapper _mapper;
 
-        public PresItemDetalleController(Context context)
+        public PresItemDetalleController(IPresItemDetalleRepositorio repositorio, IMapper mapper)
         {
-            this.context = context;
+            _repositorio = repositorio;
+            _mapper = mapper;
         }
 
         // GET: api/PresItemDetalle
         [HttpGet]
-        public async Task<ActionResult<List<PresItemDetalle>>> Get()
+        public async Task<ActionResult<IEnumerable<GET_PresItemDetalleDTO>>> GetAll()
         {
-            return await context.PresItemDetalles
-                                .Include(d => d.Presupuesto)
-                                .Include(d => d.ItemPresupuesto)
-                                .ToListAsync();
+            var detalles = await _repositorio.SelectAllAsync();
+            return Ok(_mapper.Map<IEnumerable<GET_PresItemDetalleDTO>>(detalles));
         }
 
-        // GET: api/PresItemDetalle/5
+        // GET: api/PresItemDetalle/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<PresItemDetalle>> GetById(int id)
+        public async Task<ActionResult<GET_PresItemDetalleDTO>> GetById(int id)
         {
-            var detalle = await context.PresItemDetalles
-                                       .Include(d => d.Presupuesto)
-                                       .Include(d => d.ItemPresupuesto)
-                                       .FirstOrDefaultAsync(d => d.Id == id);
+            var detalle = await _repositorio.GetByIdAsync(id);
+            if (detalle == null) return NotFound();
+            return Ok(_mapper.Map<GET_PresItemDetalleDTO>(detalle));
+        }
 
-            if (detalle == null)
-                return NotFound("Detalle de presupuesto no encontrado.");
-
-            return detalle;
+        // GET: api/PresItemDetalle/presupuesto/5
+        [HttpGet("presupuesto/{presupuestoId}")]
+        public async Task<ActionResult<IEnumerable<GET_PresItemDetalleDTO>>> GetByPresupuesto(int presupuestoId)
+        {
+            var detalles = await _repositorio.GetByPresupuestoIdAsync(presupuestoId);
+            return Ok(_mapper.Map<IEnumerable<GET_PresItemDetalleDTO>>(detalles));
         }
 
         // POST: api/PresItemDetalle
         [HttpPost]
-        public async Task<ActionResult<int>> Post(PresItemDetalle detalle)
+        public async Task<ActionResult> Create(POST_PresItemDetalleDTO dto)
         {
-            try
-            {
-                context.PresItemDetalles.Add(detalle);
-                await context.SaveChangesAsync();
-                return detalle.Id;
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error al crear el detalle: {ex.Message}");
-            }
+            var entidad = _mapper.Map<PresItemDetalle>(dto);
+            await _repositorio.AddAsync(entidad);
+            return CreatedAtAction(nameof(GetById), new { id = entidad.Id }, _mapper.Map<GET_PresItemDetalleDTO>(entidad));
         }
 
-        // PUT: api/PresItemDetalle/5
+        // PUT: api/PresItemDetalle/{id}
         [HttpPut("{id}")]
-        public async Task<ActionResult> Put(int id, PresItemDetalle detalle)
+        public async Task<ActionResult> Update(int id, PUT_PresItemDetalleDTO dto)
         {
-            if (id != detalle.Id)
-                return BadRequest("ID no coincide.");
+            if (id != dto.Id)
+                return BadRequest("El ID del detalle no coincide.");
 
-            var dbDetalle = await context.PresItemDetalles.FindAsync(id);
-            if (dbDetalle == null)
-                return NotFound("Detalle no encontrado.");
+            var entidad = await _repositorio.GetByIdAsync(id);
+            if (entidad == null) return NotFound();
 
-            dbDetalle.PresupuestoId = detalle.PresupuestoId;
-            dbDetalle.ItemPresupuestoId = detalle.ItemPresupuestoId;
-            dbDetalle.Cantidad = detalle.Cantidad;
-            dbDetalle.PrecioUnitario = detalle.PrecioUnitario;
+            _mapper.Map(dto, entidad);
+            await _repositorio.UpdateAsync(entidad);
 
-            try
-            {
-                context.PresItemDetalles.Update(dbDetalle);
-                await context.SaveChangesAsync();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error al actualizar el detalle: {ex.Message}");
-            }
+            return NoContent();
         }
 
-        // DELETE: api/PresItemDetalle/5
+        // DELETE: api/PresItemDetalle/{id}
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            var detalle = await context.PresItemDetalles.FindAsync(id);
-            if (detalle == null)
-                return NotFound("Detalle no encontrado.");
+            var entidad = await _repositorio.GetByIdAsync(id);
+            if (entidad == null) return NotFound();
 
-            try
-            {
-                context.PresItemDetalles.Remove(detalle);
-                await context.SaveChangesAsync();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error al eliminar el detalle: {ex.Message}");
-            }
+            await _repositorio.DeleteAsync(id);
+            return NoContent();
         }
     }
 }
-

@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SERVER.Repositorio;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.ENTITY;
+using Zetta.Shared.DTOS.Obra;
 
 namespace Zetta.Server.Controllers
 {
@@ -9,49 +12,48 @@ namespace Zetta.Server.Controllers
     [Route("api/obra")]
     public class ObraController : ControllerBase
     {
+        private readonly IObraRepositorio _obraRepositorio;
         private readonly Context _context;
+        private readonly IMapper _mapper;
 
-        public ObraController(Context context)
+        public ObraController(IObraRepositorio repositorio, Context context, IMapper mapper)
         {
-            _context = context;
+            this._obraRepositorio = repositorio;
+            this._context = context;
+            this._mapper = mapper;
         }
 
         // GET: api/Obra
         [HttpGet]
-        public async Task<ActionResult<List<Obra>>> Get()
+        public async Task<ActionResult<List<GET_ObraDTO>>> Get()
         {
-            return await _context.Obras
-                                //.Include(o => o.Cliente)
-                                .Include(o => o.Presupuesto)
-                                .ToListAsync();
+            var obras = await _obraRepositorio.ObtenerObrasConDetallesAsync();
+            var obrasDTO = _mapper.Map<List<GET_ObraDTO>>(obras);
+            return Ok(obrasDTO);
         }
 
         // GET: api/Obra/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Obra>> GetById(int id)
+        [HttpGet("GetById/{id}")]
+        public async Task<ActionResult<GET_ObraDTO>> GetById(int id)
         {
-            var obra = await _context.Obras
-                                    //.Include(o => o.Cliente)
-                                    .Include(o => o.Presupuesto)
-                                    .FirstOrDefaultAsync(o => o.Id == id);
-
+            var obra = await _obraRepositorio.ObtenerObraPorIdConDetallesAsync(id);
             if (obra == null)
             {
                 return NotFound("Obra no encontrada.");
             }
-
-            return obra;
+            var obraDTO = _mapper.Map<GET_ObraDTO>(obra);
+            return Ok(obraDTO);
         }
 
         // POST: api/Obra
         [HttpPost]
-        public async Task<ActionResult<int>> Post(Obra obra)
+        public async Task<ActionResult<int>> Post([FromBody] POST_ObraDTO obraDTO)
         {
             try
             {
-                _context.Obras.Add(obra);
-                await _context.SaveChangesAsync();
-                return obra.Id;
+                var obra = _mapper.Map<Obra>(obraDTO);
+                var id = await _obraRepositorio.AddAsync(obra);
+                return Ok(id);
             }
             catch (Exception ex)
             {
@@ -60,27 +62,23 @@ namespace Zetta.Server.Controllers
         }
 
         // PUT: api/Obra/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Put(int id, Obra obra)
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult> Put(int id, [FromBody] PUT_ObraDTO obraDTO)
         {
-            if (id != obra.Id)
-                return BadRequest("ID no coincide.");
+            var obraExistente = await _obraRepositorio.ObtenerObraPorIdConDetallesAsync(id);
 
-            var dbObra = await _context.Obras.FindAsync(id);
-            if (dbObra == null)
+            if (obraExistente == null)
+            {
                 return NotFound("Obra no encontrada.");
+            }
 
-            dbObra.EstadoObra = obra.EstadoObra;
-            dbObra.PresupuestoId = obra.PresupuestoId;
-            dbObra.FechaInicio = obra.FechaInicio;
-            //dbObra.Comentario = obra.Comentario;
-            dbObra.Cliente = obra.Cliente;
+            var obra = _mapper.Map(obraDTO, obraExistente);
 
             try
             {
-                _context.Obras.Update(dbObra);
+                await _obraRepositorio.UpdateAsync(obra);
                 await _context.SaveChangesAsync();
-                return Ok();
+                return Ok("Obra actualizada correctamente.");
             }
             catch (Exception ex)
             {
@@ -92,20 +90,8 @@ namespace Zetta.Server.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
-            var obra = await _context.Obras.FindAsync(id);
-            if (obra == null)
-                return NotFound("Obra no encontrada.");
-
-            try
-            {
-                _context.Obras.Remove(obra);
-                await _context.SaveChangesAsync();
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Error al eliminar la obra: {ex.Message}");
-            }
+            await _obraRepositorio.DeleteAsync(id);
+            return Ok("Obra eliminada correctamente.");
         }
     }
 }
