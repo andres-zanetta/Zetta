@@ -1,0 +1,184 @@
+﻿@page "/items/nuevo"
+@page "/items/editar/{Id:int}"
+@inject ItemPresupuestoService ItemService
+@inject NavigationManager NavManager
+
+<div class="container-form-zetta">
+    <header class="clientes-header text-center">
+        <h1>@(EsEdicion ? "Editar Ítem" : "Nuevo Ítem")</h1>
+        <p class="subtitle">@(EsEdicion ? "Modificá la información del ítem existente." : "Creá un nuevo ítem de presupuesto.")</p>
+    </header>
+
+    <EditForm Model="@ItemModel" OnValidSubmit="GuardarItem">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row g-3">
+            <div class="col-md-6 mb-3">
+                <label for="nombre" class="form-label">Nombre *</label>
+                <InputText id="nombre" class="form-control" @bind-Value="ItemModel.Nombre" />
+                <ValidationMessage For="@(() => ItemModel.Nombre)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="precio" class="form-label">Precio *</label>
+                <InputNumber id="precio" class="form-control" @bind-Value="ItemModel.Precio" />
+                <ValidationMessage For="@(() => ItemModel.Precio)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="rubro" class="form-label">Rubro *</label>
+                <InputSelect id="rubro" class="form-select" @bind-Value="ItemModel.Rubro">
+                    <option value="">Seleccione un Rubro</option>
+                    @foreach (var rubro in RubrosDisponibles)
+                    {
+                        <option value="@rubro.Key">@rubro.Value</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => ItemModel.Rubro)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="medida" class="form-label">Medida</label>
+                <InputText id="medida" class="form-control" @bind-Value="ItemModel.Medida" />
+            </div>
+
+            <div class="col-12 mb-3">
+                <label for="descripcion" class="form-label">Descripción</label>
+                <InputTextArea id="descripcion" class="form-control" @bind-Value="ItemModel.Descripcion" rows="3" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="fabricante" class="form-label">Fabricante</label>
+                <InputText id="fabricante" class="form-control" @bind-Value="ItemModel.Fabricante" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="marca" class="form-label">Marca</label>
+                <InputText id="marca" class="form-control" @bind-Value="ItemModel.Marca" />
+            </div>
+
+            @if (EsEdicion)
+            {
+                <div class="col-12 mb-3">
+                    <label for="fechaAct" class="form-label">Fecha Última Actualización de Precio</label>
+                    <InputDate id="fechaAct" class="form-control" @bind-Value="ItemModel.FechActuPrecio" disabled />
+                </div>
+            }
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+            <button type="submit" class="btn btn-naranja">
+                @(EsEdicion ? "Actualizar" : "Guardar")
+            </button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; } // Captura el parámetro de ruta para la edición
+
+    // Usamos PUT_ItemPresupuestoDTO como modelo de binding para el formulario.
+    public PUT_ItemPresupuestoDTO ItemModel { get; set; } = new PUT_ItemPresupuestoDTO();
+
+    private int ItemId; // Para almacenar el ID del ítem que se está editando (si aplica)
+
+    // Propiedad accesoria que resuelve el estado (Nuevo/Edición)
+    public bool EsEdicion => Id != 0;
+
+    // Lista de Rubros para el <select>
+    public Dictionary<int, string> RubrosDisponibles { get; set; } =
+        Enum.GetValues(typeof(Rubro))
+            .Cast<Rubro>()
+            .ToDictionary(t => (int)t, t => t.ToString());
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (EsEdicion)
+        {
+            ItemId = Id;
+            try
+            {
+                // 1. Obtener el DTO de lectura (GET_ItemPresupuestoDTO)
+                var getDto = await ItemService.GetById(Id);
+
+                if (getDto != null)
+                {
+                    // 2. Mapear el GET_DTO al PUT_DTO para cargar el formulario
+                    // Asume que los campos Material, Descripcion, FechActuPrecio, etc., son compatibles
+                    ItemModel = new PUT_ItemPresupuestoDTO
+                    {
+                        Nombre = getDto.Nombre,
+                        Precio = getDto.Precio,
+                        Rubro = getDto.Rubro,
+                        Medida = getDto.Medida,
+                        Material = getDto.Material,
+                        Descripcion = getDto.Descripcion,
+                        Fabricante = getDto.Fabricante,
+                        Marca = getDto.Marca,
+                        FechActuPrecio = getDto.FechActuPrecio
+                    };
+                }
+                else
+                {
+                    // Si el ítem no se encuentra, redirigir
+                    NavManager.NavigateTo("/items");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error obteniendo ítem {Id}: {ex.Message}");
+                // En caso de error de conexión, redirigir o mostrar mensaje
+            }
+        }
+        else
+        {
+            // Inicializar la fecha para el formulario nuevo, aunque se actualizará al guardar
+            ItemModel.FechActuPrecio = DateTime.Today;
+        }
+    }
+
+    private async Task GuardarItem()
+    {
+        try
+        {
+            if (EsEdicion)
+            {
+                // En edición, enviamos el PUT_DTO con el ID capturado.
+                await ItemService.Update(ItemId, ItemModel);
+            }
+            else
+            {
+                // Para la creación, mapeamos el modelo de la forma (PUT_DTO) al POST_DTO
+                var postDto = new POST_ItemPresupuestoDTO
+                {
+                    Nombre = ItemModel.Nombre,
+                    Precio = ItemModel.Precio,
+                    Rubro = ItemModel.Rubro,
+                    Medida = ItemModel.Medida,
+                    Material = ItemModel.Material,
+                    Descripcion = ItemModel.Descripcion,
+                    Fabricante = ItemModel.Fabricante,
+                    Marca = ItemModel.Marca,
+                    FechActuPrecio = DateTime.Today // Se recomienda que el servidor establezca esta fecha, pero lo incluimos por consistencia
+                };
+                await ItemService.Create(postDto);
+            }
+
+            // Volver a la lista
+            Volver();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar ítem: {ex.Message}");
+            // Manejo de errores de API
+        }
+    }
+
+    private void Volver()
+    {
+        NavManager.NavigateTo("/items");
+    }
+}

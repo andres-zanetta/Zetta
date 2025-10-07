@@ -1,0 +1,104 @@
+﻿@page "/items"
+@inject ItemPresupuestoService ItemService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime // Se necesita para el confirm
+
+<div class="clientes-container">
+    <header class="clientes-header text-center">
+        <h1>Gestión de Ítems de Presupuesto</h1>
+        <p class="subtitle">Configurá y administrá los ítems base de tus presupuestos.</p>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn btn-outline-dark" @onclick="VolverAlInicio">← Volver al Menú</button>
+        <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Agregar Ítem</button>
+    </div>
+
+    @if (Cargando)
+    {
+        <p>Cargando ítems...</p>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Rubro</th>
+                        <th>Medida</th>
+                        <th>Descripción</th>
+                        <th>Fabricante</th>
+                        <th>Marca</th>
+                        <th>Fecha act Precio</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in PresupuestoItems)
+                    {
+                        <tr>
+                            <td>@item.Nombre</td>
+                            <td>@item.Precio.ToString("C", new System.Globalization.CultureInfo("es-AR"))</td>
+                            <td>@item.Rubro</td>
+                            <td>@item.Medida</td>
+                            <td>@item.Descripcion</td>
+                            <td>@item.Fabricante</td>
+                            <td>@item.Marca</td>
+                            <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    // ¡CORRECCIÓN AQUÍ! Se cambió el nombre de la propiedad a PresupuestoItems
+    private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
+    private bool Cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Se actualiza la referencia a PresupuestoItems
+            PresupuestoItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar ítems: {ex.Message}");
+            PresupuestoItems = new List<GET_ItemPresupuestoDTO>();
+        }
+        Cargando = false;
+    }
+
+    private async Task EliminarItem(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que quieres eliminar este ítem?"))
+        {
+            try
+            {
+                await ItemService.Delete(id);
+                // Se actualiza la referencia a PresupuestoItems
+                PresupuestoItems.RemoveAll(i => i.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar ítem {id}: {ex.Message}");
+            }
+        }
+    }
+
+    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/items/nuevo");
+
+    private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/items/editar/{id}");
+
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
+}
