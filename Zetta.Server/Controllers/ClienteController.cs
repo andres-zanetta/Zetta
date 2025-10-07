@@ -1,34 +1,43 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.ENTITY;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using Zetta.BD.DATA.REPOSITORY;
+using Zetta.Shared.DTOS.Cliente;
 
 namespace Zetta.Server.Controllers
 {
     [ApiController]
-    [Route("api/clientes")]
-    public class ClienteController : ControllerBase
+    [Route("api/[controller]")]
+    public class ClientesController : ControllerBase
     {
         private readonly Context _context;
+        private readonly IMapper _mapper;
+        private readonly IClienteRepositorio _clienteRepositorio;
 
-        public ClienteController(Context context)
+        public ClientesController(Context context, IMapper mapper, IClienteRepositorio clienteRepositorio)
         {
             _context = context;
+            _mapper = mapper;
+            _clienteRepositorio = clienteRepositorio;
         }
 
         // GET: api/clientes
         [HttpGet]
-        public async Task<ActionResult<List<Cliente>>> Get()
+        public async Task<ActionResult<List<GET_ClienteDTO>>> Get()
         {
-            return await _context.Clientes
-                                 .Include(c => c.Presupuestos) // Incluye presupuestos si querés traerlos también
-                                 .ToListAsync();
+            var clientes = await _context.Clientes
+                                         .Include(c => c.Presupuestos)
+                                         .ToListAsync();
+
+            var clientesDTO = _mapper.Map<List<GET_ClienteDTO>>(clientes);
+            return Ok(clientesDTO);
         }
 
         // GET: api/clientes/5
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Cliente>> GetById(int id)
+        public async Task<ActionResult<GET_ClienteDTO>> GetById(int id)
         {
             var cliente = await _context.Clientes
                                         .Include(c => c.Presupuestos)
@@ -37,31 +46,20 @@ namespace Zetta.Server.Controllers
             if (cliente == null)
                 return NotFound("Cliente no encontrado.");
 
-            return Ok(cliente);
+            var clienteDTO = _mapper.Map<GET_ClienteDTO>(cliente);
+            return Ok(clienteDTO);
         }
-
-        //arreglar genera error 
-        //[HttpGet("{nombre:string}")]
-        //public async Task<ActionResult<List<Cliente>>> GetByName(string nombre)
-        //{
-        //    var clientes = await _context.Clientes
-        //                                 .Where(c => c.Nombre != null && c.Nombre.Contains(nombre))
-        //                                 .Include(c => c.Presupuestos)
-        //                                 .ToListAsync();
-        //    if (clientes == null || clientes.Count == 0)
-        //        return NotFound("No se encontraron clientes con ese nombre.");
-        //    return Ok(clientes);
-        //}
 
         // POST: api/clientes
         [HttpPost]
-        public async Task<ActionResult<int>> Post(Cliente cliente)
+        public async Task<ActionResult<int>> Post([FromBody] POST_ClienteDTO dto)
         {
             try
             {
+                var cliente = _mapper.Map<Cliente>(dto);
                 _context.Clientes.Add(cliente);
                 await _context.SaveChangesAsync();
-                return cliente.Id;
+                return Ok(cliente.Id);
             }
             catch (Exception ex)
             {
@@ -71,28 +69,19 @@ namespace Zetta.Server.Controllers
 
         // PUT: api/clientes/5
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> Put(int id, [FromBody] Cliente cliente)
+        public async Task<ActionResult> Put(int id, [FromBody] PUT_ClienteDTO dto)
         {
-            if (id != cliente.Id)
-                return BadRequest("El ID no coincide.");
-
             var dbCliente = await _context.Clientes.FindAsync(id);
             if (dbCliente == null)
                 return NotFound("Cliente no encontrado.");
 
-            // Actualiza los campos
-            dbCliente.Nombre = cliente.Nombre;
-            dbCliente.Apellido = cliente.Apellido;
-            dbCliente.Direccion = cliente.Direccion;
-            dbCliente.Localidad = cliente.Localidad;
-            dbCliente.Telefono = cliente.Telefono;
-            dbCliente.Email = cliente.Email;
+            _mapper.Map(dto, dbCliente);
 
             try
             {
                 _context.Clientes.Update(dbCliente);
                 await _context.SaveChangesAsync();
-                return Ok();
+                return NoContent(); // Corregido: Retorna 204 No Content
             }
             catch (Exception ex)
             {
@@ -112,7 +101,7 @@ namespace Zetta.Server.Controllers
             {
                 _context.Clientes.Remove(cliente);
                 await _context.SaveChangesAsync();
-                return Ok();
+                return NoContent(); // Corregido: Retorna 204 No Content
             }
             catch (Exception ex)
             {
