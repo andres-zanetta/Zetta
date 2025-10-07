@@ -1,0 +1,168 @@
+﻿@page "/clientes"
+
+<div class="clientes-container">
+    <header class="clientes-header text-center">
+        <h1>Gestión de Clientes</h1>
+        <p class="subtitle">Administrá la información de tus clientes</p>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn btn-outline-dark" @onclick="VolverAlInicio">← Volver al Menú</button>
+        <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
+    </div>
+
+    <div class="table-responsive shadow-sm">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Apellido</th>
+                    <th>Teléfono</th>
+                    <th>Email</th>
+                    <th>Localidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cliente in Clientes)
+                {
+                    <tr>
+                        <td>@cliente.Nombre</td>
+                        <td>@cliente.Apellido</td>
+                        <td>@cliente.Telefono</td>
+                        <td>@cliente.Email</td>
+                        <td>@cliente.Localidad</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirModalEditar(cliente)">✏️ Editar</button>
+                            <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarCliente(cliente)">🗑️ Eliminar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (MostrarModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title">@((Editando ? "Editar Cliente" : "Nuevo Cliente"))</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre</label>
+                            <input type="text" class="form-control" @bind="ClienteActual.Nombre" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Apellido</label>
+                            <input type="text" class="form-control" @bind="ClienteActual.Apellido" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" @bind="ClienteActual.Telefono" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" @bind="ClienteActual.Email" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Localidad</label>
+                            <input type="text" class="form-control" @bind="ClienteActual.Localidad" />
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button class="btn btn-naranja" @onclick="GuardarCliente">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool MostrarModal = false;
+    private bool Editando = false;
+    private ClienteSimulado ClienteActual = new();
+    private List<ClienteSimulado> Clientes = new();
+
+    protected override void OnInitialized()
+    {
+        Clientes = new()
+        {
+            new() { Nombre = "Andrés", Apellido = "Zanetta", Telefono = "351-5551234", Email = "andres@zetta.com", Localidad = "Córdoba" },
+            new() { Nombre = "Lucía", Apellido = "Gómez", Telefono = "351-4445678", Email = "lucia@correo.com", Localidad = "Villa Allende" },
+            new() { Nombre = "Carlos", Apellido = "Pérez", Telefono = "351-3337890", Email = "carlos@ejemplo.com", Localidad = "Alta Gracia" }
+        };
+    }
+
+    private void AbrirModalNuevo()
+    {
+        ClienteActual = new ClienteSimulado();
+        Editando = false;
+        MostrarModal = true;
+    }
+
+    private void AbrirModalEditar(ClienteSimulado cliente)
+    {
+        ClienteActual = new ClienteSimulado
+        {
+            Nombre = cliente.Nombre,
+            Apellido = cliente.Apellido,
+            Telefono = cliente.Telefono,
+            Email = cliente.Email,
+            Localidad = cliente.Localidad
+        };
+        Editando = true;
+        MostrarModal = true;
+    }
+
+    private void GuardarCliente()
+    {
+        if (Editando)
+        {
+            var existente = Clientes.FirstOrDefault(c => c.Email == ClienteActual.Email);
+            if (existente != null)
+            {
+                existente.Nombre = ClienteActual.Nombre;
+                existente.Apellido = ClienteActual.Apellido;
+                existente.Telefono = ClienteActual.Telefono;
+                existente.Localidad = ClienteActual.Localidad;
+            }
+        }
+        else
+        {
+            Clientes.Add(ClienteActual);
+        }
+
+        CerrarModal();
+    }
+
+    private void EliminarCliente(ClienteSimulado cliente)
+    {
+        Clientes.Remove(cliente);
+    }
+
+    private void CerrarModal() => MostrarModal = false;
+
+    private void VolverAlInicio()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    [Inject]
+    public NavigationManager Navigation { get; set; } = default!;
+
+    public class ClienteSimulado
+    {
+        public string Nombre { get; set; } = "";
+        public string Apellido { get; set; } = "";
+        public string Telefono { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Localidad { get; set; } = "";
+    }
+}
+

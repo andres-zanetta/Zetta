@@ -177,3 +177,47 @@ code {
         background-color: #e05500;
     }
 
+
+/* === CLIENTES PAGE === */
+.clientes-container {
+    background-color: #f3f3f3;
+    padding: 2rem;
+    border-radius: 10px;
+}
+
+.clientes-header h1 {
+    color: #ff6600;
+    font-weight: bold;
+}
+
+.subtitle {
+    color: #555;
+}
+
+.btn-naranja {
+    background-color: #ff6600;
+    color: #fff;
+    border: none;
+    transition: 0.3s;
+}
+
+    .btn-naranja:hover {
+        background-color: #e65500;
+        color: #fff;
+    }
+
+.table {
+    background-color: #fff;
+    border-radius: 10px;
+}
+
+    .table thead {
+        background-color: #343a40;
+        color: #fff;
+    }
+
+    .table tbody tr:hover {
+        background-color: #e9ecef;
+    }
+
+
