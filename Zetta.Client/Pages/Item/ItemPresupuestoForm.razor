@@ -144,6 +144,11 @@
     {
         try
         {
+            if (ItemModel.Precio <= 0)
+            {
+                Console.WriteLine("El precio debe ser mayor que cero.");
+                return;
+            }
             if (EsEdicion)
             {
                 // En edición, enviamos el PUT_DTO con el ID capturado.

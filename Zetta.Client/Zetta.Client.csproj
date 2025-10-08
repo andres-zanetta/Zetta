@@ -16,4 +16,8 @@
     <ProjectReference Include="..\Zetta.Shared\Zetta.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\Imagenes\" />
+  </ItemGroup>
+
 </Project>
