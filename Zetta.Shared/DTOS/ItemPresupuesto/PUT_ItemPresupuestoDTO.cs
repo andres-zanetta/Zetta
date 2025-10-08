@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,8 @@ namespace Zetta.Shared.DTOS.ItemPresupuesto
     public class PUT_ItemPresupuestoDTO
     {
         public string Nombre { get; set; } = string.Empty;
+
+        [Range(1, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0.")]
         public decimal Precio { get; set; }
         public Rubro Rubro { get; set; }
         public string? Medida { get; set; }

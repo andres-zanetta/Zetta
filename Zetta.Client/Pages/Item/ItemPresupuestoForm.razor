@@ -88,6 +88,11 @@ else
     {
         try
         {
+            if (ItemModel.Precio <= 0)
+            {
+                Console.WriteLine("El precio debe ser mayor que cero.");
+                return;
+            }
             if (EsEdicion)
             {
                 var existente = await ItemPresupuestoService.GetById(Id.Value);

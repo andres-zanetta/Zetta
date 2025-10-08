@@ -1,7 +1,8 @@
 ﻿@page "/items"
 @inject ItemPresupuestoService ItemService
 @inject NavigationManager Navigation
-@inject Microsoft.JSInterop.IJSRuntime JSRuntime // Se necesita para el confirm
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime 
+@* // Se necesita para el confirm *@
 
 <div class="clientes-container">
     <header class="clientes-header text-center">
@@ -57,12 +58,32 @@
             </table>
         </div>
     }
+
+    @if (MostrarDetalles && ItemSeleccionado != null)
+    {
+        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content p-3">
+                    <h4>Detalles del Ítem</h4>
+                    <p><strong>ID:</strong> @ItemSeleccionado.Id</p>
+                    <p><strong>Descripción:</strong> @ItemSeleccionado.Descripcion</p>
+                    <p><strong>Precio:</strong> @ItemSeleccionado.Precio</p>
+                    <button class="btn btn-secondary" @onclick="CerrarDetalles">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    }
+
 </div>
 
 @code {
     // ¡CORRECCIÓN AQUÍ! Se cambió el nombre de la propiedad a PresupuestoItems
     private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
     private bool Cargando = true;
+
+    // 🔹 NUEVO: control para ver detalles
+    private GET_ItemPresupuestoDTO? ItemSeleccionado { get; set; }
+    private bool MostrarDetalles { get; set; } = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -101,4 +122,21 @@
     private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/itempresupuesto-form/{id}");
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
+
+    // 🔹 NUEVO MÉTODO: Ver detalles del ítem sin salir de la página
+    private void VerDetalles(int id)
+    {
+        ItemSeleccionado = PresupuestoItems.FirstOrDefault(i => i.Id == id);
+        if (ItemSeleccionado != null)
+        {
+            MostrarDetalles = true;
+        }
+    }
+
+    // 🔹 NUEVO MÉTODO: Cerrar detalles
+    private void CerrarDetalles()
+    {
+        MostrarDetalles = false;
+        ItemSeleccionado = null;
+    }
 }
