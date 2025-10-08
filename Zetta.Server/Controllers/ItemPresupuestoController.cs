@@ -8,7 +8,7 @@ using Zetta.Shared.DTOS.ItemPresupuesto;
 namespace Zetta.Server.Controllers
 {
     [ApiController]
-    [Route("api/itempresupuesto")]
+    [Route("/api/itempresupuesto")]
     public class ItemPresupuestoController : ControllerBase
     {
         private readonly Context _context;
@@ -17,6 +17,7 @@ namespace Zetta.Server.Controllers
 
         public ItemPresupuestoController(IItemPresupuestoRepositorio repositorio, Context context, IMapper mapper)
         {
+            _itemPresupuestoRepositorio = repositorio;
             _context = context;
             _mapper = mapper;
         }

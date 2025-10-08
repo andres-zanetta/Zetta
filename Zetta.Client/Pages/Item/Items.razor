@@ -48,8 +48,8 @@
                             <td>@item.Marca</td>
                             <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
-                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">Editar</button>
+                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">Eliminar</button>
                             </td>
                         </tr>
                     }
@@ -96,9 +96,9 @@
         }
     }
 
-    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/items/nuevo");
+    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/itempresupuesto-form");
 
-    private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/items/editar/{id}");
+    private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/itempresupuesto-form/{id}");
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
 }

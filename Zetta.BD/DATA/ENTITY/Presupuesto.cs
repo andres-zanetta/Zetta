@@ -57,11 +57,11 @@ namespace Zetta.BD.DATA.ENTITY
     // Enumeración para los rubros.
     public enum Rubro
     {
-        Gas,
-        Electricidad,
-        Refrigeracion,
-        Solar,
-        Plomeria
+        Gas = 0,
+        Electricidad = 1,
+        Refrigeracion = 2,
+        Solar = 3,
+        Plomeria = 4
     }
 }
 
