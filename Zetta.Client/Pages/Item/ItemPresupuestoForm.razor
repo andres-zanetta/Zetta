@@ -88,7 +88,7 @@ else
     {
         try
         {
-            if (ItemModel.Precio <= 0)
+            if (item.Precio <= 0)
             {
                 Console.WriteLine("El precio debe ser mayor que cero.");
                 return;
@@ -152,7 +152,7 @@ else
                 await ItemPresupuestoService.Create(item);
             }
 
-            Navigation.NavigateTo("/itempresupuesto");
+            Navigation.NavigateTo("/items");
         }
         catch (Exception ex)
         {
@@ -162,7 +162,7 @@ else
 
     private void Volver()
     {
-        Navigation.NavigateTo("/itempresupuesto");
+        Navigation.NavigateTo("/items");
     }
 
     private string GetNombreRubro(Rubro rubro) => rubro switch

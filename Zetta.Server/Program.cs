@@ -21,9 +21,11 @@ builder.Services.AddRazorPages();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(AppDomain.CurrentDomain.GetAssemblies());
+});
 
-
-//builder.Services.AddAutoMapper(typeof(Program)); Agregar Mapper
 
 builder.Services.AddDbContext<Context>(op => op.UseSqlServer("name=conn"));
 
