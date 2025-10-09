@@ -88,11 +88,6 @@ else
     {
         try
         {
-            if (item.Precio <= 0)
-            {
-                Console.WriteLine("El precio debe ser mayor que cero.");
-                return;
-            }
             if (EsEdicion)
             {
                 var existente = await ItemPresupuestoService.GetById(Id.Value);
@@ -115,6 +110,11 @@ else
                 {
                     Error = "No se encontró el ítem a editar.";
                 }
+            }
+            if (item.Precio <= 0)
+            {
+                Console.WriteLine("El precio debe ser mayor que cero.");
+                return;
             }
         }
         catch (Exception ex)
@@ -171,7 +171,7 @@ else
         Rubro.Gas => "Gas",
         Rubro.Electricidad => "Electricidad",
         Rubro.Refrigeracion => "Refrigeración",
-        Rubro.Solar => "Termotanques Solares",
+        Rubro.Solar => "Solar",
         Rubro.Plomeria => "Plomería",
         _ => rubro.ToString()
     };
