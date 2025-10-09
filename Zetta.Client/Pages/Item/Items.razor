@@ -49,8 +49,8 @@
                             <td>@item.Marca</td>
                             <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">Editar</button>
-                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">Eliminar</button>
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
                             </td>
                         </tr>
                     }
@@ -77,11 +77,9 @@
 </div>
 
 @code {
-    // ¡CORRECCIÓN AQUÍ! Se cambió el nombre de la propiedad a PresupuestoItems
     private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
     private bool Cargando = true;
 
-    // 🔹 NUEVO: control para ver detalles
     private GET_ItemPresupuestoDTO? ItemSeleccionado { get; set; }
     private bool MostrarDetalles { get; set; } = false;
 
@@ -89,7 +87,6 @@
     {
         try
         {
-            // Se actualiza la referencia a PresupuestoItems
             PresupuestoItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
         }
         catch (Exception ex)
@@ -107,7 +104,6 @@
             try
             {
                 await ItemService.Delete(id);
-                // Se actualiza la referencia a PresupuestoItems
                 PresupuestoItems.RemoveAll(i => i.Id == id);
             }
             catch (Exception ex)
@@ -123,7 +119,7 @@
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
 
-    // 🔹 NUEVO MÉTODO: Ver detalles del ítem sin salir de la página
+    //Ver detalles del ítem sin salir de la página
     private void VerDetalles(int id)
     {
         ItemSeleccionado = PresupuestoItems.FirstOrDefault(i => i.Id == id);
@@ -133,7 +129,7 @@
         }
     }
 
-    // 🔹 NUEVO MÉTODO: Cerrar detalles
+    //Cerrar detalles
     private void CerrarDetalles()
     {
         MostrarDetalles = false;
