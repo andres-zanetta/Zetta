@@ -1,4 +1,7 @@
 ﻿@page "/clientes"
+@inject Zetta.Client.Servicios.IClienteService ClienteService 
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime // Para diálogos de confirmación
 
 <div class="clientes-container">
     <header class="clientes-header text-center">
@@ -11,139 +14,228 @@
         <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
     </div>
 
-    <div class="table-responsive shadow-sm">
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Nombre</th>
-                    <th>Apellido</th>
-                    <th>Teléfono</th>
-                    <th>Email</th>
-                    <th>Localidad</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var cliente in Clientes)
-                {
+    @if (Cargando)
+    {
+        <p>Cargando clientes...</p>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
                     <tr>
-                        <td>@cliente.Nombre</td>
-                        <td>@cliente.Apellido</td>
-                        <td>@cliente.Telefono</td>
-                        <td>@cliente.Email</td>
-                        <td>@cliente.Localidad</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirModalEditar(cliente)">✏️ Editar</button>
-                            <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarCliente(cliente)">🗑️ Eliminar</button>
-                        </td>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Teléfono</th>
+                        <th>Email</th>
+                        <th>Localidad</th>
+                        <th>Acciones</th>
                     </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    @foreach (var cliente in Clientes)
+                    {
+                        <tr>
+                            <td>@cliente.Nombre</td>
+                            <td>@cliente.Apellido</td>
+                            <td>@cliente.Telefono</td>
+                            <td>@cliente.Email</td>
+                            <td>@cliente.Localidad</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirModalEditar(cliente)">✏️ Editar</button>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarCliente(cliente.Id)">❌ Eliminar</button> 
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 
+
+    @* Modal de Creación/Edición *@
     @if (MostrarModal)
     {
-        <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal d-block" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header bg-dark text-white">
-                        <h5 class="modal-title">@((Editando ? "Editar Cliente" : "Nuevo Cliente"))</h5>
-                        <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
-                            <input type="text" class="form-control" @bind="ClienteActual.Nombre" />
+                    <EditForm Model="@ClienteActual" OnValidSubmit="@GuardarCliente">
+                        @* Usamos ClienteActual como Model *@
+                        <DataAnnotationsValidator />
+                        <div class="modal-header">
+                            <h5 class="modal-title">@(Editando ? "Editar Cliente" : "Nuevo Cliente")</h5>
+                            <button type="button" class="btn-close" @onclick="CerrarModal"></button>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Apellido</label>
-                            <input type="text" class="form-control" @bind="ClienteActual.Apellido" />
+                        <div class="modal-body">
+                            <ValidationSummary />
+
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <InputText @bind-Value="ClienteActual.Nombre" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Apellido</label>
+                                <InputText @bind-Value="ClienteActual.Apellido" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <InputText @bind-Value="ClienteActual.Telefono" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <InputText @bind-Value="ClienteActual.Email" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Localidad</label>
+                                <InputText @bind-Value="ClienteActual.Localidad" class="form-control" />
+                            </div>
+                            @* Agregamos Direccion, ya que está en los DTOs *@
+                            <div class="mb-3">
+                                <label class="form-label">Dirección</label>
+                                <InputText @bind-Value="ClienteActual.Direccion" class="form-control" />
+                            </div>
+
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" @bind="ClienteActual.Telefono" />
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                            <button type="submit" class="btn btn-naranja">Guardar</button>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" @bind="ClienteActual.Email" />
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Localidad</label>
-                            <input type="text" class="form-control" @bind="ClienteActual.Localidad" />
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                        <button class="btn btn-naranja" @onclick="GuardarCliente">Guardar</button>
-                    </div>
+                    </EditForm>
                 </div>
             </div>
         </div>
+        <div class="modal-backdrop fade show"></div>
     }
 </div>
 
+
 @code {
+    // La lista ahora usa el DTO de lectura
+    private List<GET_ClienteDTO> Clientes = new List<GET_ClienteDTO>();
+
+    // modelo intermedio para el formulario, incluyendo el Id para edición.
+    private ClienteFormModel ClienteActual = new ClienteFormModel();
     private bool MostrarModal = false;
     private bool Editando = false;
-    private ClienteSimulado ClienteActual = new();
-    private List<ClienteSimulado> Clientes = new();
+    private bool Cargando = true;
 
-    protected override void OnInitialized()
+    // Modelo intermedio para el formulario de cliente
+    public class ClienteFormModel
     {
-        Clientes = new()
+        public int Id { get; set; } // Id es necesario solo para identificar en edición
+        public string Nombre { get; set; } = "";
+        public string Apellido { get; set; } = "";
+        public string Telefono { get; set; } = "";
+        public string? Email { get; set; }
+        public string? Localidad { get; set; }
+        public string? Direccion { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarClientes();
+    }
+
+    private async Task CargarClientes()
+    {
+        Cargando = true;
+        try
         {
-            new() { Nombre = "Andrés", Apellido = "Zanetta", Telefono = "351-5551234", Email = "andres@zetta.com", Localidad = "Córdoba" },
-            new() { Nombre = "Lucía", Apellido = "Gómez", Telefono = "351-4445678", Email = "lucia@correo.com", Localidad = "Villa Allende" },
-            new() { Nombre = "Carlos", Apellido = "Pérez", Telefono = "351-3337890", Email = "carlos@ejemplo.com", Localidad = "Alta Gracia" }
-        };
+            // Llama al servicio para obtener los datos de la API
+            Clientes = await ClienteService.GetAll() ?? new List<GET_ClienteDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar clientes: {ex.Message}");
+            Clientes = new List<GET_ClienteDTO>();
+        }
+        Cargando = false;
     }
 
     private void AbrirModalNuevo()
     {
-        ClienteActual = new ClienteSimulado();
+        // Inicializa un nuevo modelo
+        ClienteActual = new ClienteFormModel();
         Editando = false;
         MostrarModal = true;
     }
 
-    private void AbrirModalEditar(ClienteSimulado cliente)
+    private void AbrirModalEditar(GET_ClienteDTO cliente)
     {
-        ClienteActual = new ClienteSimulado
+        // Mapea el DTO de la tabla al modelo del formulario
+        ClienteActual = new ClienteFormModel
         {
+            Id = cliente.Id,
             Nombre = cliente.Nombre,
             Apellido = cliente.Apellido,
             Telefono = cliente.Telefono,
             Email = cliente.Email,
-            Localidad = cliente.Localidad
+            Localidad = cliente.Localidad,
+            Direccion = cliente.Direccion
         };
         Editando = true;
         MostrarModal = true;
     }
 
-    private void GuardarCliente()
+    private async Task GuardarCliente()
     {
-        if (Editando)
+        try
         {
-            var existente = Clientes.FirstOrDefault(c => c.Email == ClienteActual.Email);
-            if (existente != null)
+            if (Editando)
             {
-                existente.Nombre = ClienteActual.Nombre;
-                existente.Apellido = ClienteActual.Apellido;
-                existente.Telefono = ClienteActual.Telefono;
-                existente.Localidad = ClienteActual.Localidad;
+                // Mapea el modelo del formulario al DTO de edición
+                var putDto = new PUT_ClienteDTO
+                {
+                    Id = ClienteActual.Id, // El ID es obligatorio en PUT_ClienteDTO
+                    Nombre = ClienteActual.Nombre,
+                    Apellido = ClienteActual.Apellido,
+                    Telefono = ClienteActual.Telefono,
+                    Email = ClienteActual.Email,
+                    Localidad = ClienteActual.Localidad,
+                    Direccion = ClienteActual.Direccion
+                };
+                await ClienteService.Update(ClienteActual.Id, putDto);
             }
-        }
-        else
-        {
-            Clientes.Add(ClienteActual);
-        }
+            else
+            {
+                // Mapea el modelo del formulario al DTO de creación
+                var postDto = new POST_ClienteDTO
+                {
+                    Nombre = ClienteActual.Nombre,
+                    Apellido = ClienteActual.Apellido,
+                    Telefono = ClienteActual.Telefono,
+                    Email = ClienteActual.Email,
+                    Localidad = ClienteActual.Localidad,
+                    Direccion = ClienteActual.Direccion
+                };
+                await ClienteService.Create(postDto);
+            }
 
-        CerrarModal();
+            CerrarModal();
+            await CargarClientes(); // Recarga la lista para mostrar el cambio
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar cliente: {ex.Message}");
+        }
     }
 
-    private void EliminarCliente(ClienteSimulado cliente)
+    private async Task EliminarCliente(int id)
     {
-        Clientes.Remove(cliente);
+        // Pide confirmación antes de eliminar
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que quieres eliminar este cliente?"))
+        {
+            try
+            {
+                await ClienteService.Delete(id);
+                // Si la eliminación fue exitosa, eliminamos de la lista local
+                Clientes.RemoveAll(c => c.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al eliminar cliente {id}: {ex.Message}");
+            }
+        }
     }
 
     private void CerrarModal() => MostrarModal = false;
@@ -152,17 +244,4 @@
     {
         Navigation.NavigateTo("/");
     }
-
-    [Inject]
-    public NavigationManager Navigation { get; set; } = default!;
-
-    public class ClienteSimulado
-    {
-        public string Nombre { get; set; } = "";
-        public string Apellido { get; set; } = "";
-        public string Telefono { get; set; } = "";
-        public string Email { get; set; } = "";
-        public string Localidad { get; set; } = "";
-    }
 }
-

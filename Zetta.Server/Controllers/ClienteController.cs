@@ -9,7 +9,7 @@ using Zetta.Shared.DTOS.Cliente;
 namespace Zetta.Server.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("/api/Cliente")]
     public class ClientesController : ControllerBase
     {
         private readonly Context _context;
