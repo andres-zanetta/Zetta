@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Components.RenderTree;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Zetta.Client;
@@ -14,6 +15,7 @@ builder.Services.AddScoped<ItemPresupuestoService>();
 builder.Services.AddScoped<IItemPresupuestoService, ItemPresupuestoService>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
-
+builder.Services.AddScoped<PresupuestoService>();
+builder.Services.AddScoped<IPresupuestoServices, PresupuestoService>();
 
 await builder.Build().RunAsync();
