@@ -132,7 +132,6 @@
     {
         try
         {
-            // Validación adicional en código
             if (PresupuestoModel.Total <= 0 || PresupuestoModel.TotalP <= 0 || (PresupuestoModel.ManodeObra ?? 0) <= 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "⚠️ Los valores monetarios deben ser mayores a 0.");
@@ -141,7 +140,8 @@
 
             await PresupuestoService.Create(PresupuestoModel);
             await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto creado con éxito.");
-            Volver();
+            await Task.Delay(500); // Opcional: para que el usuario vea el mensaje es un delay corto
+            Navigation.NavigateTo("/presupuestos", forceLoad: true);
         }
         catch (Exception ex)
         {
