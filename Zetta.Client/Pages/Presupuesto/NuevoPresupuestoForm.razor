@@ -55,19 +55,19 @@
 
             <div class="col-md-6 mb-3">
                 <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
-                <InputNumber id="manodeObra" class="form-control" @bind-Value="PresupuestoModel.ManodeObra" min="0.01" step="0.01" />
+                <InputNumber id="manodeObra" class="form-control" @bind-Value="PresupuestoModel.ManodeObra" min="0.01" step="0.01" @oninput="OnManoDeObraOrTotalPChanged" />
                 <ValidationMessage For="@(() => PresupuestoModel.ManodeObra)" />
             </div>
 
             <div class="col-md-6 mb-3">
                 <label for="totalParcial" class="form-label">Total Parcial ($)</label>
-                <InputNumber id="totalParcial" class="form-control" @bind-Value="PresupuestoModel.TotalP" min="0.01" step="0.01" />
+                <InputNumber id="totalParcial" class="form-control" @bind-Value="PresupuestoModel.TotalP" min="0.01" step="0.01" @oninput="OnManoDeObraOrTotalPChanged" />
                 <ValidationMessage For="@(() => PresupuestoModel.TotalP)" />
             </div>
 
             <div class="col-md-6 mb-3">
                 <label for="totalFinal" class="form-label">Total Final ($)</label>
-                <InputNumber id="totalFinal" class="form-control" @bind-Value="PresupuestoModel.Total" min="0.01" step="0.01" />
+                <InputNumber id="totalFinal" class="form-control" @bind-Value="PresupuestoModel.Total" min="0.01" step="0.01" disabled />
                 <ValidationMessage For="@(() => PresupuestoModel.Total)" />
             </div>
 
@@ -153,5 +153,14 @@
     private void Volver()
     {
         Navigation.NavigateTo("/presupuestos");
+    }
+
+    private void OnManoDeObraOrTotalPChanged(ChangeEventArgs e)
+    {
+        // Sumar los valores de Mano de Obra y Total Parcial y asignar a Total
+        var manodeObra = PresupuestoModel.ManodeObra ?? 0;
+        var totalP = PresupuestoModel.TotalP;
+        PresupuestoModel.Total = manodeObra + totalP;
+        StateHasChanged();
     }
 }
