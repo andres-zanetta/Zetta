@@ -1,6 +1,8 @@
 ﻿@page "/presupuestos/nuevo"
+@using Zetta.Client.Pages.Cliente
 @using Zetta.Shared.DTOS.Presupuesto
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
+@inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
@@ -16,12 +18,24 @@
 
         <div class="row g-3">
             <div class="col-md-6 mb-3">
+                <label for="cliente" class="form-label">Cliente </label>
+                <InputSelect id="cliente" class="form-select" @bind-Value="PresupuestoModel.ClienteId">
+                    <option value="">Seleccione un cliente</option>
+                    @foreach (var cliente in Clientes)
+                    {
+                        <option value="@cliente.Id">@cliente.Nombre</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => PresupuestoModel.ClienteId)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
                 <label for="rubro" class="form-label">Rubro *</label>
                 <InputSelect id="rubro" class="form-select" @bind-Value="PresupuestoModel.Rubro">
                     <option value="">Seleccione un Rubro</option>
-                    @foreach (var rubro in RubrosDisponibles)
+                    @foreach (var rubro in Enum.GetValues<Rubro>())
                     {
-                        <option value="@rubro.Key">@rubro.Value</option>
+                        <option value="@rubro">@rubro.ToString()</option>
                     }
                 </InputSelect>
                 <ValidationMessage For="@(() => PresupuestoModel.Rubro)" />
@@ -31,9 +45,9 @@
                 <label for="opcionPago" class="form-label">Opción de Pago *</label>
                 <InputSelect id="opcionPago" class="form-select" @bind-Value="PresupuestoModel.OpcionDePago">
                     <option value="">Seleccione una opción</option>
-                    @foreach (var pago in OpcionesDePago)
+                    @foreach (var pago in Enum.GetValues<OpcionDePago>())
                     {
-                        <option value="@pago.Key">@pago.Value</option>
+                        <option value="@pago">@pago.ToString()</option>
                     }
                 </InputSelect>
                 <ValidationMessage For="@(() => PresupuestoModel.OpcionDePago)" />
@@ -92,11 +106,27 @@
     // Se debe inicializar ClienteId porque es requerido
     private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0 };
 
+    private List<GET_ClienteDTO> Clientes { get; set; } = new();
+
     public Dictionary<int, string> RubrosDisponibles { get; set; } =
         Enum.GetValues(typeof(Rubro)).Cast<Rubro>().ToDictionary(t => (int)t, t => t.ToString());
 
     public Dictionary<int, string> OpcionesDePago { get; set; } =
         Enum.GetValues(typeof(OpcionDePago)).Cast<OpcionDePago>().ToDictionary(t => (int)t, t => t.ToString());
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar la lista de clientes al inicializar el componente
+        try
+        {
+            Clientes = (await ClienteService.GetAll()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar clientes: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al cargar la lista de clientes.");
+        }
+    }
 
     private async Task GuardarPresupuesto()
     {
