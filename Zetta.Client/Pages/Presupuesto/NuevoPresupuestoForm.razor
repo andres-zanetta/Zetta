@@ -1,0 +1,122 @@
+﻿@page "/presupuestos/nuevo"
+@using Zetta.Shared.DTOS.Presupuesto
+@inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="clientes-container">
+    <header class="clientes-header text-center mb-4">
+        <h1>Nuevo Presupuesto</h1>
+        <p class="subtitle">Completá los datos para crear un nuevo presupuesto.</p>
+    </header>
+
+    <EditForm Model="@PresupuestoModel" OnValidSubmit="GuardarPresupuesto">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row g-3">
+            <div class="col-md-6 mb-3">
+                <label for="rubro" class="form-label">Rubro *</label>
+                <InputSelect id="rubro" class="form-select" @bind-Value="PresupuestoModel.Rubro">
+                    <option value="">Seleccione un Rubro</option>
+                    @foreach (var rubro in RubrosDisponibles)
+                    {
+                        <option value="@rubro.Key">@rubro.Value</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => PresupuestoModel.Rubro)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="opcionPago" class="form-label">Opción de Pago *</label>
+                <InputSelect id="opcionPago" class="form-select" @bind-Value="PresupuestoModel.OpcionDePago">
+                    <option value="">Seleccione una opción</option>
+                    @foreach (var pago in OpcionesDePago)
+                    {
+                        <option value="@pago.Key">@pago.Value</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => PresupuestoModel.OpcionDePago)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
+                <InputNumber id="manodeObra" class="form-control" @bind-Value="PresupuestoModel.ManodeObra" />
+                <ValidationMessage For="@(() => PresupuestoModel.ManodeObra)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="totalParcial" class="form-label">Total Parcial ($)</label>
+                <InputNumber id="totalParcial" class="form-control" @bind-Value="PresupuestoModel.TotalP" />
+                <ValidationMessage For="@(() => PresupuestoModel.TotalP)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="totalFinal" class="form-label">Total Final ($)</label>
+                <InputNumber id="totalFinal" class="form-control" @bind-Value="PresupuestoModel.Total" />
+                <ValidationMessage For="@(() => PresupuestoModel.Total)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="tiempo" class="form-label">Tiempo Aprox. de Obra (días)</label>
+                <InputText id="tiempo" class="form-control" @bind-Value="PresupuestoModel.TiempoAproxObra" />
+                <ValidationMessage For="@(() => PresupuestoModel.TiempoAproxObra)" />
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="validez" class="form-label">Validez (días)</label>
+                <InputText id="validez" class="form-control" @bind-Value="PresupuestoModel.ValidacionDias" />
+                <ValidationMessage For="@(() => PresupuestoModel.ValidacionDias)" />
+            </div>
+
+            <div class="col-md-6 mb-3 d-flex align-items-center">
+                <InputCheckbox id="aceptado" class="form-check-input me-2" @bind-Value="PresupuestoModel.Aceptado" />
+                <label for="aceptado" class="form-check-label">Presupuesto Aceptado</label>
+            </div>
+
+            <div class="col-12 mb-3">
+                <label for="observacion" class="form-label">Observación</label>
+                <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
+            <button type="submit" class="btn btn-naranja">Guardar Presupuesto</button>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    // Modelo principal basado en DTO de creación
+    // Se debe inicializar ClienteId porque es requerido
+    private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0 };
+
+    // Diccionarios para dropdowns
+    public Dictionary<int, string> RubrosDisponibles { get; set; } =
+        Enum.GetValues(typeof(Rubro)).Cast<Rubro>().ToDictionary(t => (int)t, t => t.ToString());
+
+    public Dictionary<int, string> OpcionesDePago { get; set; } =
+        Enum.GetValues(typeof(OpcionDePago)).Cast<OpcionDePago>().ToDictionary(t => (int)t, t => t.ToString());
+
+    private async Task GuardarPresupuesto()
+    {
+        try
+        {
+            await PresupuestoService.Create(PresupuestoModel);
+            await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto creado con éxito.");
+            Volver();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al guardar presupuesto: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al guardar el presupuesto.");
+        }
+    }
+
+    private void Volver()
+    {
+        Navigation.NavigateTo("/presupuestos");
+    }
+}
+
