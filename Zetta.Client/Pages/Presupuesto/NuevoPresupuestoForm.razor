@@ -1,14 +1,27 @@
 ﻿@page "/presupuestos/nuevo"
-@using Zetta.Client.Pages.Cliente
+@using Zetta.Shared.DTOS.PresItemDetalle
 @using Zetta.Shared.DTOS.Presupuesto
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
+@* Pseudocódigo (plan detallado):
+   1. Añadir soporte para cancelar cálculos pendientes:
+      - Mantener un campo CancellationTokenSource `_recalcCts`.
+      - Implementar IDisposable en el componente para limpiar el token al destruirse.
+   2. Cambiar `RecalcularTotal` a método asíncrono `async Task`:
+      - Al invocarlo cancelar cualquier delay previo: `_recalcCts?.Cancel()` y crear uno nuevo.
+      - Esperar 5 segundos con `await Task.Delay(5000, token)`.
+      - Si la espera no se canceló, calcular `PresupuestoModel.Total = manoObra + totalP`.
+      - Llamar a `StateHasChanged()` para forzar re-render si es necesario.
+   3. Mantener los bindings actuales (`@oninput="RecalcularTotal"`) para que cada entrada reinicie el temporizador.
+   4. Liberar recursos en `Dispose()` cancelando/disponiendo `_recalcCts`.
+*@
+
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
-        <h1>Nuevo Presupuesto</h1>
+        <h1 class="fw-bold text-center text-naranja">Nuevo Presupuesto</h1>
         <p class="subtitle">Completá los datos para crear un nuevo presupuesto.</p>
     </header>
 
@@ -17,8 +30,9 @@
         <ValidationSummary />
 
         <div class="row g-3">
+            <!-- CLIENTE -->
             <div class="col-md-6 mb-3">
-                <label for="cliente" class="form-label">Cliente </label>
+                <label for="cliente" class="form-label">Cliente *</label>
                 <InputSelect id="cliente" class="form-select" @bind-Value="PresupuestoModel.ClienteId">
                     <option value="">Seleccione un cliente</option>
                     @foreach (var cliente in Clientes)
@@ -29,10 +43,11 @@
                 <ValidationMessage For="@(() => PresupuestoModel.ClienteId)" />
             </div>
 
+            <!-- RUBRO -->
             <div class="col-md-6 mb-3">
                 <label for="rubro" class="form-label">Rubro *</label>
                 <InputSelect id="rubro" class="form-select" @bind-Value="PresupuestoModel.Rubro">
-                    <option value="">Seleccione un Rubro</option>
+                    <option value="">Seleccione un rubro</option>
                     @foreach (var rubro in Enum.GetValues<Rubro>())
                     {
                         <option value="@rubro">@rubro.ToString()</option>
@@ -41,6 +56,7 @@
                 <ValidationMessage For="@(() => PresupuestoModel.Rubro)" />
             </div>
 
+            <!-- OPCIÓN DE PAGO -->
             <div class="col-md-6 mb-3">
                 <label for="opcionPago" class="form-label">Opción de Pago *</label>
                 <InputSelect id="opcionPago" class="form-select" @bind-Value="PresupuestoModel.OpcionDePago">
@@ -53,114 +69,206 @@
                 <ValidationMessage For="@(() => PresupuestoModel.OpcionDePago)" />
             </div>
 
+            <!-- MANO DE OBRA -->
             <div class="col-md-6 mb-3">
                 <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
-                <InputNumber id="manodeObra" class="form-control" @bind-Value="PresupuestoModel.ManodeObra" min="0.01" step="0.01" @oninput="OnManoDeObraOrTotalPChanged" />
+                <InputNumber id="manodeObra" class="form-control"
+                             @bind-Value="PresupuestoModel.ManodeObra"
+                             min="0" step="0.01"
+                             @oninput="RecalcularTotal" />
                 <ValidationMessage For="@(() => PresupuestoModel.ManodeObra)" />
             </div>
 
+            <!-- TOTAL PARCIAL -->
             <div class="col-md-6 mb-3">
                 <label for="totalParcial" class="form-label">Total Parcial ($)</label>
-                <InputNumber id="totalParcial" class="form-control" @bind-Value="PresupuestoModel.TotalP" min="0.01" step="0.01" @oninput="OnManoDeObraOrTotalPChanged" />
+                <InputNumber id="totalParcial" class="form-control"
+                             @bind-Value="PresupuestoModel.TotalP"
+                             min="0" step="0.01"
+                             @oninput="RecalcularTotal" />
                 <ValidationMessage For="@(() => PresupuestoModel.TotalP)" />
             </div>
 
+            <!-- TOTAL FINAL -->
             <div class="col-md-6 mb-3">
                 <label for="totalFinal" class="form-label">Total Final ($)</label>
-                <InputNumber id="totalFinal" class="form-control" @bind-Value="PresupuestoModel.Total" min="0.01" step="0.01" disabled />
-                <ValidationMessage For="@(() => PresupuestoModel.Total)" />
+                <input id="totalFinal" class="form-control bg-light fw-bold text-end"
+                       value="@PresupuestoModel.Total.ToString("N2")" readonly />
             </div>
 
+            <!-- TIEMPO DE OBRA -->
             <div class="col-md-6 mb-3">
                 <label for="tiempo" class="form-label">Tiempo Aprox. de Obra (días)</label>
                 <InputText id="tiempo" class="form-control" @bind-Value="PresupuestoModel.TiempoAproxObra" />
-                <ValidationMessage For="@(() => PresupuestoModel.TiempoAproxObra)" />
             </div>
 
+            <!-- VALIDEZ -->
             <div class="col-md-6 mb-3">
                 <label for="validez" class="form-label">Validez (días)</label>
                 <InputText id="validez" class="form-control" @bind-Value="PresupuestoModel.ValidacionDias" />
-                <ValidationMessage For="@(() => PresupuestoModel.ValidacionDias)" />
             </div>
 
-            <div class="col-md-6 mb-3 d-flex align-items-center">
-                <InputCheckbox id="aceptado" class="form-check-input me-2" @bind-Value="PresupuestoModel.Aceptado" />
-                <label for="aceptado" class="form-check-label">Presupuesto Aceptado</label>
-            </div>
 
+            <!-- OBSERVACIÓN -->
             <div class="col-12 mb-3">
                 <label for="observacion" class="form-label">Observación</label>
                 <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
             </div>
+            <!-- ITEMS -->
+            <div class="col-md-6 mb-3">
+                <label for="items" class="form-label">Items</label>
+                <InputTextArea id="items"
+                               class="form-control"
+                               rows="3"
+                               @bind-Value="ItemsDetalleTexto" />
+            </div>
         </div>
 
+        <!-- MENSAJE DE ESTADO -->
+        @if (!string.IsNullOrEmpty(Mensaje))
+        {
+            <div class="alert @MensajeCss mt-3 text-center">@Mensaje</div>
+        }
+
+        <!-- BOTONES -->
         <div class="d-flex justify-content-end gap-2 mt-4">
             <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
-            <button type="submit" class="btn btn-naranja">Guardar Presupuesto</button>
+            <button type="submit" class="btn btn-naranja" disabled="@Guardando">
+                @(Guardando ? "Guardando..." : "Guardar Presupuesto")
+            </button>
         </div>
     </EditForm>
 </div>
 
 @code {
-    // Modelo principal con validaciones
-    // Se debe inicializar ClienteId porque es requerido
+ 
     private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0 };
-
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
 
-    public Dictionary<int, string> RubrosDisponibles { get; set; } =
-        Enum.GetValues(typeof(Rubro)).Cast<Rubro>().ToDictionary(t => (int)t, t => t.ToString());
+    private bool Guardando = false;
+    private string? Mensaje;
+    private string? MensajeCss;
 
-    public Dictionary<int, string> OpcionesDePago { get; set; } =
-        Enum.GetValues(typeof(OpcionDePago)).Cast<OpcionDePago>().ToDictionary(t => (int)t, t => t.ToString());
+    // CancellationTokenSource para debouncing del cálculo
+    private CancellationTokenSource? _recalcCts;
 
     protected override async Task OnInitializedAsync()
     {
-        // Cargar la lista de clientes al inicializar el componente
         try
         {
-            Clientes = (await ClienteService.GetAll()).ToList();
+            Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar clientes: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al cargar la lista de clientes.");
+            MostrarMensaje($"Error al cargar clientes: {ex.Message}", "alert-danger");
         }
     }
 
     private async Task GuardarPresupuesto()
     {
+        Guardando = true;
+        Mensaje = null;
+
         try
         {
-            if (PresupuestoModel.Total <= 0 || PresupuestoModel.TotalP <= 0 || (PresupuestoModel.ManodeObra ?? 0) <= 0)
+            // Validación básica
+            if (PresupuestoModel.ClienteId == 0)
             {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ Los valores monetarios deben ser mayores a 0.");
+                MostrarMensaje("Debe seleccionar un cliente.", "alert-warning");
+                Guardando = false;
+                return;
+            }
+
+            if (PresupuestoModel.Total <= 0)
+            {
+                MostrarMensaje("El total debe ser mayor a 0.", "alert-warning");
+                Guardando = false;
                 return;
             }
 
             await PresupuestoService.Create(PresupuestoModel);
-            await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto creado con éxito.");
-            await Task.Delay(500); // Opcional: para que el usuario vea el mensaje es un delay corto
-            Navigation.NavigateTo("/presupuestos", forceLoad: true);
+            MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
+
+            await Task.Delay(1200);
+            Navigation.NavigateTo("/presupuestos", true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al guardar presupuesto: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al guardar el presupuesto.");
+            MostrarMensaje($"Error al guardar presupuesto: {ex.Message}", "alert-danger");
+        }
+
+        Guardando = false;
+    }
+
+    // Método asíncrono con espera de 5 segundos y cancelación si llegan nuevos eventos
+    private async Task RecalcularTotal(ChangeEventArgs e)
+    {
+        // Cancelar espera previa
+        _recalcCts?.Cancel();
+        _recalcCts?.Dispose();
+        _recalcCts = new CancellationTokenSource();
+        var token = _recalcCts.Token;
+
+        try
+        {
+            // Esperar 5 segundos (5000 ms). Si se cancela, se lanzará TaskCanceledException
+            await Task.Delay(5000, token);
+        }
+        catch (TaskCanceledException)
+        {
+            // Si se canceló, salir sin calcular
+            return;
+        }
+        catch
+        {
+            // En cualquier otro fallo, evitar romper la UI
+            return;
+        }
+
+        // Realizar cálculo final después de la espera
+        var manoObra = PresupuestoModel.ManodeObra ?? 0m;
+        var totalP = PresupuestoModel.TotalP;
+        PresupuestoModel.Total = Math.Max(0m, manoObra + totalP);
+
+        // Forzar re-render
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void Volver() => Navigation.NavigateTo("/presupuestos");
+
+    private void MostrarMensaje(string texto, string tipo)
+    {
+        Mensaje = texto;
+        MensajeCss = tipo;
+        StateHasChanged();
+    }
+
+    // Añadir propiedad auxiliar para el texto de los items
+    private string? ItemsDetalleTexto
+    {
+        get => PresupuestoModel.ItemsDetalle is not null
+            ? string.Join(Environment.NewLine, PresupuestoModel.ItemsDetalle.Select(i => i.ToString()))
+            : string.Empty;
+        set
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                PresupuestoModel.ItemsDetalle = null;
+            }
+            else
+            {
+                // Aquí deberías parsear el texto a objetos POST_PresItemDetalleDTO según tu lógica de negocio.
+                // Por ahora, lo dejamos vacío para evitar el error CS1061.
+                PresupuestoModel.ItemsDetalle = new List<POST_PresItemDetalleDTO>();
+            }
         }
     }
 
-    private void Volver()
+    // Limpiar CancellationTokenSource al desmontar el componente
+    public void Dispose()
     {
-        Navigation.NavigateTo("/presupuestos");
-    }
-
-    private void OnManoDeObraOrTotalPChanged(ChangeEventArgs e)
-    {
-        // Sumar los valores de Mano de Obra y Total Parcial y asignar a Total
-        var manodeObra = PresupuestoModel.ManodeObra ?? 0;
-        var totalP = PresupuestoModel.TotalP;
-        PresupuestoModel.Total = manodeObra + totalP;
-        StateHasChanged();
+        _recalcCts?.Cancel();
+        _recalcCts?.Dispose();
+        _recalcCts = null;
     }
 }
