@@ -15,6 +15,33 @@
         <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Agregar Ítem</button>
     </div>
 
+    @* FILTROS *@
+    <div class="row mb-3 g-2 align-items-center">
+        <div class="col-auto">
+            <select class="form-select" @onchange="OnRubroChanged">
+                <option value="">Todos los rubros</option>
+                @foreach (var r in Enum.GetValues<Rubro>())
+                {
+                    <option value="@((int)r)" selected="@(SelectedRubro.HasValue && SelectedRubro.Value == (int)r)">
+                        @GetNombreRubro((Rubro)r)
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="col">
+            <input class="form-control" placeholder="Buscar por nombre o descripción..." value="@SearchTerm" @oninput="OnSearchInput" />
+        </div>
+
+        <div class="col-auto">
+            <button class="btn btn-secondary" @onclick="ResetFilters">Limpiar</button>
+        </div>
+
+        <div class="col-auto text-muted">
+            @($"{PresupuestoItems.Count} ítems mostrados")
+        </div>
+    </div>
+
     @if (Cargando)
     {
         <p>Cargando ítems...</p>
@@ -37,21 +64,30 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in PresupuestoItems)
+                    @if (PresupuestoItems.Any())
+                    {
+                        @foreach (var item in PresupuestoItems)
+                        {
+                            <tr>
+                                <td>@item.Nombre</td>
+                                <td>@item.Precio.ToString("C", new System.Globalization.CultureInfo("es-AR"))</td>
+                                <td>@GetNombreRubro(item.Rubro)</td>
+                                <td>@item.Medida</td>
+                                <td>@item.Descripcion</td>
+                                <td>@item.Fabricante</td>
+                                <td>@item.Marca</td>
+                                <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
+                                    <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>@item.Nombre</td>
-                            <td>@item.Precio.ToString("C", new System.Globalization.CultureInfo("es-AR"))</td>
-                            <td>@item.Rubro</td>
-                            <td>@item.Medida</td>
-                            <td>@item.Descripcion</td>
-                            <td>@item.Fabricante</td>
-                            <td>@item.Marca</td>
-                            <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
-                                <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
-                            </td>
+                            <td colspan="9" class="text-center text-muted">No se encontraron ítems.</td>
                         </tr>
                     }
                 </tbody>
@@ -66,7 +102,7 @@
                 <div class="modal-content p-3">
                     <h4>Detalles del Ítem</h4>
                     <p><strong>ID:</strong> @ItemSeleccionado.Id</p>
-                    <p><strong>Descripción:</strong> @ItemSeleccionado.Descripcion</p>
+                    <p><strong>Descripción:</strong> @ItemSeleccionado.Descripcion</p>          
                     <p><strong>Precio:</strong> @ItemSeleccionado.Precio</p>
                     <button class="btn btn-secondary" @onclick="CerrarDetalles">Cerrar</button>
                 </div>
@@ -77,24 +113,80 @@
 </div>
 
 @code {
+    private List<GET_ItemPresupuestoDTO> AllItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
     private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
     private bool Cargando = true;
 
     private GET_ItemPresupuestoDTO? ItemSeleccionado { get; set; }
     private bool MostrarDetalles { get; set; } = false;
 
+    // Filtros
+    private int? SelectedRubro { get; set; } = null;
+    private string SearchTerm { get; set; } = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            PresupuestoItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+            AllItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+            PresupuestoItems = AllItems.ToList();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar ítems: {ex.Message}");
+            AllItems = new List<GET_ItemPresupuestoDTO>();
             PresupuestoItems = new List<GET_ItemPresupuestoDTO>();
         }
         Cargando = false;
+    }
+
+    private void OnRubroChanged(ChangeEventArgs e)
+    {
+        if (e?.Value == null || string.IsNullOrWhiteSpace(e.Value.ToString()))
+        {
+            SelectedRubro = null;
+        }
+        else if (int.TryParse(e.Value.ToString(), out var v))
+        {
+            SelectedRubro = v;
+        }
+        FilterItems();
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e?.Value?.ToString() ?? string.Empty;
+        FilterItems();
+    }
+
+    private void FilterItems()
+    {
+        IEnumerable<GET_ItemPresupuestoDTO> query = AllItems;
+
+        if (SelectedRubro.HasValue)
+        {
+            query = query.Where(i => (int)i.Rubro == SelectedRubro.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(SearchTerm))
+        {
+            var s = SearchTerm.Trim().ToLowerInvariant();
+            query = query.Where(i =>
+                (!string.IsNullOrEmpty(i.Nombre) && i.Nombre.ToLowerInvariant().Contains(s)) ||
+                (!string.IsNullOrEmpty(i.Descripcion) && i.Descripcion.ToLowerInvariant().Contains(s))
+            );
+        }
+
+        PresupuestoItems = query.ToList();
+        StateHasChanged();
+    }
+
+    private void ResetFilters()
+    {
+        SelectedRubro = null;
+        SearchTerm = string.Empty;
+        PresupuestoItems = AllItems.ToList();
+        StateHasChanged();
     }
 
     private async Task EliminarItem(int id)
@@ -104,6 +196,7 @@
             try
             {
                 await ItemService.Delete(id);
+                AllItems.RemoveAll(i => i.Id == id);
                 PresupuestoItems.RemoveAll(i => i.Id == id);
             }
             catch (Exception ex)
@@ -135,4 +228,14 @@
         MostrarDetalles = false;
         ItemSeleccionado = null;
     }
+
+    private string GetNombreRubro(Rubro rubro) => rubro switch
+    {
+        Rubro.Gas => "Gas",
+        Rubro.Electricidad => "Electricidad",
+        Rubro.Refrigeracion => "Refrigeración",
+        Rubro.Solar => "Solar",
+        Rubro.Plomeria => "Plomería",
+        _ => rubro.ToString()
+    };
 }

@@ -123,6 +123,7 @@ code {
     .home-header .subtitle {
         font-size: 1.2rem;
         color: #555;
+        color: #ff6600;
     }
 
 .quick-access h2 {
@@ -206,18 +207,26 @@ code {
         color: #fff;
     }
 
+/* Tabla */
 .table {
     background-color: #fff;
     border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
     .table thead {
-        background-color: #343a40;
+        background-color: var(--table-header);
         color: #fff;
     }
 
+    .table thead th {
+        color: #fff;
+        font-weight: 600;
+    }
+
     .table tbody tr:hover {
-        background-color: #e9ecef;
+        background-color: var(--table-row-hover);
     }
 
 

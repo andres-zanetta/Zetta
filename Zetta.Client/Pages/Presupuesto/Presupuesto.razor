@@ -13,154 +13,143 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
         <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Presupuesto</button>
-        
     </div>
 
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Rubro</th>
-                <th>Opción de Pago</th>
-                <th>Mano de Obra</th>
-                <th>Total Parcial</th>
-                <th>Total Final</th>
-                <th>Aceptado</th>
-                <th>Tiempo Aprox. Obra</th>
-                <th>Validez (días)</th>
-                <th>Observación</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            @if (Presupuestos == null || Presupuestos.Count == 0)
-            {
+    @if (Cargando)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-3">Cargando presupuestos...</p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <td colspan="11" class="text-center text-muted">No hay presupuestos registrados.</td>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Rubro</th>
+                    <th>Opción de Pago</th>
+                    <th>Mano de Obra</th>
+                    <th>Total Parcial</th>
+                    <th>Total Final</th>
+                    <th>Estado</th>
+                    <th>Tiempo Obra</th>
+                    <th>Validez (días)</th>
+                    <th>Observación</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
-            }
-            else
-            {
-                @foreach (var p in Presupuestos)
+            </thead>
+
+            <tbody>
+                @if (Presupuestos == null || Presupuestos.Count == 0)
                 {
                     <tr>
-                        <td>@p.Id</td>
-                        <td>@p.Rubro</td>
-                        <td>@p.OpcionDePago</td>
-                        <td>$ @p.ManodeObra?.ToString("N2")</td>
-                        <td>$ @p.TotalP.ToString("N2")</td>
-                        <td>$ @p.Total.ToString("N2")</td>
-                        <td>
-                            @if (p.Aceptado)
-                            {
-                                <span class="badge bg-success">Aceptado</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Pendiente</span>
-                            }
-                        </td>
-                        <td>@p.TiempoAproxObra días</td>
-                        <td>@p.ValidacionDias</td>
-                        <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary me-2"
-                                    @onclick="() => AbrirFormularioEdicion(p)">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarPresupuesto(p.Id)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <td colspan="12" class="text-center text-muted">No hay presupuestos registrados.</td>
                     </tr>
                 }
-            }
-        </tbody>
-    </table>
+                else
+                {
+                    @foreach (var p in Presupuestos)
+                    {
+                        <tr>
+                            <td>@p.Id</td>
+                            @* <td>@p.NombreCliente</td> *@
+                            <td>@p.Rubro</td>
+                            <td>@p.OpcionDePago</td>
+                            <td>$ @p.ManodeObra?.ToString("N2")</td>
+                            <td>$ @p.TotalP.ToString("N2")</td>
+                            <td class="fw-bold">$ @p.Total.ToString("N2")</td>
+                            <td>
+                                @if (p.Aceptado)
+                                {
+                                    <span class="badge bg-success">Aceptado</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Pendiente</span>
+                                }
+                            </td>
+                            <td>@p.TiempoAproxObra</td>
+                            <td>@p.ValidacionDias</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
+                            
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary me-2"
+                                        title="Editar presupuesto"
+                                        @onclick="() => AbrirFormularioEdicion(p.Id)">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                        title="Eliminar presupuesto"
+                                        @onclick="() => EliminarPresupuesto(p.Id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
 </div>
 
 @code {
     private List<GET_PresupuestoDTO> Presupuestos { get; set; } = new();
-
-    private PresupuestoFormModel PresupuestoActual = new PresupuestoFormModel();
-    private bool MostrarModal = false;
     private bool Cargando = true;
 
-    public class PresupuestoFormModel
+    // Carga inicial
+    protected override async Task OnInitializedAsync()
     {
-        public Rubro Rubro { get; set; } 
-        public bool Aceptado { get; set; } = false;  
-
-        public string? Observacion { get; set; } // Notas o comentarios adicionales.
-
-
-        public decimal Total { get; set; } // Monto total final del presupuesto.
-
-
-        public decimal? ManodeObra { get; set; } // Costo estimado de mano de obra.
-
-
-        public decimal TotalP { get; set; } // Campo adicional para otro cálculo de total si es necesario.
-
-        public string TiempoAproxObra { get; set; } // Tiempo estimado para la ejecución de la obra.
-
-        public string ValidacionDias { get; set; } // Días de validez del presupuesto.
-
-        public OpcionDePago OpcionDePago { get; set; } // Opción de pago seleccionada.
-
-
+        await CargarPresupuestos();
     }
 
-
-
-
-    protected override async Task OnInitializedAsync()
+    private async Task CargarPresupuestos()
     {
         try
         {
-            Presupuestos = await PresupuestoService.GetAll() ?? new List<GET_PresupuestoDTO>();
+            Cargando = true;
+            Presupuestos = await PresupuestoService.GetAll() ?? new();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar presupuestos: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al cargar presupuestos.");
         }
-        Cargando = false;
+        finally
+        {
+            Cargando = false;
+        }
     }
 
-    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/presupuestos/nuevo");
-
-    private void AbrirFormularioEdicion(GET_PresupuestoDTO presupuesto)
+    private void AbrirFormularioNuevo()
     {
-        PresupuestoActual = new PresupuestoFormModel
-        {
-            Rubro = presupuesto.Rubro,
-            Aceptado = presupuesto.Aceptado,
-            Observacion=presupuesto.Observacion,
+        Navigation.NavigateTo("/presupuestos/nuevo");
+    }
 
-                
-
-        };
+    private void AbrirFormularioEdicion(int id)
+    {
+        Navigation.NavigateTo($"/presupuestos/editar/{id}");
     }
 
     private async Task EliminarPresupuesto(int id)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que querés eliminar este presupuesto?"))
+        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este presupuesto?");
+        if (!confirmar) return;
+
+        try
         {
-            try
-            {
-                await PresupuestoService.Delete(id);
-                Presupuestos.RemoveAll(p => p.Id == id);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error eliminando presupuesto: {ex.Message}");
-            }
+            await PresupuestoService.Delete(id);
+            Presupuestos.RemoveAll(p => p.Id == id);
+            await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto eliminado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al eliminar presupuesto: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al eliminar el presupuesto.");
         }
     }
 
-    private void VolverAlInicio()
-    {
-        Navigation.NavigateTo("/");
-    }
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
 }
