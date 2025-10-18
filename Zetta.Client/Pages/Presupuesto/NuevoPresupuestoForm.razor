@@ -9,13 +9,14 @@
 @inject NavigationManager Navigation
 @implements IDisposable
 
+
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
         <h1 class="fw-bold text-center text-naranja">Nuevo Presupuesto</h1>
         <p class="subtitle">Completá los datos para crear un nuevo presupuesto.</p>
     </header>
 
-    <EditForm Model="@PresupuestoModel" OnValidSubmit="@((EditContext _) => GuardarPresupuesto())">
+    <EditForm Model="@PresupuestoModel" OnValidSubmit="GuardarPresupuesto">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -73,7 +74,7 @@
             <div class="col-md-6 mb-3">
                 <label for="totalParcial" class="form-label">Total Parcial ($)</label>
                 <InputNumber id="totalParcial" class="form-control"
-                             Value="PresupuestoModel.TotalP"
+                             @bind-Value="PresupuestoModel.TotalP"
                              min="0" step="0.01"
                              readonly />
                 <ValidationMessage For="@(() => PresupuestoModel.TotalP)" />
@@ -181,13 +182,10 @@
     private string? Mensaje;
     private string? MensajeCss;
 
-    // CancellationTokenSource para debouncing del cálculo
     private CancellationTokenSource? _recalcCts;
 
-    // Catálogo de items cargados desde Items.razor (API)
     private List<GET_ItemPresupuestoDTO> CatalogoItems { get; set; } = new();
 
-    // ViewModel para items seleccionados en el presupuesto
     private class SelectedItemVM
     {
         public int ItemId { get; set; }
@@ -203,11 +201,8 @@
         try
         {
             Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
-
-            // Cargar catálogo de items al inicializar
             await LoadCatalogItemsAsync();
 
-            // Si ya hubiera items en el modelo (edición), mapearlos a SelectedItems
             if (PresupuestoModel.ItemsDetalle != null)
             {
                 foreach (var d in PresupuestoModel.ItemsDetalle)
@@ -224,7 +219,6 @@
                 RecalcularFromSelectedItems();
             }
 
-            // Suscribirse a cambios de ubicación para recargar catálogo cuando se vuelva de Items.razor
             Navigation.LocationChanged += OnLocationChanged;
         }
         catch (Exception ex)
@@ -233,7 +227,6 @@
         }
     }
 
-    // Cargar catálogo desde el servicio
     private async Task LoadCatalogItemsAsync()
     {
         try
@@ -248,7 +241,6 @@
         }
     }
 
-    // Evento que detecta navegación; si la ruta actual es el formulario recarga el catálogo
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         try
@@ -257,14 +249,10 @@
             var path = uri.AbsolutePath?.TrimEnd('/').ToLowerInvariant() ?? string.Empty;
             if (path == "/presupuestos/nuevo")
             {
-                // Recargar catálogo en background
                 await LoadCatalogItemsAsync();
             }
         }
-        catch
-        {
-            // evitar que el evento rompa la app
-        }
+        catch { }
     }
 
     private async Task GuardarPresupuesto()
@@ -274,7 +262,6 @@
 
         try
         {
-            // Validación básica
             if (PresupuestoModel.ClienteId == 0)
             {
                 MostrarMensaje("Debe seleccionar un cliente.", "alert-warning");
@@ -289,7 +276,6 @@
                 return;
             }
 
-            // Construir ItemsDetalle a partir de SelectedItems
             PresupuestoModel.ItemsDetalle = SelectedItems
                 .Select(s => new POST_PresItemDetalleDTO
                 {
@@ -313,10 +299,8 @@
         Guardando = false;
     }
 
-    // Método asíncrono con espera de 5 segundos y cancelación si llegan nuevos eventos
     private async Task RecalcularTotal(ChangeEventArgs e)
     {
-        // Cancelar espera previa
         _recalcCts?.Cancel();
         _recalcCts?.Dispose();
         _recalcCts = new CancellationTokenSource();
@@ -324,26 +308,20 @@
 
         try
         {
-            // Esperar 5 segundos (5000 ms). Si se cancela, se lanzará TaskCanceledException
             await Task.Delay(5000, token);
         }
         catch (TaskCanceledException)
         {
-            // Si se canceló, salir sin calcular
             return;
         }
         catch
         {
-            // En cualquier otro fallo, evitar romper la UI
             return;
         }
 
-        // Realizar cálculo final después de la espera
         var manoObra = PresupuestoModel.ManodeObra ?? 0m;
-        var totalP = PresupuestoModel.TotalP;
-        PresupuestoModel.Total = Math.Max(0m, manoObra + totalP);
+        PresupuestoModel.Total = Math.Max(0m, manoObra + PresupuestoModel.TotalP);
 
-        // Forzar re-render
         await InvokeAsync(StateHasChanged);
     }
 
@@ -356,7 +334,6 @@
         StateHasChanged();
     }
 
-    // Handlers de selección/edición de items del catálogo
     private void OnToggleItem(GET_ItemPresupuestoDTO cat, ChangeEventArgs e)
     {
         var existing = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
@@ -403,34 +380,19 @@
 
     private void RecalcularFromSelectedItems()
     {
-        // Sumar subtotal de items y asignar a TotalP, luego recalcular Total (mano de obra + totalP)
         PresupuestoModel.TotalP = SelectedItems.Sum(s => s.Precio * s.Cantidad);
         var manoObra = PresupuestoModel.ManodeObra ?? 0m;
         PresupuestoModel.Total = Math.Max(0m, manoObra + PresupuestoModel.TotalP);
         StateHasChanged();
     }
 
-    // Añadir propiedad auxiliar para el texto de los items (solo para revisión/visual)
-    private string? ItemsDetalleTexto
-    {
-        get => SelectedItems.Any()
-            ? string.Join(Environment.NewLine, SelectedItems.Select(s => $"{s.Nombre} | Cant: {s.Cantidad} | PU: {s.Precio:0.00}"))
-            : string.Empty;
-        set
-        {
-            // No parseamos texto libre — mantenemos la lista de SelectedItems desde la UI tabulada.
-        }
-    }
+    private string? ItemsDetalleTexto => SelectedItems.Any()
+        ? string.Join(Environment.NewLine, SelectedItems.Select(s => $"{s.Nombre} | Cant: {s.Cantidad} | PU: {s.Precio:0.00}"))
+        : string.Empty;
 
-    // Limpiar suscripciones y CancellationTokenSource al desmontar el componente
     public void Dispose()
     {
-        try
-        {
-            Navigation.LocationChanged -= OnLocationChanged;
-        }
-        catch { }
-
+        try { Navigation.LocationChanged -= OnLocationChanged; } catch { }
         _recalcCts?.Cancel();
         _recalcCts?.Dispose();
         _recalcCts = null;
@@ -445,19 +407,9 @@
         Rubro.Plomeria => "Plomería",
         _ => rubro.ToString()
     };
+
+ 
+
+
 }
-@* Pseudocódigo (plan detallado):
-   1. Añadir soporte para cancelar cálculos pendientes:
-      - Mantener un campo CancellationTokenSource `_recalcCts`.
-      - Implementar IDisposable en el componente para limpiar el token al destruirse.
-   2. Cambiar `RecalcularTotal` a método asíncrono `async Task`:
-      - Al invocarlo cancelar cualquier delay previo: `_recalcCts?.Cancel()` y crear uno nuevo.
-      - Esperar 5 segundos con `await Task.Delay(5000, token)`.
-      - Si la espera no se canceló, calcular `PresupuestoModel.Total = manoObra + totalP`.
-      - Llamar a `StateHasChanged()` para forzar re-render si es necesario.
-   3. Mantener los bindings actuales (`@oninput="RecalcularTotal"`) para que cada entrada reinicie el temporizador.
-   4. Liberar recursos en `Dispose()` cancelando/disponiendo `_recalcCts`.
-   5. Sincronizar catálogo de ítems cuando se vuelva de la página Items:
-      - Cargar catálogo en OnInitializedAsync y exponer LoadCatalogItemsAsync.
-      - Suscribirse a Navigation.LocationChanged y recargar catálogo si la ruta actual es el formulario.
-*@
+

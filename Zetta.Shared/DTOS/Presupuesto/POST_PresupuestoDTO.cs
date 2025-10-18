@@ -13,9 +13,9 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public Rubro Rubro { get; set; }
         public bool Aceptado { get; set; } = false;
         public string? Observacion { get; set; }
-        public decimal? ManodeObra { get; set; }
-        public decimal Total { get; set; }
-        public decimal TotalP { get; set; }
+        public decimal? ManodeObra { get; set; }=0m;
+        public decimal Total { get; set; }=0m;
+        public decimal TotalP { get; set; } = 0m;
         public string TiempoAproxObra { get; set; }
         public string ValidacionDias { get; set; }
         public OpcionDePago OpcionDePago { get; set; }
