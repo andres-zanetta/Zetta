@@ -1,23 +1,13 @@
 ﻿@page "/presupuestos/nuevo"
 @using Zetta.Shared.DTOS.PresItemDetalle
 @using Zetta.Shared.DTOS.Presupuesto
+@using Zetta.Shared.DTOS.ItemPresupuesto
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
+@inject Zetta.Client.Servicios.ItemPresupuestoService ItemService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
-
-@* Pseudocódigo (plan detallado):
-   1. Añadir soporte para cancelar cálculos pendientes:
-      - Mantener un campo CancellationTokenSource `_recalcCts`.
-      - Implementar IDisposable en el componente para limpiar el token al destruirse.
-   2. Cambiar `RecalcularTotal` a método asíncrono `async Task`:
-      - Al invocarlo cancelar cualquier delay previo: `_recalcCts?.Cancel()` y crear uno nuevo.
-      - Esperar 5 segundos con `await Task.Delay(5000, token)`.
-      - Si la espera no se canceló, calcular `PresupuestoModel.Total = manoObra + totalP`.
-      - Llamar a `StateHasChanged()` para forzar re-render si es necesario.
-   3. Mantener los bindings actuales (`@oninput="RecalcularTotal"`) para que cada entrada reinicie el temporizador.
-   4. Liberar recursos en `Dispose()` cancelando/disponiendo `_recalcCts`.
-*@
+@implements IDisposable
 
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
@@ -25,7 +15,7 @@
         <p class="subtitle">Completá los datos para crear un nuevo presupuesto.</p>
     </header>
 
-    <EditForm Model="@PresupuestoModel" OnValidSubmit="GuardarPresupuesto">
+    <EditForm Model="@PresupuestoModel" OnValidSubmit="@((EditContext _) => GuardarPresupuesto())">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -79,13 +69,13 @@
                 <ValidationMessage For="@(() => PresupuestoModel.ManodeObra)" />
             </div>
 
-            <!-- TOTAL PARCIAL -->
+            <!-- TOTAL PARCIAL (se calcula desde items seleccionados) -->
             <div class="col-md-6 mb-3">
                 <label for="totalParcial" class="form-label">Total Parcial ($)</label>
                 <InputNumber id="totalParcial" class="form-control"
-                             @bind-Value="PresupuestoModel.TotalP"
+                             Value="PresupuestoModel.TotalP"
                              min="0" step="0.01"
-                             @oninput="RecalcularTotal" />
+                             readonly />
                 <ValidationMessage For="@(() => PresupuestoModel.TotalP)" />
             </div>
 
@@ -108,19 +98,61 @@
                 <InputText id="validez" class="form-control" @bind-Value="PresupuestoModel.ValidacionDias" />
             </div>
 
-
             <!-- OBSERVACIÓN -->
             <div class="col-12 mb-3">
                 <label for="observacion" class="form-label">Observación</label>
                 <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
             </div>
-            <!-- ITEMS -->
-            <div class="col-md-6 mb-3">
-                <label for="items" class="form-label">Items</label>
-                <InputTextArea id="items"
-                               class="form-control"
-                               rows="3"
-                               @bind-Value="ItemsDetalleTexto" />
+
+            <!-- ITEMS: selector con checkbox, cantidad y precio unitario -->
+            <div class="col-12 mb-3">
+                <label class="form-label">Items</label>
+
+                @if (CatalogoItems == null || !CatalogoItems.Any())
+                {
+                    <div class="alert alert-secondary p-2">No hay ítems cargados en el catálogo.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width:40px"></th>
+                                    <th>Nombre</th>
+                                    <th style="width:120px">Precio unitario</th>
+                                    <th style="width:120px">Cantidad</th>
+                                    <th>Rubro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cat in CatalogoItems)
+                                {
+                                    var vm = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
+                                    <tr>
+                                        <td class="align-middle">
+                                            <input type="checkbox" class="form-check-input"
+                                                   checked="@(vm != null)"
+                                                   @onchange="(e) => OnToggleItem(cat, (ChangeEventArgs)e)" />
+                                        </td>
+                                        <td class="align-middle">@cat.Nombre</td>
+                                        <td>
+                                            <input class="form-control form-control-sm text-end"
+                                                   value="@(vm != null ? vm.Precio.ToString("0.00") : cat.Precio.ToString("0.00"))"
+                                                   @onchange="(e) => OnPrecioChanged(cat.Id, (ChangeEventArgs)e)" />
+                                        </td>
+                                        <td>
+                                            <input class="form-control form-control-sm text-end"
+                                                   value="@(vm != null ? vm.Cantidad.ToString() : "1")"
+                                                   @onchange="(e) => OnCantidadChanged(cat.Id, (ChangeEventArgs)e)" />
+                                        </td>
+                                        <td class="align-middle">@GetNombreRubro(cat.Rubro)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
             </div>
         </div>
 
@@ -141,7 +173,7 @@
 </div>
 
 @code {
- 
+
     private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0 };
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
 
@@ -152,15 +184,86 @@
     // CancellationTokenSource para debouncing del cálculo
     private CancellationTokenSource? _recalcCts;
 
+    // Catálogo de items cargados desde Items.razor (API)
+    private List<GET_ItemPresupuestoDTO> CatalogoItems { get; set; } = new();
+
+    // ViewModel para items seleccionados en el presupuesto
+    private class SelectedItemVM
+    {
+        public int ItemId { get; set; }
+        public string? Nombre { get; set; }
+        public int Cantidad { get; set; } = 1;
+        public decimal Precio { get; set; } = 0m;
+    }
+
+    private List<SelectedItemVM> SelectedItems { get; set; } = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
+
+            // Cargar catálogo de items al inicializar
+            await LoadCatalogItemsAsync();
+
+            // Si ya hubiera items en el modelo (edición), mapearlos a SelectedItems
+            if (PresupuestoModel.ItemsDetalle != null)
+            {
+                foreach (var d in PresupuestoModel.ItemsDetalle)
+                {
+                    var cat = CatalogoItems.FirstOrDefault(c => c.Id == d.ItemPresupuestoId);
+                    SelectedItems.Add(new SelectedItemVM
+                    {
+                        ItemId = d.ItemPresupuestoId,
+                        Nombre = cat?.Nombre,
+                        Cantidad = d.Cantidad,
+                        Precio = d.PrecioUnitario
+                    });
+                }
+                RecalcularFromSelectedItems();
+            }
+
+            // Suscribirse a cambios de ubicación para recargar catálogo cuando se vuelva de Items.razor
+            Navigation.LocationChanged += OnLocationChanged;
         }
         catch (Exception ex)
         {
-            MostrarMensaje($"Error al cargar clientes: {ex.Message}", "alert-danger");
+            MostrarMensaje($"Error al cargar clientes o items: {ex.Message}", "alert-danger");
+        }
+    }
+
+    // Cargar catálogo desde el servicio
+    private async Task LoadCatalogItemsAsync()
+    {
+        try
+        {
+            CatalogoItems = (await ItemService.GetAll()) ?? new List<GET_ItemPresupuestoDTO>();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar catálogo de ítems: {ex.Message}");
+            CatalogoItems = new List<GET_ItemPresupuestoDTO>();
+        }
+    }
+
+    // Evento que detecta navegación; si la ruta actual es el formulario recarga el catálogo
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        try
+        {
+            var uri = new Uri(e.Location);
+            var path = uri.AbsolutePath?.TrimEnd('/').ToLowerInvariant() ?? string.Empty;
+            if (path == "/presupuestos/nuevo")
+            {
+                // Recargar catálogo en background
+                await LoadCatalogItemsAsync();
+            }
+        }
+        catch
+        {
+            // evitar que el evento rompa la app
         }
     }
 
@@ -186,10 +289,20 @@
                 return;
             }
 
+            // Construir ItemsDetalle a partir de SelectedItems
+            PresupuestoModel.ItemsDetalle = SelectedItems
+                .Select(s => new POST_PresItemDetalleDTO
+                {
+                    ItemPresupuestoId = s.ItemId,
+                    Cantidad = s.Cantidad,
+                    PrecioUnitario = s.Precio
+                })
+                .ToList();
+
             await PresupuestoService.Create(PresupuestoModel);
             MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
 
-            await Task.Delay(1200);
+            await Task.Delay(900);
             Navigation.NavigateTo("/presupuestos", true);
         }
         catch (Exception ex)
@@ -243,32 +356,108 @@
         StateHasChanged();
     }
 
-    // Añadir propiedad auxiliar para el texto de los items
-    private string? ItemsDetalleTexto
+    // Handlers de selección/edición de items del catálogo
+    private void OnToggleItem(GET_ItemPresupuestoDTO cat, ChangeEventArgs e)
     {
-        get => PresupuestoModel.ItemsDetalle is not null
-            ? string.Join(Environment.NewLine, PresupuestoModel.ItemsDetalle.Select(i => i.ToString()))
-            : string.Empty;
-        set
+        var existing = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
+        if (existing == null)
         {
-            if (string.IsNullOrWhiteSpace(value))
+            var vm = new SelectedItemVM
             {
-                PresupuestoModel.ItemsDetalle = null;
-            }
-            else
-            {
-                // Aquí deberías parsear el texto a objetos POST_PresItemDetalleDTO según tu lógica de negocio.
-                // Por ahora, lo dejamos vacío para evitar el error CS1061.
-                PresupuestoModel.ItemsDetalle = new List<POST_PresItemDetalleDTO>();
-            }
+                ItemId = cat.Id,
+                Nombre = cat.Nombre,
+                Cantidad = 1,
+                Precio = cat.Precio
+            };
+            SelectedItems.Add(vm);
+        }
+        else
+        {
+            SelectedItems.Remove(existing);
+        }
+
+        RecalcularFromSelectedItems();
+    }
+
+    private void OnCantidadChanged(int itemId, ChangeEventArgs e)
+    {
+        if (!int.TryParse(e?.Value?.ToString(), out var cant) || cant < 1) cant = 1;
+        var vm = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
+        if (vm != null)
+        {
+            vm.Cantidad = cant;
+            RecalcularFromSelectedItems();
         }
     }
 
-    // Limpiar CancellationTokenSource al desmontar el componente
+    private void OnPrecioChanged(int itemId, ChangeEventArgs e)
+    {
+        if (!decimal.TryParse(e?.Value?.ToString(), out var precio) || precio < 0) precio = 0m;
+        var vm = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
+        if (vm != null)
+        {
+            vm.Precio = Math.Round(precio, 2);
+            RecalcularFromSelectedItems();
+        }
+    }
+
+    private void RecalcularFromSelectedItems()
+    {
+        // Sumar subtotal de items y asignar a TotalP, luego recalcular Total (mano de obra + totalP)
+        PresupuestoModel.TotalP = SelectedItems.Sum(s => s.Precio * s.Cantidad);
+        var manoObra = PresupuestoModel.ManodeObra ?? 0m;
+        PresupuestoModel.Total = Math.Max(0m, manoObra + PresupuestoModel.TotalP);
+        StateHasChanged();
+    }
+
+    // Añadir propiedad auxiliar para el texto de los items (solo para revisión/visual)
+    private string? ItemsDetalleTexto
+    {
+        get => SelectedItems.Any()
+            ? string.Join(Environment.NewLine, SelectedItems.Select(s => $"{s.Nombre} | Cant: {s.Cantidad} | PU: {s.Precio:0.00}"))
+            : string.Empty;
+        set
+        {
+            // No parseamos texto libre — mantenemos la lista de SelectedItems desde la UI tabulada.
+        }
+    }
+
+    // Limpiar suscripciones y CancellationTokenSource al desmontar el componente
     public void Dispose()
     {
+        try
+        {
+            Navigation.LocationChanged -= OnLocationChanged;
+        }
+        catch { }
+
         _recalcCts?.Cancel();
         _recalcCts?.Dispose();
         _recalcCts = null;
     }
+
+    private string GetNombreRubro(Rubro rubro) => rubro switch
+    {
+        Rubro.Gas => "Gas",
+        Rubro.Electricidad => "Electricidad",
+        Rubro.Refrigeracion => "Refrigeración",
+        Rubro.Solar => "Solar",
+        Rubro.Plomeria => "Plomería",
+        _ => rubro.ToString()
+    };
 }
+@* Pseudocódigo (plan detallado):
+   1. Añadir soporte para cancelar cálculos pendientes:
+      - Mantener un campo CancellationTokenSource `_recalcCts`.
+      - Implementar IDisposable en el componente para limpiar el token al destruirse.
+   2. Cambiar `RecalcularTotal` a método asíncrono `async Task`:
+      - Al invocarlo cancelar cualquier delay previo: `_recalcCts?.Cancel()` y crear uno nuevo.
+      - Esperar 5 segundos con `await Task.Delay(5000, token)`.
+      - Si la espera no se canceló, calcular `PresupuestoModel.Total = manoObra + totalP`.
+      - Llamar a `StateHasChanged()` para forzar re-render si es necesario.
+   3. Mantener los bindings actuales (`@oninput="RecalcularTotal"`) para que cada entrada reinicie el temporizador.
+   4. Liberar recursos en `Dispose()` cancelando/disponiendo `_recalcCts`.
+   5. Sincronizar catálogo de ítems cuando se vuelva de la página Items:
+      - Cargar catálogo en OnInitializedAsync y exponer LoadCatalogItemsAsync.
+      - Suscribirse a Navigation.LocationChanged y recargar catálogo si la ruta actual es el formulario.
+*@
