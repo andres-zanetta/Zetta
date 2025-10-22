@@ -15,8 +15,6 @@ namespace Zetta.BD.DATA.ENTITY
 
         [Precision(18, 2)] // Define la precisión y escala para el tipo decimal en la base de datos.
         public decimal? Precio { get; set; }
-
-        public Rubro Rubro { get; set; }
         public string? Medida { get; set; }
         public string? Material { get; set; }
         public string? Descripcion { get; set; }

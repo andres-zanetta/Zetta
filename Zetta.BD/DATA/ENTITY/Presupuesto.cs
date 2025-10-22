@@ -43,6 +43,7 @@ namespace Zetta.BD.DATA.ENTITY
         // Añadir estas líneas para establecer la relación con Cliente
         public int ClienteId { get; set; } // Clave foránea para la relación con Cliente
         public Cliente Cliente { get; set; } = null!; // Propiedad de navegación
+        public bool Materiales { get; set; } //materiales si o no.
 
     }
 

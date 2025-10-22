@@ -124,9 +124,6 @@ namespace Zetta.BD.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("Rubro")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.ToTable("ItemPresupuestos");
@@ -219,6 +216,9 @@ namespace Zetta.BD.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("Materiales")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Observacion")
                         .HasColumnType("nvarchar(max)");
 
@@ -249,6 +249,29 @@ namespace Zetta.BD.Migrations
                     b.HasIndex("ClienteId");
 
                     b.ToTable("Presupuestos");
+                });
+
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Usuario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("DNI")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NombreU")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Usuarios");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Comentario", b =>

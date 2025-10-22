@@ -17,6 +17,7 @@ namespace Zetta.BD.DATA
         public DbSet<Cliente> Clientes { get; set; }
         public DbSet<Obra> Obras { get; set; }
         public DbSet<Comentario> Comentarios { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
 
         public Context(DbContextOptions<Context> options) : base(options)
         {

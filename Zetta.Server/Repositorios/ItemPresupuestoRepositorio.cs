@@ -22,13 +22,6 @@ namespace Zetta.Server.Repositorios
                 .ToListAsync();
         }
 
-        public async Task<List<ItemPresupuesto>> GetItemsPorRubroIdAsync(int rubroId)
-        {
-            // Busca ítems cuyo Rubro coincida con el valor recibido (por id de enum)
-            return await _context.ItemPresupuestos
-                .Where(ip => (int)ip.Rubro == rubroId)
-                .ToListAsync();
-        }
 
         public async Task<bool> ItemPresupuestoExisteAsync(int id)
         {

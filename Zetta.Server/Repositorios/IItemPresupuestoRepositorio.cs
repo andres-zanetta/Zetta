@@ -8,7 +8,6 @@ namespace Zetta.Server.Repositorios
         Task<ItemPresupuesto?> SelectById(int id);
         Task<int> Insert(ItemPresupuesto entity);
         Task<bool> ItemPresupuestoExisteAsync(int id);
-        Task<List<ItemPresupuesto>> GetItemsPorRubroIdAsync(int rubroId);
         Task<List<ItemPresupuesto>> GetItemsPorNombreAsync(string nombre);
     }
 }

@@ -17,17 +17,6 @@
 
     @* FILTROS *@
     <div class="row mb-3 g-2 align-items-center">
-        <div class="col-auto">
-            <select class="form-select" @onchange="OnRubroChanged">
-                <option value="">Todos los rubros</option>
-                @foreach (var r in Enum.GetValues<Rubro>())
-                {
-                    <option value="@((int)r)" selected="@(SelectedRubro.HasValue && SelectedRubro.Value == (int)r)">
-                        @GetNombreRubro((Rubro)r)
-                    </option>
-                }
-            </select>
-        </div>
 
         <div class="col">
             <input class="form-control" placeholder="Buscar por nombre o descripción..." value="@SearchTerm" @oninput="OnSearchInput" />
@@ -54,7 +43,6 @@
                     <tr>
                         <th>Nombre</th>
                         <th>Precio</th>
-                        <th>Rubro</th>
                         <th>Medida</th>
                         <th>Descripción</th>
                         <th>Fabricante</th>
@@ -71,7 +59,6 @@
                             <tr>
                                 <td>@item.Nombre</td>
                                 <td>@item.Precio.ToString("C", new System.Globalization.CultureInfo("es-AR"))</td>
-                                <td>@GetNombreRubro(item.Rubro)</td>
                                 <td>@item.Medida</td>
                                 <td>@item.Descripcion</td>
                                 <td>@item.Fabricante</td>
@@ -140,18 +127,6 @@
         Cargando = false;
     }
 
-    private void OnRubroChanged(ChangeEventArgs e)
-    {
-        if (e?.Value == null || string.IsNullOrWhiteSpace(e.Value.ToString()))
-        {
-            SelectedRubro = null;
-        }
-        else if (int.TryParse(e.Value.ToString(), out var v))
-        {
-            SelectedRubro = v;
-        }
-        FilterItems();
-    }
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -229,13 +204,4 @@
         ItemSeleccionado = null;
     }
 
-    private string GetNombreRubro(Rubro rubro) => rubro switch
-    {
-        Rubro.Gas => "Gas",
-        Rubro.Electricidad => "Electricidad",
-        Rubro.Refrigeracion => "Refrigeración",
-        Rubro.Solar => "Solar",
-        Rubro.Plomeria => "Plomería",
-        _ => rubro.ToString()
-    };
 }
