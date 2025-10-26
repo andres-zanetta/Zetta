@@ -147,7 +147,7 @@
 @code {
     // Lista y control de UI
     private List<GET_ObraDTO> Obras { get; set; } = new();
-    private List<Zetta.Shared.DTOS.Cliente.GET_ClienteDTO> Clientes { get; set; } = new();
+    private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private bool Cargando = true;
 
     // Modal
@@ -170,7 +170,7 @@
         try
         {
             Obras = await ObraService.GetAllAsync() ?? new List<GET_ObraDTO>();
-            Clientes = await ClienteService.GetAll() ?? new List<Zetta.Shared.DTOS.Cliente.GET_ClienteDTO>();
+            Clientes = await ClienteService.GetAll() ?? new List<GET_ClienteDTO>();
         }
         catch (Exception ex)
         {
@@ -223,7 +223,7 @@
             if (Editando)
             {
                 // hacemos PUT (update). Convertimos comentarios a PUT_ObraDTO si tu API lo requiere
-                var putDto = new Zetta.Shared.DTOS.Obra.PUT_ObraDTO
+                var putDto = new PUT_ObraDTO
                 {
                     EstadoObra = ObraModel.EstadoObra,
                     FechaInicio = ObraModel.FechaInicio,
@@ -237,7 +237,7 @@
             else
             {
                 // POST
-                var postDto = new Zetta.Shared.DTOS.Obra.POST_ObraDTO
+                var postDto = new POST_ObraDTO
                 {
                     ClienteId = ObraModel.ClienteId,
                     PresupuestoId = ObraModel.PresupuestoId,

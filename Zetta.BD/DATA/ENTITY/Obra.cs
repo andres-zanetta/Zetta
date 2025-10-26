@@ -28,7 +28,7 @@ namespace Zetta.BD.DATA.ENTITY
     }
 
     //    //Diccionario 
-    //    | Nombre          | Tipo       | Descripción                                      |
+    //| Nombre          | Tipo       | Descripción                                      |
     //| --------------- | ---------- | ------------------------------------------------ |
     //| `Estado`        | `string`   | Estado actual: iniciada, en proceso, finalizada. |
     //| `PresupuestoId` | `int`      | Presupuesto relacionado.                         |
