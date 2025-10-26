@@ -17,5 +17,7 @@ builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<PresupuestoService>();
 builder.Services.AddScoped<IPresupuestoServices, PresupuestoService>();
+builder.Services.AddScoped<ObraService>();
+builder.Services.AddScoped<IObraService, ObraService>();
 
 await builder.Build().RunAsync();

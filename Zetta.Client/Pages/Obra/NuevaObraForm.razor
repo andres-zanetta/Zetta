@@ -1,0 +1,306 @@
+﻿@page "/obras"
+@using Zetta.Shared.DTOS.Obra
+@inject Zetta.Client.Servicios.IObraService ObraService
+@inject Zetta.Client.Servicios.IClienteService ClienteService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="clientes-container">
+    <header class="clientes-header text-center mb-4">
+        <h1>Gestión de Obras</h1>
+        <p class="subtitle">Ver, crear y administrar las obras relacionadas a presupuestos y clientes.</p>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
+        <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Obra</button>
+    </div>
+
+    @if (Cargando)
+    {
+        <p>Cargando obras...</p>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>PresupuestoId</th>
+                        <th>Estado</th>
+                        <th>Fecha Inicio</th>
+                        <th>Duración (días)</th>
+                        <th>Comentarios</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Obras == null || Obras.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No hay obras registradas.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var o in Obras)
+                        {
+                            <tr>
+                                <td>@o.Id</td>
+                                <td>@o.ClienteNombre</td>
+                                <td>@o.PresupuestoId</td>
+                                <td>@o.EstadoObra</td>
+                                <td>@o.FechaInicio.ToShortDateString()</td>
+                                <td>@DuracionEnDias(o.FechaInicio)</td>
+                                <td>
+                                    @if (o.Comentarios != null && o.Comentarios.Any())
+                                    {
+                                        <span title="@string.Join(", ", o.Comentarios)">@(o.Comentarios.Count) comentario(s)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary me-2" @onclick="() => AbrirModalEditar(o)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarObra(o.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@* === Modal Alta / Edición === *@
+@if (MostrarModal)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.4);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <EditForm Model="ObraModel" OnValidSubmit="GuardarObra">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@((Editando) ? "Editar Obra" : "Nueva Obra")</h5>
+                        <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <ValidationSummary />
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Cliente *</label>
+                                <InputSelect class="form-select" @bind-Value="ObraModel.ClienteId">
+                                    <option value="0">Seleccione un cliente</option>
+                                    @foreach (var c in Clientes)
+                                    {
+                                        <option value="@c.Id">@($"{c.Nombre} {c.Apellido}")</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Presupuesto Id *</label>
+                                <InputNumber class="form-control" @bind-Value="ObraModel.PresupuestoId" />
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Estado</label>
+                                <InputSelect class="form-select" @bind-Value="ObraModel.EstadoObra">
+                                    @foreach (var estado in Enum.GetValues(typeof(EstadoObra)).Cast<EstadoObra>())
+                                    {
+                                        <option value="@estado.ToString()">@estado.ToString()</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha Inicio</label>
+                                <InputDate class="form-control" @bind-Value="ObraModel.FechaInicio" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Comentarios (uno por línea)</label>
+                                <InputTextArea rows="4" class="form-control" @bind-Value="ComentariosTexto" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-naranja">@(Editando ? "Actualizar" : "Guardar")</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    // Lista y control de UI
+    private List<GET_ObraDTO> Obras { get; set; } = new();
+    private List<Zetta.Shared.DTOS.Cliente.GET_ClienteDTO> Clientes { get; set; } = new();
+    private bool Cargando = true;
+
+    // Modal
+    private bool MostrarModal = false;
+    private bool Editando = false;
+
+    // Modelo para el formulario (coincide con DTOs POST/PUT)
+    private POST_ObraDTO ObraModel = new POST_ObraDTO();
+    private string ComentariosTexto = string.Empty; // campo para manejar comentarios como texto (uno por línea)
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatosIniciales();
+    }
+
+    // Carga inicial de datos: obras y clientes
+    private async Task CargarDatosIniciales()
+    {
+        Cargando = true;
+        try
+        {
+            Obras = await ObraService.GetAllAsync() ?? new List<GET_ObraDTO>();
+            Clientes = await ClienteService.GetAll() ?? new List<Zetta.Shared.DTOS.Cliente.GET_ClienteDTO>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar datos: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar datos: {ex.Message}");
+        }
+        Cargando = false;
+        StateHasChanged();
+    }
+
+    private void AbrirModalNuevo()
+    {
+        ObraModel = new POST_ObraDTO { FechaInicio = DateTime.Today, EstadoObra = EstadoObra.Iniciada.ToString() };
+        ComentariosTexto = string.Empty;
+        Editando = false;
+        MostrarModal = true;
+    }
+
+    // Mapear GET_ObraDTO -> formulario (edición)
+    private void AbrirModalEditar(GET_ObraDTO dto)
+    {
+        // Llenamos el modelo PUT o POST con los valores actuales
+        ObraModel = new POST_ObraDTO
+        {
+            ClienteId = dto.ClienteId,
+            PresupuestoId = dto.PresupuestoId,
+            FechaInicio = dto.FechaInicio,
+            EstadoObra = dto.EstadoObra
+        };
+
+        ComentariosTexto = dto.Comentarios != null ? string.Join("\n", dto.Comentarios) : string.Empty;
+        Editando = true;
+        // Guardamos el Id a editar en un campo temporal (usamos ObraEditarId)
+        ObraEditarId = dto.Id;
+        MostrarModal = true;
+    }
+
+    private int ObraEditarId = 0;
+
+    // Guardar (Create o Update)
+    private async Task GuardarObra()
+    {
+        try
+        {
+            // parseamos comentarios desde textarea a lista
+            var comentarios = ComentariosTexto?
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim()).ToList();
+
+            if (Editando)
+            {
+                // hacemos PUT (update). Convertimos comentarios a PUT_ObraDTO si tu API lo requiere
+                var putDto = new Zetta.Shared.DTOS.Obra.PUT_ObraDTO
+                {
+                    EstadoObra = ObraModel.EstadoObra,
+                    FechaInicio = ObraModel.FechaInicio,
+                    ClienteId = ObraModel.ClienteId,
+                    Comentarios = comentarios
+                };
+
+                await ObraService.UpdateAsync(ObraEditarId, putDto);
+                await JSRuntime.InvokeVoidAsync("alert", "✅ Obra actualizada correctamente.");
+            }
+            else
+            {
+                // POST
+                var postDto = new Zetta.Shared.DTOS.Obra.POST_ObraDTO
+                {
+                    ClienteId = ObraModel.ClienteId,
+                    PresupuestoId = ObraModel.PresupuestoId,
+                    FechaInicio = ObraModel.FechaInicio,
+                    EstadoObra = ObraModel.EstadoObra
+                };
+
+                // Si la API acepta comentarios directamente en POST, deberías ajustar; aquí primero guardamos la obra
+                var id = await ObraService.CreateAsync(postDto);
+                // Si necesitas guardar comentarios separados, podrías llamar otro endpoint aquí
+                await JSRuntime.InvokeVoidAsync("alert", "✅ Obra creada correctamente.");
+            }
+
+            CerrarModal();
+            await CargarDatosIniciales();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error guardando obra: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+        }
+    }
+
+    // Eliminar con confirm
+    private async Task EliminarObra(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que querés eliminar esta obra?"))
+        {
+            try
+            {
+                await ObraService.DeleteAsync(id);
+                Obras.RemoveAll(o => o.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error eliminando obra: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error eliminando obra: {ex.Message}");
+            }
+        }
+    }
+
+    private void CerrarModal()
+    {
+        MostrarModal = false;
+        Editando = false;
+        ObraEditarId = 0;
+    }
+
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
+
+    // Calcula duración en días (desde fecha inicio hasta hoy)
+    private int DuracionEnDias(DateTime fechaInicio)
+    {
+        var diff = DateTime.Now.Date - fechaInicio.Date;
+        return Math.Max(0, diff.Days);
+    }
+
+    // Enumeración local para binding en select (si la tenés en shared, podés reemplazar)
+    // (Si usas Zetta.BD.DATA.ENTITY.EstadoObra en client, importa el enum desde shared)
+    public enum EstadoObra
+    {
+        Iniciada,
+        EnProceso,
+        Finalizada
+    }
+}
