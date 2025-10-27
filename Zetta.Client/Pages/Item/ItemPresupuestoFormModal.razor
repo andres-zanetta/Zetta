@@ -1,0 +1,204 @@
+﻿@* ESTA ES LA CORRECCIÓN CLAVE: 
+  Se inyecta la clase concreta "ItemPresupuestoService" (como en tus páginas ) 
+  en lugar de la interfaz "IItemPresupuestoService" (que estaba en el form original ).
+*@
+@inject Zetta.Client.Servicios.ItemPresupuestoService ItemPresupuestoService
+@inject IJSRuntime JSRuntime
+
+@* Estructura del Modal, similar a la de Cliente.razor *@
+<div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <EditForm Model="@item" OnValidSubmit="Guardar">
+                <DataAnnotationsValidator />
+
+                <div class="modal-header">
+                    <h5 class="modal-title">@(EsEdicion ? "Editar ítem de presupuesto" : "Nuevo ítem de presupuesto")</h5>
+                    <button type="button" class="btn-close" @onclick="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    @if (Cargando)
+                    {
+                        <p>Cargando datos...</p>
+                    }
+                    else if (Error != null)
+                    {
+                        <div class="alert alert-danger">@Error</div>
+                    }
+
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <InputText @bind-Value="item.Nombre" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Precio</label>
+                        <InputNumber @bind-Value="item.Precio" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rubro</label>
+                        <InputSelect @bind-Value="item.Rubro" class="form-select">
+                            <option value="">Seleccione un rubro</option>
+                            @foreach (var rubro in Enum.GetValues<Rubro>())
+                            {
+                                <option value="@rubro">@GetNombreRubro(rubro)</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Medida</label>
+                        <InputText @bind-Value="item.Medida" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Material</label>
+                        <InputText @bind-Value="item.Material" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <InputTextArea @bind-Value="item.Descripcion" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fabricante</label>
+                        <InputText @bind-Value="item.Fabricante" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Marca</label>
+                        <InputText @bind-Value="item.Marca" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha actualización precio</label>
+                        <InputDate @bind-Value="item.FechActuPrecio" class="form-control" />
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="Cerrar">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        @(EsEdicion ? "Guardar cambios" : "Crear ítem")
+                    </button>
+                </div>
+
+            </EditForm>
+        </div>
+    </div>
+</div>
+<div class="modal-backdrop fade show"></div>
+
+
+@code {
+    [Parameter] public int? ItemId { get; set; }
+    [Parameter] public EventCallback OnCerrar { get; set; }
+    [Parameter] public EventCallback<int> OnGuardado { get; set; } // Devuelve el Id del item (0 si es nuevo)
+
+    private POST_ItemPresupuestoDTO item = new();
+    private bool EsEdicion => ItemId.HasValue;
+    private bool Cargando = true;
+    private string? Error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (EsEdicion)
+            {
+                var existente = await ItemPresupuestoService.GetById(ItemId.Value);
+                if (existente != null)
+                {
+                    // Mapeamos del DTO de lectura (GET) al DTO de formulario (POST)
+                    item = new POST_ItemPresupuestoDTO
+                    {
+                        Nombre = existente.Nombre,
+                        Precio = existente.Precio,
+                        Rubro = existente.Rubro,
+                        Medida = existente.Medida,
+                        Material = existente.Material,
+                        Descripcion = existente.Descripcion,
+                        Fabricante = existente.Fabricante,
+                        Marca = existente.Marca,
+                        FechActuPrecio = existente.FechActuPrecio
+                    };
+                }
+                else
+                {
+                    Error = "No se encontró el ítem a editar.";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Error = $"Error al cargar datos: {ex.Message}";
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            int guardadoId = 0;
+
+            if (EsEdicion)
+            {
+                // Mapeamos al DTO de actualización (PUT)
+                var dto = new PUT_ItemPresupuestoDTO
+                {
+                    Nombre = item.Nombre,
+                    Precio = item.Precio,
+                    Rubro = item.Rubro,
+                    Medida = item.Medida,
+                    Material = item.Material,
+                    Descripcion = item.Descripcion,
+                    Fabricante = item.Fabricante,
+                    Marca = item.Marca, // Corregido: era itemDetect.Marca
+                    FechActuPrecio = item.FechActuPrecio
+                };
+                await ItemPresupuestoService.Update(ItemId!.Value, dto);
+                guardadoId = ItemId.Value;
+            }
+            else
+            {
+                // Usamos el DTO de creación (POST)
+                await ItemPresupuestoService.Create(item);
+                // Si tu servicio .Create() devuelve el DTO con el Id, podrías capturarlo aquí
+                // guardadoId = response.Id;
+            }
+
+            await OnGuardado.InvokeAsync(guardadoId);
+            await Cerrar(); // Cierra el modal después de guardar
+        }
+        catch (Exception ex)
+        {
+            Error = $"Error al guardar: {ex.Message}";
+            // Mantenemos el modal abierto para mostrar el error
+        }
+    }
+
+    private async Task Cerrar()
+    {
+        await OnCerrar.InvokeAsync();
+    }
+
+    private string GetNombreRubro(Rubro rubro) => rubro switch
+    {
+        Rubro.Gas => "Gas",
+        Rubro.Electricidad => "Electricidad",
+        Rubro.Refrigeracion => "Refrigeración",
+        Rubro.Solar => "Solar",
+        Rubro.Plomeria => "Plomería",
+        _ => rubro.ToString()
+    };
+}

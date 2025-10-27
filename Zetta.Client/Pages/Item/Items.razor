@@ -1,8 +1,7 @@
 ﻿@page "/items"
 @inject ItemPresupuestoService ItemService
 @inject NavigationManager Navigation
-@inject Microsoft.JSInterop.IJSRuntime JSRuntime 
-@* // Se necesita para el confirm *@
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 <div class="clientes-container">
     <header class="clientes-header text-center">
@@ -82,19 +81,12 @@
         </div>
     }
 
-    @if (MostrarDetalles && ItemSeleccionado != null)
+    @* Modal de Creación/Edición de Ítem *@
+    @if (MostrarItemModal)
     {
-        <div class="modal show d-block" style="background-color: rgba(0,0,0,0.5);">
-            <div class="modal-dialog">
-                <div class="modal-content p-3">
-                    <h4>Detalles del Ítem</h4>
-                    <p><strong>ID:</strong> @ItemSeleccionado.Id</p>
-                    <p><strong>Descripción:</strong> @ItemSeleccionado.Descripcion</p>          
-                    <p><strong>Precio:</strong> @ItemSeleccionado.Precio</p>
-                    <button class="btn btn-secondary" @onclick="CerrarDetalles">Cerrar</button>
-                </div>
-            </div>
-        </div>
+        <ItemPresupuestoFormModal ItemId="ItemIdParaEditar"
+                                  OnCerrar="CerrarItemModal"
+                                  OnGuardado="ItemGuardado" />
     }
 
 </div>
@@ -104,19 +96,25 @@
     private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
     private bool Cargando = true;
 
-    private GET_ItemPresupuestoDTO? ItemSeleccionado { get; set; }
-    private bool MostrarDetalles { get; set; } = false;
-
     // Filtros
-    private int? SelectedRubro { get; set; } = null;
     private string SearchTerm { get; set; } = string.Empty;
+
+    // Estado para el modal de Ítem
+    private bool MostrarItemModal = false;
+    private int? ItemIdParaEditar = null;
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarItems();
+    }
+
+    private async Task CargarItems()
+    {
+        Cargando = true;
         try
         {
             AllItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
-            PresupuestoItems = AllItems.ToList();
+            FilterItems(); // Aplica filtros iniciales (ninguno)
         }
         catch (Exception ex)
         {
@@ -126,7 +124,6 @@
         }
         Cargando = false;
     }
-
 
     private void OnSearchInput(ChangeEventArgs e)
     {
@@ -138,11 +135,6 @@
     {
         IEnumerable<GET_ItemPresupuestoDTO> query = AllItems;
 
-        if (SelectedRubro.HasValue)
-        {
-            query = query.Where(i => (int)i.Rubro == SelectedRubro.Value);
-        }
-
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var s = SearchTerm.Trim().ToLowerInvariant();
@@ -153,12 +145,11 @@
         }
 
         PresupuestoItems = query.ToList();
-        StateHasChanged();
+        StateHasChanged(); // Asegurarse de que la UI se actualice
     }
 
     private void ResetFilters()
     {
-        SelectedRubro = null;
         SearchTerm = string.Empty;
         PresupuestoItems = AllItems.ToList();
         StateHasChanged();
@@ -172,7 +163,8 @@
             {
                 await ItemService.Delete(id);
                 AllItems.RemoveAll(i => i.Id == id);
-                PresupuestoItems.RemoveAll(i => i.Id == id);
+                PresupuestoItems.RemoveAll(i => i.Id == id); // Sincroniza ambas listas
+                StateHasChanged(); // Actualiza la UI
             }
             catch (Exception ex)
             {
@@ -181,27 +173,30 @@
         }
     }
 
-    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/itempresupuesto-form");
+    // Métodos para el modal
+    private void AbrirFormularioNuevo()
+    {
+        ItemIdParaEditar = null;
+        MostrarItemModal = true;
+    }
 
-    private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/itempresupuesto-form/{id}");
+    private void AbrirFormularioEdicion(int id)
+    {
+        ItemIdParaEditar = id;
+        MostrarItemModal = true;
+    }
+
+    private void CerrarItemModal()
+    {
+        MostrarItemModal = false;
+        ItemIdParaEditar = null;
+    }
+
+    private async Task ItemGuardado(int itemId)
+    {
+        CerrarItemModal();
+        await CargarItems(); // Recarga toda la lista
+    }
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
-
-    //Ver detalles del ítem sin salir de la página
-    private void VerDetalles(int id)
-    {
-        ItemSeleccionado = PresupuestoItems.FirstOrDefault(i => i.Id == id);
-        if (ItemSeleccionado != null)
-        {
-            MostrarDetalles = true;
-        }
-    }
-
-    //Cerrar detalles
-    private void CerrarDetalles()
-    {
-        MostrarDetalles = false;
-        ItemSeleccionado = null;
-    }
-
 }

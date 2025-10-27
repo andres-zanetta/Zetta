@@ -32,7 +32,7 @@ namespace Zetta.BD.DATA.ENTITY
         public decimal? ManodeObra { get; set; } // Costo estimado de mano de obra.
 
         [Precision(18, 2)]
-        public decimal TotalP { get; set; } // Campo adicional para otro cálculo de total si es necesario.
+        public decimal TotalP { get; set; } // Total Items
 
         public string TiempoAproxObra { get; set; } // Tiempo estimado para la ejecución de la obra.
 

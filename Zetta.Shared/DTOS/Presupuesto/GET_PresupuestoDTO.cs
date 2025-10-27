@@ -28,5 +28,6 @@ namespace Zetta.Shared.DTOS.Presupuesto
        public OpcionDePago OpcionDePago { get; set; }
 
        public Rubro Rubro { get; set; }
+       public bool Materiales { get; set; }
     }
 }

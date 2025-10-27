@@ -21,6 +21,7 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public OpcionDePago OpcionDePago { get; set; }
         public required int ClienteId { get; set; } // Añadir la propiedad para el cliente
         public List<POST_PresItemDetalleDTO>? ItemsDetalle { get; set; }
+        public bool Materiales { get; set; }
 
     }
 }
