@@ -2,6 +2,7 @@
 @using Zetta.Shared.DTOS.PresItemDetalle
 @using Zetta.Shared.DTOS.Presupuesto
 @using Zetta.Shared.DTOS.ItemPresupuesto
+@using Zetta.Client.Pages.Item
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject Zetta.Client.Servicios.ItemPresupuestoService ItemService
@@ -20,6 +21,8 @@
         <ValidationSummary />
 
         <div class="row g-3">
+
+            @* --- CAMPOS DEL PRESUPUESTO (CLIENTE, RUBRO, ETC. - SIN CAMBIOS) --- *@
             <div class="col-md-6 mb-3">
                 <label for="cliente" class="form-label">Cliente *</label>
                 <InputSelect id="cliente" class="form-select" @bind-Value="PresupuestoModel.ClienteId">
@@ -57,6 +60,14 @@
             </div>
 
             <div class="col-md-6 mb-3">
+                <label for="materiales" class="form-label">Incluye Materiales</label>
+                <InputSelect id="materiales" class="form-select" @bind-Value="PresupuestoModel.Materiales">
+                    <option value="false">No</option>
+                    <option value="true">Sí</option>
+                </InputSelect>
+            </div>
+
+            <div class="col-md-6 mb-3">
                 <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
                 <InputNumber id="manodeObra" class="form-control"
                              @bind-Value="PresupuestoModel.ManodeObra"
@@ -65,8 +76,8 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="totalParcial" class="form-label">Total Parcial ($)</label>
-                <InputNumber id="totalParcial" class="form-control" @bind-Value="PresupuestoModel.TotalP" readonly />
+                <label for="totalItems" class="form-label">Total Items ($)</label>
+                <InputNumber id="totalItems" class="form-control" @bind-Value="PresupuestoModel.TotalP" readonly />
             </div>
 
             <div class="col-md-6 mb-3">
@@ -90,13 +101,39 @@
                 <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
             </div>
 
+            @* --- SECCIÓN DE ITEMS --- *@
             <div class="col-12 mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold">Items</label>
                     <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
                 </div>
 
-                <!-- Filtros -->
+                @* --- NUEVA SECCIÓN: LISTA DE ÍTEMS AGREGADOS --- *@
+                @if (SelectedItems.Any())
+                {
+                    <div class="mb-3 border rounded p-3" style="background-color: #fdfdfd;">
+                        <h6 class="fw-bold">Ítems Agregados:</h6>
+                        <ul class="list-group list-group-flush">
+                            @foreach (var item in SelectedItems)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+                                    <div>
+                                        <span class="fw-bold">@item.Nombre</span>
+                                        <small class="text-muted d-block">
+                                            Cantidad: @item.Cantidad | Precio Unitario: @item.Precio.ToString("C")
+                                        </small>
+                                    </div>
+                                    @* Botón para quitar el ítem directamente desde esta lista *@
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => QuitarItemSeleccionado(item.ItemId)">Quitar</button>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @* --- FIN DE LA NUEVA SECCIÓN --- *@
+
+
+                @* --- SECCIÓN DE BÚSQUEDA (SIN CAMBIOS) --- *@
                 <div class="row g-2 mb-2 p-2 border rounded bg-light">
                     <div class="col">
                         <input class="form-control form-control-sm" placeholder="Buscar por nombre..." @bind="searchNombre" />
@@ -112,6 +149,7 @@
                     </div>
                 </div>
 
+                @* --- TABLA DE RESULTADOS DE BÚSQUEDA (SIN CAMBIOS) --- *@
                 @if (!CatalogoItemsFiltrados.Any())
                 {
                     <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
@@ -126,7 +164,6 @@
                                     <th>Nombre</th>
                                     <th>Precio</th>
                                     <th>Cantidad</th>
-                                    <th>Rubro</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -134,27 +171,29 @@
                                 @foreach (var cat in CatalogoItemsFiltrados)
                                 {
                                     var vm = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
+
                                     <tr class="@(vm != null ? "table-primary" : "")">
                                         <td>
                                             <input type="checkbox" class="form-check-input"
                                                    checked="@(vm != null)"
-                                                   @onchange="(e) => OnToggleItem(cat, e)" />
+                                                   @onchange="async (e) => await OnToggleItem(cat, e)" />
                                         </td>
                                         <td>@cat.Nombre</td>
                                         <td>
                                             <input class="form-control form-control-sm text-end"
                                                    value="@(vm?.Precio.ToString("0.00") ?? cat.Precio.ToString("0.00"))"
-                                                   @onchange="(e) => OnPrecioChanged(cat.Id, e)" />
+                                                   @onchange="async (e) => await OnPrecioChanged(cat.Id, e)" />
                                         </td>
                                         <td>
                                             <input class="form-control form-control-sm text-end"
                                                    value="@(vm?.Cantidad.ToString() ?? "1")"
-                                                   @onchange="(e) => OnCantidadChanged(cat.Id, e)" />
+                                                   @onchange="async (e) => await OnCantidadChanged(cat.Id, e)" />
                                         </td>
-                                        <td>@GetNombreRubro(cat.Rubro)</td>
                                         <td>
                                             <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                    @onclick="() => AbrirItemModalEditar(cat.Id)">✏️</button>
+                                                    @onclick="() => AbrirItemModalEditar(cat.Id)">
+                                                ✏️
+                                            </button>
                                         </td>
                                     </tr>
                                 }
@@ -187,8 +226,7 @@
 }
 
 @code {
-    // Inicializa asegurando el miembro required
-    private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0 };
+    private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0, Materiales = false };
 
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> AllCatalogItems { get; set; } = new();
@@ -198,7 +236,6 @@
     private bool Guardando = false;
     private string? Mensaje;
     private string? MensajeCss;
-
     private string searchNombre { get; set; } = string.Empty;
     private string searchMarca { get; set; } = string.Empty;
     private string searchFabricante { get; set; } = string.Empty;
@@ -218,17 +255,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Cargar clientes pero NO cargar el catálogo completo (se hará con GetAll() solo cuando el usuario lo pida o cuando se necesite)
         Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
-
-        // *Opcional*: si quieres precargar AllCatalogItems para búsquedas locales,
-        // descomenta la siguiente línea; por ahora la dejamos para carga a demanda:
-        // AllCatalogItems = (await ItemService.GetAll())?.ToList() ?? new List<GET_ItemPresupuestoDTO>();
 
         Navigation.LocationChanged += OnLocationChanged;
     }
 
-    // LocationChanged puede quedarse asíncrono pero devuelve void; está bien para el event handler del NavigationManager.
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         try
@@ -236,7 +267,6 @@
             var path = new Uri(e.Location).AbsolutePath?.TrimEnd('/').ToLowerInvariant() ?? string.Empty;
             if (path == "/presupuestos/nuevo")
             {
-                // limpiar filtros/resultado al entrar a la página
                 searchNombre = searchMarca = searchFabricante = string.Empty;
                 CatalogoItemsFiltrados.Clear();
                 await InvokeAsync(StateHasChanged);
@@ -248,10 +278,8 @@
         }
     }
 
-    // BÚSQUEDA: si tu ItemService no tiene BuscarAsync, usamos GetAll() y filtramos localmente.
     private async Task BuscarItems()
     {
-        // si aún no tenemos el catálogo completo, lo traemos una sola vez
         if (AllCatalogItems == null || !AllCatalogItems.Any())
         {
             try
@@ -265,7 +293,6 @@
             }
         }
 
-        // si no hay criterios, limpiamos
         if (string.IsNullOrWhiteSpace(searchNombre) &&
             string.IsNullOrWhiteSpace(searchMarca) &&
             string.IsNullOrWhiteSpace(searchFabricante))
@@ -276,7 +303,6 @@
         }
 
         var query = AllCatalogItems.AsEnumerable();
-
         if (!string.IsNullOrWhiteSpace(searchNombre))
         {
             var s = searchNombre.Trim();
@@ -299,14 +325,12 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // Abrir modal crear
     private void AbrirItemModalNuevo()
     {
         ItemIdParaEditar = null;
         MostrarItemModal = true;
     }
 
-    // Abrir modal editar
     private void AbrirItemModalEditar(int id)
     {
         ItemIdParaEditar = id;
@@ -319,28 +343,25 @@
         MostrarItemModal = false;
     }
 
-    // Cuando el modal guardó: recargo catálogo y reaplico filtros
     private async Task ItemGuardado(int itemId)
     {
-        // recargar catálogo (GetAll) para asegurarnos de tener el item nuevo/modificado
         AllCatalogItems = (await ItemService.GetAll())?.ToList() ?? new List<GET_ItemPresupuestoDTO>();
         await BuscarItems();
         CerrarItemModal();
     }
 
-    // Manejo de checkbox (se hizo async para evitar problemas de tipo en lambdas)
     private async Task OnToggleItem(GET_ItemPresupuestoDTO cat, ChangeEventArgs e)
     {
         var existe = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
         if (existe == null)
         {
             SelectedItems.Add(new SelectedItemVM
-            {
-                ItemId = cat.Id,
-                Nombre = cat.Nombre,
-                Cantidad = 1,
-                Precio = cat.Precio
-            });
+                {
+                    ItemId = cat.Id,
+                    Nombre = cat.Nombre,
+                    Cantidad = 1,
+                    Precio = cat.Precio
+                });
         }
         else
         {
@@ -383,7 +404,6 @@
         StateHasChanged();
     }
 
-    // Recalcular mano de obra -> total
     private async Task RecalcularTotal(ChangeEventArgs e)
     {
         _recalcCts?.Cancel();
@@ -402,7 +422,6 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // Guardar presupuesto
     private async Task GuardarPresupuesto()
     {
         Guardando = true;
@@ -426,13 +445,12 @@
 
             PresupuestoModel.ItemsDetalle = SelectedItems
                 .Select(s => new POST_PresItemDetalleDTO
-                {
-                    ItemPresupuestoId = s.ItemId,
-                    Cantidad = s.Cantidad,
-                    PrecioUnitario = s.Precio
-                })
+                    {
+                        ItemPresupuestoId = s.ItemId,
+                        Cantidad = s.Cantidad,
+                        PrecioUnitario = s.Precio
+                    })
                 .ToList();
-
             await PresupuestoService.Create(PresupuestoModel);
             MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
 
@@ -454,15 +472,27 @@
         StateHasChanged();
     }
 
+
+
     private void Volver() => Navigation.NavigateTo("/presupuestos");
 
-    // IDisposable
     public void Dispose()
     {
         try { Navigation.LocationChanged -= OnLocationChanged; } catch { }
         _recalcCts?.Cancel();
         _recalcCts?.Dispose();
         _recalcCts = null;
+    }
+
+    // --- NUEVO MÉTODO PARA EL BOTÓN "QUITAR" ---
+    private void QuitarItemSeleccionado(int itemId)
+    {
+        var item = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
+        if (item != null)
+        {
+            SelectedItems.Remove(item);
+            RecalcularFromSelectedItems(); // Llama al método existente para actualizar el total
+        }
     }
 
     private string GetNombreRubro(Rubro rubro) => rubro switch
@@ -475,4 +505,3 @@
         _ => rubro.ToString()
     };
 }
-

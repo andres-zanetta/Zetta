@@ -14,7 +14,6 @@ namespace Zetta.Shared.DTOS.ItemPresupuesto
 
         [Range(1, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0.")]
         public decimal Precio { get; set; }
-        public Rubro Rubro { get; set; }
         public string? Medida { get; set; }
         public string? Material { get; set; }
         public string? Descripcion { get; set; }

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zetta.BD.DATA.ENTITY;
+using Zetta.Shared.DTOS.PresItemDetalle;
 
 namespace Zetta.Shared.DTOS.Presupuesto
 {
@@ -25,9 +26,17 @@ namespace Zetta.Shared.DTOS.Presupuesto
 
         public string ValidacionDias { get; set; } = "30";
 
-       public OpcionDePago OpcionDePago { get; set; }
+        public OpcionDePago OpcionDePago { get; set; }
 
-       public Rubro Rubro { get; set; }
-       public bool Materiales { get; set; }
+        public Rubro Rubro { get; set; }
+        public bool Materiales { get; set; }
+
+        // --- PROPIEDAD AGREGADA ---
+        // Necesaria para mostrar el nombre en la tabla de Presupuesto.razor
+        public string? NombreCliente { get; set; }
+
+        public int ClienteId { get; set; } // ID del cliente asociado
+        public List<GET_PresItemDetalleDTO>? ItemsDetalle { get; set; }
+
     }
 }

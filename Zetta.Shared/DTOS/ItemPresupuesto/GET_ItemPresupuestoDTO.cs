@@ -12,7 +12,6 @@ namespace Zetta.Shared.DTOS.ItemPresupuesto
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public decimal Precio { get; set; }
-        public Rubro Rubro { get; set; }
         public string? Medida { get; set; }
         public string? Material { get; set; }
         public string? Descripcion { get; set; }

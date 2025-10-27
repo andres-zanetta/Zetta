@@ -16,18 +16,20 @@ namespace Zetta.Server.Repositorios
         public async Task<Presupuesto?> GetPresupuestoConDetallesPorIdAsync(int id)
         {
             return await _context.Presupuestos
+                .Include(p => p.Cliente) // <-- Agregado
                 .Include(p => p.ItemsDetalle)
                     .ThenInclude(d => d.ItemPresupuesto)
-                .Include(p => p.OpcionDePago)
+                // .Include(p => p.OpcionDePago) // <-- Eliminado: Es un enum, no se puede incluir
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<IEnumerable<Presupuesto>> GetPresupuestosConDetallesAsync()
         {
             return await _context.Presupuestos
+                .Include(p => p.Cliente) // <-- Agregado
                 .Include(p => p.ItemsDetalle)
                     .ThenInclude(d => d.ItemPresupuesto)
-                .Include(p => p.OpcionDePago)
+                // .Include(p => p.OpcionDePago) // <-- Eliminado
                 .ToListAsync();
         }
 
@@ -37,10 +39,11 @@ namespace Zetta.Server.Repositorios
             // Solución: Verifica si la clase Presupuesto tiene una propiedad ClienteId (int) o similar.
             // Si existe, usa esa propiedad para filtrar. Si no existe, por favor proporciona la definición de la clase Presupuesto.
             return await _context.Presupuestos
-                .Where(p => p.Id == clienteId) // <-- Usa la propiedad Id si está disponible
+                .Where(p => p.ClienteId == clienteId) // <-- Corregido: Era p.Id
+                .Include(p => p.Cliente) // <-- Agregado
                 .Include(p => p.ItemsDetalle)
                     .ThenInclude(d => d.ItemPresupuesto)
-                .Include(p => p.OpcionDePago)
+                // .Include(p => p.OpcionDePago) // <-- Eliminado
                 .ToListAsync();
         }
 
@@ -52,9 +55,10 @@ namespace Zetta.Server.Repositorios
             {
                 return await _context.Presupuestos
                     .Where(p => p.Aceptado)
+                    .Include(p => p.Cliente) // <-- Agregado
                     .Include(p => p.ItemsDetalle)
                         .ThenInclude(d => d.ItemPresupuesto)
-                    .Include(p => p.OpcionDePago)
+                    // .Include(p => p.OpcionDePago) // <-- Eliminado
                     .ToListAsync();
             }
             else if (estado.Equals("Pendiente", StringComparison.OrdinalIgnoreCase))
@@ -65,9 +69,10 @@ namespace Zetta.Server.Repositorios
             {
                 return await _context.Presupuestos
                     .Where(p => !p.Aceptado)
+                    .Include(p => p.Cliente) // <-- Agregado
                     .Include(p => p.ItemsDetalle)
                         .ThenInclude(d => d.ItemPresupuesto)
-                    .Include(p => p.OpcionDePago)
+                    // .Include(p => p.OpcionDePago) // <-- Eliminado
                     .ToListAsync();
             }
             return new List<Presupuesto>();
@@ -81,9 +86,10 @@ namespace Zetta.Server.Repositorios
         public async Task<List<Presupuesto>> SelectAllAsync()
         {
             return await _context.Presupuestos
+                .Include(p => p.Cliente) // <-- Agregado
                 .Include(p => p.ItemsDetalle)
                     .ThenInclude(d => d.ItemPresupuesto)
-                .Include(p => p.OpcionDePago)
+                // .Include(p => p.OpcionDePago) // <-- Eliminado
                 .ToListAsync();
         }
 
@@ -95,6 +101,4 @@ namespace Zetta.Server.Repositorios
             return presupuesto;
         }
     }
-
-
 }
