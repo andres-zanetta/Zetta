@@ -2,7 +2,7 @@
 @using Zetta.Shared.DTOS.PresItemDetalle
 @using Zetta.Shared.DTOS.Presupuesto
 @using Zetta.Shared.DTOS.ItemPresupuesto
-@using Zetta.Client.Pages.Item // Necesario para ItemPresupuestoFormModal
+@using Zetta.Client.Pages.Item
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject Zetta.Client.Servicios.ItemPresupuestoService ItemService
@@ -32,7 +32,7 @@
             <ValidationSummary />
 
             <div class="row g-3">
-                @* --- Campos del Presupuesto (Igual que en NuevoPresupuestoForm) --- *@
+                @* --- Campos existentes --- *@
                 <div class="col-md-6 mb-3">
                     <label for="cliente" class="form-label">Cliente *</label>
                     <InputSelect id="cliente" class="form-select" @bind-Value="PresupuestoModel.ClienteId" disabled>
@@ -77,6 +77,19 @@
                     </InputSelect>
                 </div>
 
+                @* --- CAMPO AGREGADO PARA ESTADO (ACEPTADO/PENDIENTE) --- *@
+                <div class="col-md-6 mb-3">
+                    <label for="estado" class="form-label">Estado</label>
+                    <InputSelect id="estado" class="form-select" @bind-Value="PresupuestoModel.Aceptado">
+                        <option value="false">Pendiente</option>
+                        <option value="true">Aceptado</option>
+                    </InputSelect>
+                    @* Opcional: Agregar validación si es necesario *@
+                    @* <ValidationMessage For="@(() => PresupuestoModel.Aceptado)" /> *@
+                </div>
+                @* --- FIN DEL CAMPO AGREGADO --- *@
+
+
                 <div class="col-md-6 mb-3">
                     <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
                     <InputNumber id="manodeObra" class="form-control"
@@ -111,14 +124,13 @@
                     <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
                 </div>
 
-                @* --- Sección de Items (Igual que en NuevoPresupuestoForm) --- *@
+                @* --- Sección de Items (sin cambios) --- *@
                 <div class="col-12 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label fw-bold">Items</label>
                         <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
                     </div>
 
-                    @* --- Lista de Ítems Agregados (Igual que en NuevoPresupuestoForm) --- *@
                     @if (SelectedItems.Any())
                     {
                         <div class="mb-3 border rounded p-3" style="background-color: #fdfdfd;">
@@ -140,7 +152,6 @@
                         </div>
                     }
 
-                    @* --- Sección de Búsqueda (Igual que en NuevoPresupuestoForm) --- *@
                     <div class="row g-2 mb-2 p-2 border rounded bg-light">
                         <div class="col">
                             <input class="form-control form-control-sm" placeholder="Buscar por nombre..." @bind="searchNombre" />
@@ -156,7 +167,6 @@
                         </div>
                     </div>
 
-                    @* --- Tabla de Resultados de Búsqueda (Igual que en NuevoPresupuestoForm) --- *@
                     @if (!CatalogoItemsFiltrados.Any())
                     {
                         <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
@@ -165,7 +175,7 @@
                     {
                         <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                             <table class="table table-sm table-hover">
-                                <thead class="table-light sticky-top">
+                                <thead class="table-dark">
                                     <tr>
                                         <th></th>
                                         <th>Nombre</th>
@@ -236,24 +246,23 @@
 @code {
     [Parameter] public int Id { get; set; }
 
-    private PUT_PresupuestoDTO PresupuestoModel { get; set; } = new PUT_PresupuestoDTO { ClienteId = 0, Materiales = false };
+    // El PUT_PresupuestoDTO ya tiene 'Aceptado'
+    private PUT_PresupuestoDTO PresupuestoModel { get; set; } = new PUT_PresupuestoDTO { ClienteId = 0, Materiales = false, Aceptado = false }; // Inicializar Aceptado a false
 
+    // ... (resto de variables sin cambios)
     private bool CargandoDatosIniciales = true;
     private string? ErrorAlCargar = null;
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> AllCatalogItems { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> CatalogoItemsFiltrados { get; set; } = new();
     private List<SelectedItemVM> SelectedItems { get; set; } = new();
-
     private bool Guardando = false;
     private string? Mensaje;
     private string? MensajeCss;
     private string searchNombre { get; set; } = string.Empty;
     private string searchMarca { get; set; } = string.Empty;
     private string searchFabricante { get; set; } = string.Empty;
-
     private CancellationTokenSource? _recalcCts;
-
     private bool MostrarItemModal = false;
     private int? ItemIdParaEditar = null;
 
@@ -263,7 +272,7 @@
         public string? Nombre { get; init; }
         public int Cantidad { get; set; } = 1;
         public decimal Precio { get; set; } = 0m;
-        public int? DetalleId { get; set; } // Opcional: Para guardar el ID de PresItemDetalle para el PUT
+        public int? DetalleId { get; set; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -273,7 +282,6 @@
             Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
             await LoadCatalogItemsAsync();
 
-            // Cargar datos del presupuesto a editar
             var presupuestoExistente = await PresupuestoService.GetById(Id);
             if (presupuestoExistente == null)
             {
@@ -281,40 +289,36 @@
                 return;
             }
 
-            // Mapear GET_PresupuestoDTO a PUT_PresupuestoDTO
+            // Mapeo (ya incluye Aceptado del DTO recibido)
             PresupuestoModel = new PUT_PresupuestoDTO
-                {
-                    Id = presupuestoExistente.Id,
-                    ClienteId = presupuestoExistente.ClienteId,
-                    Rubro = presupuestoExistente.Rubro,
-                    OpcionDePago = presupuestoExistente.OpcionDePago,
-                    Materiales = presupuestoExistente.Materiales,
-                    ManodeObra = presupuestoExistente.ManodeObra,
-                    TiempoAproxObra = presupuestoExistente.TiempoAproxObra,
-                    ValidacionDias = presupuestoExistente.ValidacionDias,
-                    Observacion = presupuestoExistente.Observacion,
-                    Aceptado = presupuestoExistente.Aceptado
-                // TotalP y Total se recalcularán
-                // ItemsDetalle se manejará via SelectedItems
-                };
+            {
+                Id = presupuestoExistente.Id,
+                ClienteId = presupuestoExistente.ClienteId,
+                Rubro = presupuestoExistente.Rubro,
+                OpcionDePago = presupuestoExistente.OpcionDePago,
+                Materiales = presupuestoExistente.Materiales,
+                Aceptado = presupuestoExistente.Aceptado, // <-- Asignar el valor existente
+                ManodeObra = presupuestoExistente.ManodeObra,
+                TiempoAproxObra = presupuestoExistente.TiempoAproxObra,
+                ValidacionDias = presupuestoExistente.ValidacionDias,
+                Observacion = presupuestoExistente.Observacion
+            };
 
-            // Poblar SelectedItems con los items existentes del presupuesto
             if (presupuestoExistente.ItemsDetalle != null)
             {
-                foreach (var detalle in presupuestoExistente.ItemsDetalle) // Ahora iterando sobre GET_PresItemDetalleDTO
+                foreach (var detalle in presupuestoExistente.ItemsDetalle)
                 {
                     var catalogoItem = AllCatalogItems.FirstOrDefault(ci => ci.Id == detalle.ItemPresupuestoId);
                     SelectedItems.Add(new SelectedItemVM
-                        {
-                            ItemId = detalle.ItemPresupuestoId,
-                            Nombre = catalogoItem?.Nombre ?? "Ítem no encontrado",
-                        // --- CAST NECESARIO --- Castear Cantidad de decimal (en GET_PresItemDetalleDTO) a int
-                            Cantidad = (int)detalle.Cantidad,
-                            Precio = detalle.PrecioUnitario,
-                            DetalleId = detalle.Id // Guardar el ID del detalle original si es necesario para el PUT
-                        });
+                    {
+                        ItemId = detalle.ItemPresupuestoId,
+                        Nombre = catalogoItem?.Nombre ?? "Ítem no encontrado",
+                        Cantidad = (int)detalle.Cantidad,
+                        Precio = detalle.PrecioUnitario,
+                        DetalleId = detalle.Id
+                    });
                 }
-                RecalcularFromSelectedItems(); // Calcular totales iniciales
+                RecalcularFromSelectedItems();
             }
 
             Navigation.LocationChanged += OnLocationChanged;
@@ -329,251 +333,88 @@
         }
     }
 
-    // --- Métodos para cargar, buscar y manejar items (SIN CAMBIOS desde NuevoPresupuestoForm) ---
+    // --- Métodos sin cambios ---
     private async Task LoadCatalogItemsAsync()
     {
         if (AllCatalogItems == null || !AllCatalogItems.Any())
         {
-            try
-            {
-                AllCatalogItems = (await ItemService.GetAll())?.ToList() ?? new List<GET_ItemPresupuestoDTO>();
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Error cargando catálogo: {ex.Message}");
-                AllCatalogItems = new List<GET_ItemPresupuestoDTO>();
-            }
+            try { AllCatalogItems = (await ItemService.GetAll())?.ToList() ?? new List<GET_ItemPresupuestoDTO>(); }
+            catch (Exception ex) { Console.Error.WriteLine($"Error cargando catálogo: {ex.Message}"); AllCatalogItems = new List<GET_ItemPresupuestoDTO>(); }
         }
     }
-
     private async Task BuscarItems()
     {
         await LoadCatalogItemsAsync();
-
-        if (string.IsNullOrWhiteSpace(searchNombre) &&
-            string.IsNullOrWhiteSpace(searchMarca) &&
-            string.IsNullOrWhiteSpace(searchFabricante))
-        {
-            CatalogoItemsFiltrados = new List<GET_ItemPresupuestoDTO>();
-            await InvokeAsync(StateHasChanged);
-            return;
-        }
-
+        if (string.IsNullOrWhiteSpace(searchNombre) && string.IsNullOrWhiteSpace(searchMarca) && string.IsNullOrWhiteSpace(searchFabricante))
+        { CatalogoItemsFiltrados = new List<GET_ItemPresupuestoDTO>(); await InvokeAsync(StateHasChanged); return; }
         var query = AllCatalogItems.AsEnumerable();
-        if (!string.IsNullOrWhiteSpace(searchNombre))
-        {
-            var s = searchNombre.Trim();
-            query = query.Where(i => !string.IsNullOrEmpty(i.Nombre) && i.Nombre.Contains(s, StringComparison.OrdinalIgnoreCase));
-        }
-        if (!string.IsNullOrWhiteSpace(searchMarca))
-        {
-            var s = searchMarca.Trim();
-            query = query.Where(i => !string.IsNullOrEmpty(i.Marca) && i.Marca.Contains(s, StringComparison.OrdinalIgnoreCase));
-        }
-        if (!string.IsNullOrWhiteSpace(searchFabricante))
-        {
-            var s = searchFabricante.Trim();
-            query = query.Where(i => !string.IsNullOrEmpty(i.Fabricante) && i.Fabricante.Contains(s, StringComparison.OrdinalIgnoreCase));
-        }
-
-        CatalogoItemsFiltrados = query.ToList();
-        await InvokeAsync(StateHasChanged);
+        if (!string.IsNullOrWhiteSpace(searchNombre)) { var s = searchNombre.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Nombre) && i.Nombre.Contains(s, StringComparison.OrdinalIgnoreCase)); }
+        if (!string.IsNullOrWhiteSpace(searchMarca)) { var s = searchMarca.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Marca) && i.Marca.Contains(s, StringComparison.OrdinalIgnoreCase)); }
+        if (!string.IsNullOrWhiteSpace(searchFabricante)) { var s = searchFabricante.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Fabricante) && i.Fabricante.Contains(s, StringComparison.OrdinalIgnoreCase)); }
+        CatalogoItemsFiltrados = query.ToList(); await InvokeAsync(StateHasChanged);
     }
-
-    private void AbrirItemModalNuevo()
-    {
-        ItemIdParaEditar = null;
-        MostrarItemModal = true;
-    }
-
-    private void AbrirItemModalEditar(int id)
-    {
-        ItemIdParaEditar = id;
-        MostrarItemModal = true;
-    }
-
-    private void CerrarItemModal()
-    {
-        ItemIdParaEditar = null;
-        MostrarItemModal = false;
-    }
-
+    private void AbrirItemModalNuevo() { ItemIdParaEditar = null; MostrarItemModal = true; }
+    private void AbrirItemModalEditar(int id) { ItemIdParaEditar = id; MostrarItemModal = true; }
+    private void CerrarItemModal() { ItemIdParaEditar = null; MostrarItemModal = false; }
     private async Task ItemGuardado(int itemId)
     {
-        await LoadCatalogItemsAsync();
-        await BuscarItems();
-
+        await LoadCatalogItemsAsync(); await BuscarItems();
         var itemEditado = SelectedItems.FirstOrDefault(si => si.ItemId == itemId);
         if (itemEditado != null && itemId > 0)
-        {
-            var itemActualizadoCatalogo = AllCatalogItems.FirstOrDefault(ci => ci.Id == itemId);
-            if (itemActualizadoCatalogo != null)
-            {
-                itemEditado.Precio = itemActualizadoCatalogo.Precio;
-                RecalcularFromSelectedItems();
-            }
-        }
-
+        { var itemActualizadoCatalogo = AllCatalogItems.FirstOrDefault(ci => ci.Id == itemId); if (itemActualizadoCatalogo != null) { itemEditado.Precio = itemActualizadoCatalogo.Precio; RecalcularFromSelectedItems(); } }
         CerrarItemModal();
     }
-
     private async Task OnToggleItem(GET_ItemPresupuestoDTO cat, ChangeEventArgs e)
     {
         var existe = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
-        if (existe == null)
-        {
-            SelectedItems.Add(new SelectedItemVM
-                {
-                    ItemId = cat.Id,
-                    Nombre = cat.Nombre,
-                    Cantidad = 1,
-                    Precio = cat.Precio
-                // DetalleId será null para items recién agregados
-                });
-        }
-        else
-        {
-            SelectedItems.Remove(existe);
-        }
-        await Task.Yield();
-        RecalcularFromSelectedItems();
+        if (existe == null) { SelectedItems.Add(new SelectedItemVM { ItemId = cat.Id, Nombre = cat.Nombre, Cantidad = 1, Precio = cat.Precio }); }
+        else { SelectedItems.Remove(existe); }
+        await Task.Yield(); RecalcularFromSelectedItems();
     }
-
     private async Task OnCantidadChanged(int itemId, ChangeEventArgs e)
     {
         if (!int.TryParse(e?.Value?.ToString(), out var cant) || cant < 1) cant = 1;
         var vm = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
-        if (vm != null)
-        {
-            vm.Cantidad = cant;
-            RecalcularFromSelectedItems();
-        }
+        if (vm != null) { vm.Cantidad = cant; RecalcularFromSelectedItems(); }
         await Task.Yield();
     }
-
     private async Task OnPrecioChanged(int itemId, ChangeEventArgs e)
     {
         if (!decimal.TryParse(e?.Value?.ToString(), out var precio) || precio < 0) precio = 0m;
         var vm = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
-        if (vm != null)
-        {
-            vm.Precio = Math.Round(precio, 2);
-            RecalcularFromSelectedItems();
-        }
+        if (vm != null) { vm.Precio = Math.Round(precio, 2); RecalcularFromSelectedItems(); }
         await Task.Yield();
     }
-
     private void RecalcularFromSelectedItems()
     {
         PresupuestoModel.TotalP = SelectedItems.Sum(s => s.Precio * s.Cantidad);
-        var mano = PresupuestoModel.ManodeObra ?? 0m;
-        PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP);
-        StateHasChanged();
+        var mano = PresupuestoModel.ManodeObra ?? 0m; PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP); StateHasChanged();
     }
-
     private async Task RecalcularTotal(ChangeEventArgs e)
     {
-        _recalcCts?.Cancel();
-        _recalcCts?.Dispose();
-        _recalcCts = new CancellationTokenSource();
-        var token = _recalcCts.Token;
-
-        try { await Task.Delay(250, token); }
-        catch (TaskCanceledException) { return; }
-
-        var mano = PresupuestoModel.ManodeObra ?? 0m;
-        PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP);
-        await InvokeAsync(StateHasChanged);
+        _recalcCts?.Cancel(); _recalcCts?.Dispose(); _recalcCts = new CancellationTokenSource(); var token = _recalcCts.Token;
+        try { await Task.Delay(250, token); } catch (TaskCanceledException) { return; }
+        var mano = PresupuestoModel.ManodeObra ?? 0m; PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP); await InvokeAsync(StateHasChanged);
     }
-
-    // --- MÉTODO GuardarPresupuesto MODIFICADO para llamar a Update ---
     private async Task GuardarPresupuesto()
     {
-        Guardando = true;
-        Mensaje = null;
-
+        Guardando = true; Mensaje = null;
         try
         {
-            if (PresupuestoModel.ClienteId == 0)
-            {
-                MostrarMensaje("Debe seleccionar un cliente.", "alert-warning");
-                Guardando = false; return;
-            }
-            if (PresupuestoModel.Total <= 0)
-            {
-                MostrarMensaje("El total debe ser mayor a 0.", "alert-warning");
-                Guardando = false; return;
-            }
-
-            // Mapear SelectedItems a ItemsDetalle para PUT_PresupuestoDTO
-            PresupuestoModel.ItemsDetalle = SelectedItems
-                .Select(s => new PUT_PresItemDetalleDTO // Usar el DTO de PUT para los detalles
-                    {
-                        Id = s.DetalleId ?? 0, // Usar el ID guardado, o 0 si es un item nuevo agregado durante la edición
-                        ItemPresupuestoId = s.ItemId,
-                        Cantidad = s.Cantidad,
-                        PrecioUnitario = s.Precio
-                    })
-                .ToList();
-
-            // Llamar al servicio Update en lugar de Create
-            await PresupuestoService.Update(Id, PresupuestoModel);
-
+            if (PresupuestoModel.ClienteId == 0) { MostrarMensaje("Debe seleccionar un cliente.", "alert-warning"); Guardando = false; return; }
+            if (PresupuestoModel.Total <= 0) { MostrarMensaje("El total debe ser mayor a 0.", "alert-warning"); Guardando = false; return; }
+            PresupuestoModel.ItemsDetalle = SelectedItems.Select(s => new PUT_PresItemDetalleDTO { Id = s.DetalleId ?? 0, ItemPresupuestoId = s.ItemId, Cantidad = s.Cantidad, PrecioUnitario = s.Precio }).ToList();
+            await PresupuestoService.Update(Id, PresupuestoModel); // Llama a Update
             MostrarMensaje("✅ Presupuesto actualizado con éxito.", "alert-success");
-
-            await Task.Delay(800);
-            Navigation.NavigateTo("/presupuestos"); // Volver a la lista
+            await Task.Delay(800); Navigation.NavigateTo("/presupuestos");
         }
-        catch (Exception ex)
-        {
-            MostrarMensaje($"Error al guardar cambios: {ex.Message}", "alert-danger");
-        }
-
+        catch (Exception ex) { MostrarMensaje($"Error al guardar cambios: {ex.Message}", "alert-danger"); }
         Guardando = false;
     }
-
-    private void MostrarMensaje(string texto, string tipo)
-    {
-        Mensaje = texto;
-        MensajeCss = tipo;
-        StateHasChanged();
-    }
-
+    private void MostrarMensaje(string texto, string tipo) { Mensaje = texto; MensajeCss = tipo; StateHasChanged(); }
     private void Volver() => Navigation.NavigateTo("/presupuestos");
-
-    public void Dispose()
-    {
-        try { Navigation.LocationChanged -= OnLocationChanged; } catch { }
-        _recalcCts?.Cancel();
-        _recalcCts?.Dispose();
-        _recalcCts = null;
-    }
-
-    // --- Nuevo Método para el botón "Quitar" (Igual que en Nuevo) ---
-    private void QuitarItemSeleccionado(int itemId)
-    {
-        var item = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
-        if (item != null)
-        {
-            SelectedItems.Remove(item);
-            RecalcularFromSelectedItems();
-        }
-    }
-
-    // Método GetNombreRubro (necesario para el InputSelect de Rubro)
-    private string GetNombreRubro(Rubro rubro) => rubro switch
-    {
-        Rubro.Gas => "Gas",
-        Rubro.Electricidad => "Electricidad",
-        Rubro.Refrigeracion => "Refrigeración",
-        Rubro.Solar => "Solar",
-        Rubro.Plomeria => "Plomería",
-        _ => rubro.ToString()
-    };
-
-    // Método OnLocationChanged (necesario por IDisposable y NavigationManager)
-    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        await Task.CompletedTask;
-    }
+    public void Dispose() { try { Navigation.LocationChanged -= OnLocationChanged; } catch { } _recalcCts?.Cancel(); _recalcCts?.Dispose(); _recalcCts = null; }
+    private void QuitarItemSeleccionado(int itemId) { var item = SelectedItems.FirstOrDefault(s => s.ItemId == itemId); if (item != null) { SelectedItems.Remove(item); RecalcularFromSelectedItems(); } }
+    private string GetNombreRubro(Rubro rubro) => rubro switch { Rubro.Gas => "Gas", Rubro.Electricidad => "Electricidad", Rubro.Refrigeracion => "Refrigeración", Rubro.Solar => "Solar", Rubro.Plomeria => "Plomería", _ => rubro.ToString() };
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) { await Task.CompletedTask; }
 }
