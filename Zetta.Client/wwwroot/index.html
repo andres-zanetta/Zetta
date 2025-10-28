@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,10 +14,12 @@
 </head>
 
 <body>
-    <div id="app">
-    </div>
+    <div id="app">Loading...</div>
 
     <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -26,75 +27,198 @@
 
     <script>
         function generarPresupuestoPdf(datosPresupuesto) {
-            if (window.jspdf && window.jspdf.jsPDF) {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-
-                doc.setFontSize(16);
-                doc.text(`Presupuesto N°: ${datosPresupuesto.id}`, 105, 15, null, null, 'center');
-
-                doc.setFontSize(12);
-                doc.text(`Cliente: ${datosPresupuesto.nombreCliente ?? 'N/A'}`, 14, 30);
-                doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 14, 37);
-                doc.text(`Rubro: ${datosPresupuesto.rubro ?? 'N/A'}`, 14, 44);
-                doc.text(`Validez: ${datosPresupuesto.validacionDias ?? 'N/A'} días`, 14, 51);
-
-                if (datosPresupuesto.itemsDetalle && typeof doc.autoTable === 'function') {
-                    const tableColumn = ["Descripción", "Cant.", "P. Unit.", "Subtotal"];
-                    const tableRows = [];
-
-                    datosPresupuesto.itemsDetalle.forEach(item => {
-                        const itemData = [
-                            item.nombreItem ?? 'N/A', // Usamos el nombre que viene del DTO
-                            item.cantidad,
-                            item.precioUnitario.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }),
-                            (item.precioUnitario * item.cantidad).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
-                        ];
-                        tableRows.push(itemData);
-                    });
-
-                    doc.autoTable({
-                        head: [tableColumn],
-                        body: tableRows,
-                        startY: 60,
-                        theme: 'grid',
-                        headStyles: { fillColor: [220, 220, 220], textColor: 0 },
-                        columnStyles: {
-                            1: { halign: 'center' }, // Cant.
-                            2: { halign: 'right' }, // P. Unit
-                            3: { halign: 'right' }  // Subtotal
-                        }
-                    });
-                } else {
-                    doc.text("No se incluyeron detalles de ítems.", 14, 60);
-                }
-
-                const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 70; // Posición después de la tabla
-                doc.setFontSize(11);
-                doc.text(`Subtotal Items: ${datosPresupuesto.totalP.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 10, null, null, 'right');
-                doc.text(`Mano de Obra: ${(datosPresupuesto.manodeObra ?? 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 17, null, null, 'right');
-                doc.text(`Incluye Materiales: ${datosPresupuesto.materiales ? 'Sí' : 'No'}`, 196, finalY + 24, null, null, 'right');
-                doc.setFontSize(12);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Total: ${datosPresupuesto.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 31, null, null, 'right');
-                doc.setFont(undefined, 'normal');
-
-                if (datosPresupuesto.observacion) {
-                    doc.setFontSize(10);
-                    doc.text("Observaciones:", 14, finalY + 45);
-                    doc.text(datosPresupuesto.observacion, 14, finalY + 50, { maxWidth: 180 });
-                }
-
-                doc.save(`Presupuesto-${datosPresupuesto.id}-${datosPresupuesto.nombreCliente ?? ''}.pdf`);
-
-            } else {
+            if (!window.jspdf || !window.jspdf.jsPDF) {
                 console.error("jsPDF no está cargado.");
                 alert("Error al generar PDF: la librería jsPDF no está disponible.");
+                return;
             }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            // --- CONSTANTES Y CONFIGURACIÓN ---
+            const margenIzquierdo = 15;
+            const margenSuperior = 15;
+            const anchoPagina = doc.internal.pageSize.getWidth();
+            const margenDerecho = anchoPagina - 15;
+            const lineHeight = 6; // Reducir un poco el espacio entre líneas
+            let posY = margenSuperior;
+
+            // --- FUENTE PREDETERMINADA ---
+            doc.setFont('times', 'normal');
+
+            // --- LOGO ---
+            const logoBase64 = "data:image/jpeg;base64,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"; // ¡¡¡ REEMPLAZA ESTO !!!
+            try {
+                // Posición y tamaño del logo
+                doc.addImage(logoBase64, 'JPEG', margenIzquierdo, 5, 25, 25);
+            } catch (e) {
+                console.warn("No se pudo añadir el logo:", e);
+            }
+
+            // --- TÍTULO (Centrado y en negrita) ---
+            doc.setFont('times', 'bold');
+            doc.setFontSize(18);
+            doc.text("Zetta Servicios", anchoPagina / 2, margenSuperior + 5, { align: 'center' });
+            posY = margenSuperior + 15; // Ajustar posY inicial
+
+            // --- LÍNEA SEPARADORA ---
+            doc.setDrawColor(0); // Negro
+            doc.setLineWidth(0.5);
+            doc.line(margenIzquierdo, posY, margenDerecho, posY);
+            posY += lineHeight * 1.5;
+
+            // --- DATOS DEL CLIENTE ---
+            doc.setFont('times', 'bold');
+            doc.setFontSize(11);
+            doc.text("Cliente:", margenIzquierdo, posY);
+            posY += lineHeight * 0.9;
+            doc.setFont('times', 'normal');
+            doc.setFontSize(9.5); // Tamaño un poco más pequeño para detalles
+            doc.text(`${datosPresupuesto.nombreCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
+            posY += lineHeight * 0.7;
+            doc.text(`Dirección: ${datosPresupuesto.direccionCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
+            posY += lineHeight * 0.7;
+            doc.text(`Localidad: ${datosPresupuesto.localidadCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
+            posY += lineHeight * 0.7;
+            doc.text(`Teléfono: ${datosPresupuesto.telefonoCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
+            posY += lineHeight * 0.7;
+            doc.text(`Email: ${datosPresupuesto.emailCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
+
+            // --- DATOS DEL PRESUPUESTO (A la derecha) ---
+            let posYPresupuesto = margenSuperior + 15 + lineHeight * 1.5; // Reiniciar posY
+            doc.setFontSize(9.5);
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, margenDerecho, posYPresupuesto, null, null, 'right');
+            posYPresupuesto += lineHeight * 0.8;
+            doc.text(`Rubro: ${datosPresupuesto.rubroNombre ?? 'N/A'}`, margenDerecho, posYPresupuesto, null, null, 'right');
+            posYPresupuesto += lineHeight * 0.8;
+            doc.text(`Validez: ${datosPresupuesto.validacionDias ?? 'N/A'} días`, margenDerecho, posYPresupuesto, null, null, 'right');
+
+            // Ajustar posY principal
+            posY = Math.max(posY, posYPresupuesto) + lineHeight * 2.5;
+
+            // --- TABLA DE ÍTEMS MEJORADA ---
+            if (datosPresupuesto.itemsDetalle && typeof doc.autoTable === 'function') {
+                const tableColumns = [
+                    { header: 'Item', dataKey: 'nombre' },
+                    { header: 'Medida', dataKey: 'medida' },
+                    { header: 'Descripción', dataKey: 'desc' },
+                    { header: 'Fecha Act.', dataKey: 'fecha' },
+                    { header: 'Cant.', dataKey: 'cant' },
+                    { header: 'P. Unit.', dataKey: 'pUnit' },
+                    { header: 'Subtotal', dataKey: 'subtotal' }
+                ];
+                const tableRows = datosPresupuesto.itemsDetalle.map(item => {
+                    let fechaStr = '-';
+                    if (item.fechaActPrecioItem) {
+                        try { fechaStr = new Date(item.fechaActPrecioItem).toLocaleDateString('es-AR'); } catch { /* Ignorar */ }
+                    }
+                    return {
+                        nombre: item.nombreItem ?? 'N/A',
+                        medida: item.medidaItem ?? '-', // Nueva columna
+                        desc: item.descripcionItem ?? '-', // Nueva columna
+                        fecha: fechaStr, // Nueva columna
+                        cant: item.cantidad.toLocaleString('es-AR'),
+                        pUnit: item.precioUnitario.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }),
+                        subtotal: (item.precioUnitario * item.cantidad).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
+                    };
+                });
+
+                doc.autoTable({
+                    columns: tableColumns,
+                    body: tableRows,
+                    startY: posY,
+                    theme: 'grid', // 'plain', 'striped', 'grid'
+                    styles: {
+                        font: 'times',
+                        fontSize: 8.5, // Fuente más pequeña para que quepa más info
+                        cellPadding: 1.2,
+                        valign: 'middle' // Alinear verticalmente
+                    },
+                    headStyles: {
+                        fillColor: [70, 70, 70], // Gris más oscuro
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        halign: 'center',
+                        fontSize: 9
+                    },
+                    columnStyles: { // Ajustar anchos y alineaciones
+                        nombre: { cellWidth: 35 },
+                        medida: { halign: 'center', cellWidth: 15 },
+                        desc: { cellWidth: 45 }, // Dar más espacio a descripción
+                        fecha: { halign: 'center', cellWidth: 18 },
+                        cant: { halign: 'center', cellWidth: 12 },
+                        pUnit: { halign: 'right', cellWidth: 22 },
+                        subtotal: { halign: 'right', cellWidth: 23 }
+                    },
+                    didDrawPage: function (data) {
+                        // Podrías añadir encabezados/pies en cada nueva página si la tabla es larga
+                    }
+                });
+                posY = doc.lastAutoTable.finalY;
+            } else {
+                doc.text("No se incluyeron detalles de ítems.", margenIzquierdo, posY);
+                posY += lineHeight;
+            }
+
+            posY += lineHeight * 1.5;
+
+            // --- TOTALES (Sin cambios visuales grandes, ajustada posición Y) ---
+            const posXTotalLabel = margenDerecho - 45;
+            const posXTotalValue = margenDerecho;
+            doc.setFontSize(10);
+            doc.setFont('times', 'normal');
+            doc.text('Subtotal Items:', posXTotalLabel, posY, null, null, 'right');
+            doc.text(datosPresupuesto.totalP.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }), posXTotalValue, posY, null, null, 'right');
+            posY += lineHeight * 0.9;
+            doc.text('Mano de Obra:', posXTotalLabel, posY, null, null, 'right');
+            doc.text((datosPresupuesto.manodeObra ?? 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }), posXTotalValue, posY, null, null, 'right');
+            posY += lineHeight * 0.9;
+            doc.text('Incluye Materiales:', posXTotalLabel, posY, null, null, 'right');
+            doc.text(datosPresupuesto.materiales ? 'Sí' : 'No', posXTotalValue, posY, null, null, 'right');
+            posY += lineHeight * 1.2;
+
+            doc.setDrawColor(100, 100, 100);
+            doc.setLineWidth(0.3);
+            doc.line(posXTotalLabel - 5, posY, margenDerecho, posY);
+            posY += lineHeight * 0.7;
+
+            doc.setFontSize(12);
+            doc.setFont('times', 'bold');
+            doc.text('Total:', posXTotalLabel, posY, null, null, 'right');
+            doc.text(datosPresupuesto.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }), posXTotalValue, posY, null, null, 'right');
+            posY += lineHeight * 2;
+
+            // --- OBSERVACIONES (Sin cambios) ---
+            if (datosPresupuesto.observacion) {
+                // ... (código existente para observaciones) ...
+                doc.setFont('times', 'bold');
+                doc.setFontSize(10);
+                doc.text("Observaciones:", margenIzquierdo, posY);
+                posY += lineHeight * 0.8;
+                doc.setFont('times', 'normal');
+                doc.setFontSize(9);
+                const textoObservaciones = doc.splitTextToSize(datosPresupuesto.observacion, margenDerecho - margenIzquierdo);
+                doc.text(textoObservaciones, margenIzquierdo, posY);
+                posY += textoObservaciones.length * (lineHeight * 0.65);
+            }
+
+            // --- PIE DE PÁGINA (Sin cambios) ---
+            const pageCount = doc.internal.getNumberOfPages();
+            doc.setFont('times', 'italic');
+            doc.setFontSize(8);
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.text('Zetta Servicios - [Tu CUIT/Dirección/Teléfono]', margenIzquierdo, doc.internal.pageSize.height - 10);
+                doc.text(`Página ${i} de ${pageCount}`, margenDerecho, doc.internal.pageSize.height - 10, { align: 'right' });
+            }
+
+            // --- GUARDAR EL PDF ---
+            doc.save(`Presupuesto-${datosPresupuesto.id}-${datosPresupuesto.nombreCliente ?? ''}.pdf`);
         }
     </script>
 
+
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
-
 </html>

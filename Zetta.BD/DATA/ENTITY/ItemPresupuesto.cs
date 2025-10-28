@@ -20,7 +20,7 @@ namespace Zetta.BD.DATA.ENTITY
         public string? Descripcion { get; set; }
         public string? Fabricante { get; set; }
         public string? Marca { get; set; }
-        public DateTime FechActuPrecio { get; set; }
+        public DateTime? FechActuPrecio { get; set; }
     }
 
     #region Diccionario

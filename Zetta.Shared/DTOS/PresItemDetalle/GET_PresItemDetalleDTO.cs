@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zetta.Shared.DTOS.PresItemDetalle
 {
@@ -14,5 +10,10 @@ namespace Zetta.Shared.DTOS.PresItemDetalle
         public decimal Cantidad { get; set; }
         public decimal PrecioUnitario { get; set; }
         public string? NombreItem { get; set; }
+        public string? DescripcionItem { get; set; }
+        public DateTime? FechaActPrecioItem { get; set; }
+
+        // --- CAMPO AGREGADO ---
+        public string? MedidaItem { get; set; } // Unidad de medida del ítem (ej: 'm', 'u', 'kg')
     }
 }

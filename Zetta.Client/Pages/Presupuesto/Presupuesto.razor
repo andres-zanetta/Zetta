@@ -61,7 +61,7 @@
                         <tr>
                             <td>@p.Id</td>
                             <td>@p.NombreCliente</td>
-                            <td>@p.Rubro</td>
+                            <td>@p.RubroNombre</td> @* Mostrar nombre del rubro *@
                             <td>@p.OpcionDePago</td>
                             <td>$ @p.ManodeObra?.ToString("N2")</td>
                             <td>$ @p.TotalP.ToString("N2")</td>
@@ -83,22 +83,16 @@
                             <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
 
                             <td class="text-center">
-                                @* BOTÓN EDITAR *@
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         title="Editar presupuesto"
                                         @onclick="() => AbrirFormularioEdicion(p.Id)">
                                     <i class="bi bi-pencil-square"></i>
                                 </button>
-
-                                @* --- NUEVO BOTÓN PDF --- *@
                                 <button class="btn btn-sm btn-outline-info me-1"
                                         title="Descargar PDF"
                                         @onclick="() => GenerarPdfCliente(p)">
-                                    @* Llama al nuevo método *@
                                     <i class="bi bi-download"></i>
                                 </button>
-
-                                @* BOTÓN ELIMINAR *@
                                 <button class="btn btn-sm btn-outline-danger"
                                         title="Eliminar presupuesto"
                                         @onclick="() => EliminarPresupuesto(p.Id)">
@@ -127,7 +121,7 @@
         try
         {
             Cargando = true;
-            // Asegúrate que GetAll() ahora trae los ItemsDetalle con NombreItem
+            // Asumiendo que GetAll ahora trae todos los datos necesarios mapeados
             Presupuestos = await PresupuestoService.GetAll() ?? new();
         }
         catch (Exception ex)
@@ -142,7 +136,6 @@
     }
 
     private void AbrirFormularioNuevo() => Navigation.NavigateTo("/presupuestos/nuevo");
-
     private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/presupuestos/editar/{id}");
 
     private async Task EliminarPresupuesto(int id)
@@ -163,16 +156,57 @@
         }
     }
 
-    // --- NUEVO MÉTODO PARA GENERAR PDF ---
+    // --- MÉTODO GENERAR PDF ACTUALIZADO ---
     private async Task GenerarPdfCliente(GET_PresupuestoDTO presupuesto)
     {
-        if (presupuesto == null) return;
+        if (presupuesto == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "❌ No se puede generar PDF: faltan datos del presupuesto.");
+            return;
+        }
 
-        // El DTO ya debería tener toda la info necesaria, incluyendo NombreCliente y ItemsDetalle con NombreItem
+        // --- VERIFICACIÓN ADICIONAL ---
+        // Si GetAll() no trae los ItemsDetalle, necesitamos traerlos con GetById
+        if (presupuesto.ItemsDetalle == null || !presupuesto.ItemsDetalle.Any())
+        {
+            Console.WriteLine($"Presupuesto {presupuesto.Id} no tiene detalles en la lista inicial. Cargando detalles...");
+            try
+            {
+                var presupuestoConDetalles = await PresupuestoService.GetById(presupuesto.Id);
+                if (presupuestoConDetalles?.ItemsDetalle != null)
+                {
+                    presupuesto.ItemsDetalle = presupuestoConDetalles.ItemsDetalle; // Reemplazar con la lista detallada
+                }
+                else
+                {
+                    presupuesto.ItemsDetalle = new List<GET_PresItemDetalleDTO>(); // Usar lista vacía si GetById tampoco los trae
+                    Console.WriteLine($"Advertencia: GetById para {presupuesto.Id} tampoco devolvió ItemsDetalle.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al cargar detalles para PDF del presupuesto {presupuesto.Id}: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"❌ Error al cargar los detalles del presupuesto para el PDF.");
+                return; // No continuar si no se pueden cargar los detalles
+            }
+        }
+
+        // --- VERIFICACIÓN DATOS DEL CLIENTE ---
+        // Si faltan datos del cliente en el DTO de la lista, podríamos cargarlos o mostrar N/A
+        if (string.IsNullOrEmpty(presupuesto.DireccionCliente) ||
+            string.IsNullOrEmpty(presupuesto.TelefonoCliente) ||
+            string.IsNullOrEmpty(presupuesto.EmailCliente) ||
+            string.IsNullOrEmpty(presupuesto.LocalidadCliente))
+        {
+            Console.WriteLine($"Advertencia: Faltan datos del cliente para el PDF del presupuesto {presupuesto.Id}.");
+            // Aquí podrías decidir si hacer una llamada extra para obtener los datos completos del cliente
+            // o simplemente permitir que el PDF muestre 'N/A'. Por simplicidad, dejaremos que muestre 'N/A'.
+        }
+
+
         try
         {
-            // Simplemente pasamos el DTO a JavaScript
-            // La función JS espera un objeto con las propiedades que definimos (id, nombreCliente, itemsDetalle, etc.)
+            // Pasamos el DTO (potencialmente actualizado con detalles) a JavaScript
             await JSRuntime.InvokeVoidAsync("generarPresupuestoPdf", presupuesto);
         }
         catch (Exception ex)
