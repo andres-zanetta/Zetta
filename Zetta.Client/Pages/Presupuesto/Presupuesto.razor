@@ -49,60 +49,64 @@
 
             <tbody>
                 @if (Presupuestos == null || Presupuestos.Count == 0)
-            {
-            <tr>
-                        @* Corregido: el colspan debe ser 13 para coincidir con el thead *@
-                <td colspan="13" class="text-center text-muted">No hay presupuestos registrados.</td>
-            </tr>
-            }
-            else
-            {
-            @foreach (var p in Presupuestos)
                 {
                     <tr>
-                        <td>@p.Id</td>
-
-                        @* Corregido: Se descomenta la celda del cliente *@
-                        @* Asumiendo que tu DTO ahora sí incluye NombreCliente *@
-                        <td>@p.NombreCliente</td>
-
-                        <td>@p.Rubro</td>
-                        <td>@p.OpcionDePago</td>
-                        <td>$ @p.ManodeObra?.ToString("N2")</td>
-                        <td>$ @p.TotalP.ToString("N2")</td>
-
-                        @* Corregido: Se muestra "Sí" o "No" en lugar de "$ True/False" *@
-                        <td>@(p.Materiales ? "Sí" : "No")</td> 
-
-                        <td class="fw-bold">$ @p.Total.ToString("N2")</td>
-                        <td>
-                            @if (p.Aceptado)
-                            {
-                                <span class="badge bg-success">Aceptado</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Pendiente</span>
-                            }
-                        </td>
-                        <td>@p.TiempoAproxObra</td>
-                        <td>@p.ValidacionDias</td>
-                        <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
-
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary me-2"
-                                    title="Editar presupuesto"
-                                    @onclick="() => AbrirFormularioEdicion(p.Id)">
-                                <i class="bi bi-pencil-square"></i>
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger"
-                                    title="Eliminar presupuesto"
-                                    @onclick="() => EliminarPresupuesto(p.Id)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <td colspan="13" class="text-center text-muted">No hay presupuestos registrados.</td>
                     </tr>
                 }
+                else
+                {
+                    @foreach (var p in Presupuestos)
+                    {
+                        <tr>
+                            <td>@p.Id</td>
+                            <td>@p.NombreCliente</td>
+                            <td>@p.Rubro</td>
+                            <td>@p.OpcionDePago</td>
+                            <td>$ @p.ManodeObra?.ToString("N2")</td>
+                            <td>$ @p.TotalP.ToString("N2")</td>
+                            <td>@(p.Materiales ? "Sí" : "No")</td>
+                            <td class="fw-bold">$ @p.Total.ToString("N2")</td>
+                            <td>
+                                @if (p.Aceptado)
+                                {
+                                    <span class="badge bg-success">Aceptado</span>
+                                }
+                                else
+                                {
+
+                                    <span class="badge bg-secondary">Pendiente</span>
+                                }
+                            </td>
+                            <td>@p.TiempoAproxObra</td>
+                            <td>@p.ValidacionDias</td>
+                            <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
+
+                            <td class="text-center">
+                                @* BOTÓN EDITAR *@
+                                <button class="btn btn-sm btn-outline-primary me-1"
+                                        title="Editar presupuesto"
+                                        @onclick="() => AbrirFormularioEdicion(p.Id)">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+
+                                @* --- NUEVO BOTÓN PDF --- *@
+                                <button class="btn btn-sm btn-outline-info me-1"
+                                        title="Descargar PDF"
+                                        @onclick="() => GenerarPdfCliente(p)">
+                                    @* Llama al nuevo método *@
+                                    <i class="bi bi-download"></i>
+                                </button>
+
+                                @* BOTÓN ELIMINAR *@
+                                <button class="btn btn-sm btn-outline-danger"
+                                        title="Eliminar presupuesto"
+                                        @onclick="() => EliminarPresupuesto(p.Id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -113,7 +117,6 @@
     private List<GET_PresupuestoDTO> Presupuestos { get; set; } = new();
     private bool Cargando = true;
 
-    // Carga inicial
     protected override async Task OnInitializedAsync()
     {
         await CargarPresupuestos();
@@ -124,44 +127,58 @@
         try
         {
             Cargando = true;
+            // Asegúrate que GetAll() ahora trae los ItemsDetalle con NombreItem
             Presupuestos = await PresupuestoService.GetAll() ?? new();
-    }
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar presupuestos: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", "❌ Error al cargar presupuestos.");
-    }
+        }
         finally
         {
             Cargando = false;
         }
     }
 
-    private void AbrirFormularioNuevo()
-    {
-        Navigation.NavigateTo("/presupuestos/nuevo");
-    }
+    private void AbrirFormularioNuevo() => Navigation.NavigateTo("/presupuestos/nuevo");
 
-    private void AbrirFormularioEdicion(int id)
-    {
-        Navigation.NavigateTo($"/presupuestos/editar/{id}");
-    }
+    private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/presupuestos/editar/{id}");
 
     private async Task EliminarPresupuesto(int id)
     {
         bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este presupuesto?");
-    if (!confirmar) return;
+        if (!confirmar) return;
 
         try
         {
             await PresupuestoService.Delete(id);
             Presupuestos.RemoveAll(p => p.Id == id);
-        await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto eliminado correctamente.");
+            await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto eliminado correctamente.");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error al eliminar presupuesto: {ex.Message}");
-        await JSRuntime.InvokeVoidAsync("alert", "❌ Error al eliminar el presupuesto.");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Error al eliminar el presupuesto.");
+        }
+    }
+
+    // --- NUEVO MÉTODO PARA GENERAR PDF ---
+    private async Task GenerarPdfCliente(GET_PresupuestoDTO presupuesto)
+    {
+        if (presupuesto == null) return;
+
+        // El DTO ya debería tener toda la info necesaria, incluyendo NombreCliente y ItemsDetalle con NombreItem
+        try
+        {
+            // Simplemente pasamos el DTO a JavaScript
+            // La función JS espera un objeto con las propiedades que definimos (id, nombreCliente, itemsDetalle, etc.)
+            await JSRuntime.InvokeVoidAsync("generarPresupuestoPdf", presupuesto);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al invocar JS para PDF: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"❌ Error al generar el PDF: {ex.Message}");
         }
     }
 

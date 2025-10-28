@@ -37,7 +37,8 @@ namespace Zetta.Server.Util //
 
             // --- Mapeos de PresItemDetalle ---
             // * NUEVO MAPEO * : Entidad a GET DTO
-            CreateMap<PresItemDetalle, GET_PresItemDetalleDTO>();
+            CreateMap<PresItemDetalle, GET_PresItemDetalleDTO>()
+                .ForMember(dest => dest.NombreItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Nombre : null));
 
             // DTO a Entidad (Mapeos existentes - Verifica nombres de propiedades)
             CreateMap<POST_PresItemDetalleDTO, PresItemDetalle>()

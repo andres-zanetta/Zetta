@@ -16,18 +16,84 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
     </div>
 
     <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        function generarPresupuestoPdf(datosPresupuesto) {
+            if (window.jspdf && window.jspdf.jsPDF) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(16);
+                doc.text(`Presupuesto N°: ${datosPresupuesto.id}`, 105, 15, null, null, 'center');
+
+                doc.setFontSize(12);
+                doc.text(`Cliente: ${datosPresupuesto.nombreCliente ?? 'N/A'}`, 14, 30);
+                doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 14, 37);
+                doc.text(`Rubro: ${datosPresupuesto.rubro ?? 'N/A'}`, 14, 44);
+                doc.text(`Validez: ${datosPresupuesto.validacionDias ?? 'N/A'} días`, 14, 51);
+
+                if (datosPresupuesto.itemsDetalle && typeof doc.autoTable === 'function') {
+                    const tableColumn = ["Descripción", "Cant.", "P. Unit.", "Subtotal"];
+                    const tableRows = [];
+
+                    datosPresupuesto.itemsDetalle.forEach(item => {
+                        const itemData = [
+                            item.nombreItem ?? 'N/A', // Usamos el nombre que viene del DTO
+                            item.cantidad,
+                            item.precioUnitario.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }),
+                            (item.precioUnitario * item.cantidad).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
+                        ];
+                        tableRows.push(itemData);
+                    });
+
+                    doc.autoTable({
+                        head: [tableColumn],
+                        body: tableRows,
+                        startY: 60,
+                        theme: 'grid',
+                        headStyles: { fillColor: [220, 220, 220], textColor: 0 },
+                        columnStyles: {
+                            1: { halign: 'center' }, // Cant.
+                            2: { halign: 'right' }, // P. Unit
+                            3: { halign: 'right' }  // Subtotal
+                        }
+                    });
+                } else {
+                    doc.text("No se incluyeron detalles de ítems.", 14, 60);
+                }
+
+                const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY : 70; // Posición después de la tabla
+                doc.setFontSize(11);
+                doc.text(`Subtotal Items: ${datosPresupuesto.totalP.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 10, null, null, 'right');
+                doc.text(`Mano de Obra: ${(datosPresupuesto.manodeObra ?? 0).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 17, null, null, 'right');
+                doc.text(`Incluye Materiales: ${datosPresupuesto.materiales ? 'Sí' : 'No'}`, 196, finalY + 24, null, null, 'right');
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Total: ${datosPresupuesto.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}`, 196, finalY + 31, null, null, 'right');
+                doc.setFont(undefined, 'normal');
+
+                if (datosPresupuesto.observacion) {
+                    doc.setFontSize(10);
+                    doc.text("Observaciones:", 14, finalY + 45);
+                    doc.text(datosPresupuesto.observacion, 14, finalY + 50, { maxWidth: 180 });
+                }
+
+                doc.save(`Presupuesto-${datosPresupuesto.id}-${datosPresupuesto.nombreCliente ?? ''}.pdf`);
+
+            } else {
+                console.error("jsPDF no está cargado.");
+                alert("Error al generar PDF: la librería jsPDF no está disponible.");
+            }
+        }
+    </script>
+
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 
