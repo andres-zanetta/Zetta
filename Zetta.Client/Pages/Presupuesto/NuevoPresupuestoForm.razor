@@ -491,27 +491,33 @@
     /// </summary>
     private bool EsNumeroInvalido(decimal valor)
     {
-        var numStr = valor.ToString().Replace(",", "").Replace(".", "");
+        // Convierte a cadena limpia solo con dígitos
+        var numStr = new string(valor.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            .Where(char.IsDigit).ToArray());
+
+        // Si tiene menos de 4 dígitos, no se valida (evita falsos positivos)
+        if (numStr.Length < 4)
+            return false;
 
         // Detectar secuencias ascendentes o descendentes
-        const string secuenciaAsc = "1234567890";
-        const string secuenciaDesc = "0987654321";
+        const string secuenciaAsc = "0123456789";
+        const string secuenciaDesc = "9876543210";
 
         if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
             return true;
 
-        // Detectar si todos los dígitos son iguales (111111, 999999)
+        // Detectar si todos los dígitos son iguales (1111, 999999)
         if (numStr.Distinct().Count() == 1)
             return true;
 
-        // Detectar patrones de repetición de pares (121212, 343434)
-        if (numStr.Length >= 4)
+        // Detectar repeticiones tipo "121212" o "343434"
+        if (numStr.Length >= 6)
         {
-            for (int i = 0; i < numStr.Length - 2; i++)
-            {
-                if (numStr[i] == numStr[i + 2])
-                    return true;
-            }
+            var mitad = numStr.Length / 2;
+            var primera = numStr.Substring(0, mitad);
+            var segunda = numStr.Substring(mitad);
+            if (primera == segunda)
+                return true;
         }
 
         return false;
