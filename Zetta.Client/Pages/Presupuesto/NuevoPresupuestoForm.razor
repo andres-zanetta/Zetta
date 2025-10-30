@@ -445,15 +445,29 @@
                 return;
             }
 
-            //  evitar secuencias o repeticiones numéricas
+            // Validar que los valores numéricos no sean secuencias o repeticiones
             if (EsNumeroInvalido(PresupuestoModel.Total))
             {
-                MostrarMensaje("El valor total ingresado no es válido (secuencia o repetición numérica detectada).", "alert-warning");
+                MostrarMensaje("El valor TOTAL ingresado no es válido (secuencia o repetición numérica detectada).", "alert-warning");
                 Guardando = false;
                 return;
             }
 
-            // evitar montos absurdos
+            if (PresupuestoModel.ManodeObra.HasValue && EsNumeroInvalido(PresupuestoModel.ManodeObra.Value))
+            {
+                MostrarMensaje("El valor de MANO DE OBRA no es válido (secuencia o repetición numérica detectada).", "alert-warning");
+                Guardando = false;
+                return;
+            }
+
+            if (PresupuestoModel.TotalP > 0 && EsNumeroInvalido(PresupuestoModel.TotalP))
+            {
+                MostrarMensaje("El valor TOTAL DE ÍTEMS no es válido (secuencia o repetición numérica detectada).", "alert-warning");
+                Guardando = false;
+                return;
+            }
+
+            // Validar montos absurdos
             if (PresupuestoModel.Total > 100000000)
             {
                 MostrarMensaje("El monto total es demasiado alto. Verifique los valores ingresados.", "alert-warning");
@@ -461,7 +475,7 @@
                 return;
             }
 
-            //  Mapeo de ítems 
+            // Mapeo de ítems
             PresupuestoModel.ItemsDetalle = SelectedItems
                 .Select(s => new POST_PresItemDetalleDTO
                 {
@@ -471,7 +485,7 @@
                 })
                 .ToList();
 
-           
+            // Guardar presupuesto
             await PresupuestoService.Create(PresupuestoModel);
             MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
 
