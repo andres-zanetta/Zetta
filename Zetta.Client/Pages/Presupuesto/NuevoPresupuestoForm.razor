@@ -429,6 +429,7 @@
 
         try
         {
+            // Validación: Cliente seleccionado
             if (PresupuestoModel.ClienteId == 0)
             {
                 MostrarMensaje("Debe seleccionar un cliente.", "alert-warning");
@@ -436,6 +437,7 @@
                 return;
             }
 
+            // Validación: Total > 0
             if (PresupuestoModel.Total <= 0)
             {
                 MostrarMensaje("El total debe ser mayor a 0.", "alert-warning");
@@ -443,14 +445,33 @@
                 return;
             }
 
+            //  evitar secuencias o repeticiones numéricas
+            if (EsNumeroInvalido(PresupuestoModel.Total))
+            {
+                MostrarMensaje("El valor total ingresado no es válido (secuencia o repetición numérica detectada).", "alert-warning");
+                Guardando = false;
+                return;
+            }
+
+            // evitar montos absurdos
+            if (PresupuestoModel.Total > 100000000)
+            {
+                MostrarMensaje("El monto total es demasiado alto. Verifique los valores ingresados.", "alert-warning");
+                Guardando = false;
+                return;
+            }
+
+            //  Mapeo de ítems 
             PresupuestoModel.ItemsDetalle = SelectedItems
                 .Select(s => new POST_PresItemDetalleDTO
-                    {
-                        ItemPresupuestoId = s.ItemId,
-                        Cantidad = s.Cantidad,
-                        PrecioUnitario = s.Precio
-                    })
+                {
+                    ItemPresupuestoId = s.ItemId,
+                    Cantidad = s.Cantidad,
+                    PrecioUnitario = s.Precio
+                })
                 .ToList();
+
+           
             await PresupuestoService.Create(PresupuestoModel);
             MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
 
@@ -464,6 +485,38 @@
 
         Guardando = false;
     }
+
+    /// <summary>
+    /// Valida si un número contiene secuencias o repeticiones poco probables.
+    /// </summary>
+    private bool EsNumeroInvalido(decimal valor)
+    {
+        var numStr = valor.ToString().Replace(",", "").Replace(".", "");
+
+        // Detectar secuencias ascendentes o descendentes
+        const string secuenciaAsc = "1234567890";
+        const string secuenciaDesc = "0987654321";
+
+        if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
+            return true;
+
+        // Detectar si todos los dígitos son iguales (111111, 999999)
+        if (numStr.Distinct().Count() == 1)
+            return true;
+
+        // Detectar patrones de repetición de pares (121212, 343434)
+        if (numStr.Length >= 4)
+        {
+            for (int i = 0; i < numStr.Length - 2; i++)
+            {
+                if (numStr[i] == numStr[i + 2])
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
 
     private void MostrarMensaje(string texto, string tipo)
     {
