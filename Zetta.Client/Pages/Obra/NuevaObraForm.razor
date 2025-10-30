@@ -81,7 +81,7 @@
     }
 </div>
 
-@* === Modal Alta / Edición === *@
+@* Modal Alta / Edición *@
 @if (MostrarModal)
 {
     <div class="modal d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.4);">
@@ -210,9 +210,8 @@
 
     private int ObraEditarId = 0;
 
-    // ========================================================
-    // 🔸 Método principal con validaciones para crear/editar obra
-    // ========================================================
+ 
+    // Método principal con validaciones para crear/editar obra
     private async Task GuardarObra()
     {
         try
@@ -322,7 +321,7 @@
 
 
    
-    // 🔸 Método auxiliar: valida si el número es una secuencia o repetición
+    // Método auxiliar: valida si el número es una secuencia o repetición
   
     private bool EsValorInvalido(int numero)
     {
@@ -351,7 +350,7 @@
 
         return false;
     }
-    // 🔸 Método auxiliar: valida si un texto es repetitivo o absurdo
+    // Método auxiliar: valida si un texto es repetitivo o absurdo
     private bool EsTextoInvalido(string texto)
     {
         if (string.IsNullOrWhiteSpace(texto))
