@@ -210,19 +210,74 @@
 
     private int ObraEditarId = 0;
 
-    // Guardar (Create o Update)
+    // ========================================================
+    // 🔸 Método principal con validaciones para crear/editar obra
+    // ========================================================
     private async Task GuardarObra()
     {
         try
         {
-            // parseamos comentarios desde textarea a lista
+            // --- Validaciones base ---
+            if (ObraModel.ClienteId == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe seleccionar un cliente válido.");
+                return;
+            }
+
+            if (ObraModel.PresupuestoId <= 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ El PresupuestoId debe ser un número mayor que 0.");
+                return;
+            }
+
+            // Validar secuencias o repeticiones en los números
+            if (EsValorInvalido(ObraModel.PresupuestoId))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ El PresupuestoId contiene una secuencia o repetición numérica no válida.");
+                return;
+            }
+
+            // Validar fechas imposibles o futuras extremas
+            if (ObraModel.FechaInicio > DateTime.Today.AddDays(30))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser más de 30 días en el futuro.");
+                return;
+            }
+
+            if (ObraModel.FechaInicio < new DateTime(2000, 1, 1))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser anterior al año 2000.");
+                return;
+            }
+
+            // Validar comentarios: evitar secuencias o repetición absurda de texto
+            if (!string.IsNullOrWhiteSpace(ComentariosTexto))
+            {
+                var lineas = ComentariosTexto.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var linea in lineas)
+                {
+                    if (linea.Length > 300)
+                    {
+                        await JSRuntime.InvokeVoidAsync("alert", "⚠️ Uno de los comentarios es demasiado largo (máx. 300 caracteres).");
+                        return;
+                    }
+
+                    if (EsTextoInvalido(linea))
+                    {
+                        await JSRuntime.InvokeVoidAsync("alert", "⚠️ Se detectó un comentario con caracteres repetidos o secuencias inválidas.");
+                        return;
+                    }
+                }
+            }
+
+            // Mapeamos comentarios
             var comentarios = ComentariosTexto?
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim()).ToList();
 
+            // - Diferencia entre crear y editar ---
             if (Editando)
             {
-                // hacemos PUT (update). Convertimos comentarios a PUT_ObraDTO si tu API lo requiere
                 var putDto = new PUT_ObraDTO
                 {
                     EstadoObra = ObraModel.EstadoObra,
@@ -236,7 +291,6 @@
             }
             else
             {
-                // POST
                 var postDto = new POST_ObraDTO
                 {
                     ClienteId = ObraModel.ClienteId,
@@ -245,9 +299,14 @@
                     EstadoObra = ObraModel.EstadoObra
                 };
 
-                // Si la API acepta comentarios directamente en POST, deberías ajustar; aquí primero guardamos la obra
+                // Validar nuevamente antes de enviar
+                if (EsValorInvalido(ObraModel.PresupuestoId))
+                {
+                    await JSRuntime.InvokeVoidAsync("alert", "⚠️ Valor inválido en PresupuestoId (secuencia o repetición numérica).");
+                    return;
+                }
+
                 var id = await ObraService.CreateAsync(postDto);
-                // Si necesitas guardar comentarios separados, podrías llamar otro endpoint aquí
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra creada correctamente.");
             }
 
@@ -260,6 +319,53 @@
             await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
         }
     }
+
+
+   
+    // 🔸 Método auxiliar: valida si el número es una secuencia o repetición
+  
+    private bool EsValorInvalido(int numero)
+    {
+        var numStr = numero.ToString();
+
+        // Detectar secuencia ascendente o descendente
+        const string secuenciaAsc = "0123456789";
+        const string secuenciaDesc = "9876543210";
+
+        if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
+            return true;
+
+        // Todos los dígitos iguales (1111, 22222)
+        if (numStr.Distinct().Count() == 1)
+            return true;
+
+        // Repeticiones tipo 121212 o 343434
+        if (numStr.Length >= 4)
+        {
+            var mitad = numStr.Length / 2;
+            var primera = numStr.Substring(0, mitad);
+            var segunda = numStr.Substring(mitad);
+            if (primera == segunda)
+                return true;
+        }
+
+        return false;
+    }
+    // 🔸 Método auxiliar: valida si un texto es repetitivo o absurdo
+    private bool EsTextoInvalido(string texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+            return false;
+
+        // Si tiene el mismo carácter repetido más de 10 veces
+        if (texto.GroupBy(c => c).Any(g => g.Count() > 10))
+            return true;
+
+        // Secuencias comunes repetitivas
+        string[] patronesInvalidos = { "aaaa", "1111", "zzzz", "xxxx", "1234" };
+        return patronesInvalidos.Any(p => texto.Contains(p, StringComparison.OrdinalIgnoreCase));
+    }
+
 
     // Eliminar con confirm
     private async Task EliminarObra(int id)
@@ -295,8 +401,8 @@
         return Math.Max(0, diff.Days);
     }
 
-    // Enumeración local para binding en select (si la tenés en shared, podés reemplazar)
-    // (Si usas Zetta.BD.DATA.ENTITY.EstadoObra en client, importa el enum desde shared)
+    // Enumeración local para binding en select 
+    //  importa el enum desde shared
     public enum EstadoObra
     {
         Iniciada,
