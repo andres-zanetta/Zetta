@@ -28,6 +28,33 @@
     }
     else
     {
+        @* === FILTRO POR RUBRO === *@
+        <div class="row mb-4 g-2 align-items-center p-3 rounded shadow-sm bg-dark text-white" style="border: 1px solid orange;">
+            <div class="col-md-4">
+                <label class="form-label fw-bold text-naranja">Filtrar por Rubro</label>
+                <InputSelect class="form-select bg-dark text-white border-warning" @bind-Value="SelectedRubro" @onchange="FiltrarPorRubro">
+                    <option value="">-- Todos los rubros --</option>
+                    @foreach (var rubro in RubrosDisponibles)
+                    {
+                        <option value="@rubro">@rubro</option>
+                    }
+                </InputSelect>
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label fw-bold text-naranja">Buscar por nombre o descripción</label>
+                <input class="form-control bg-dark text-white border-warning"
+                       placeholder="Ej: instalación, aire, calefacción..."
+                       value="@SearchTerm"
+                       @oninput="OnSearchInput" />
+            </div>
+
+            <div class="col-md-3 text-end mt-4">
+                <button class="btn btn-secondary me-2" @onclick="ResetFilters">Limpiar</button>
+                <span class="text-muted">@($"{PresupuestosFiltrados.Count} resultados")</span>
+            </div>
+        </div>
+
         <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
@@ -48,7 +75,7 @@
             </thead>
 
             <tbody>
-                @if (Presupuestos == null || Presupuestos.Count == 0)
+                @if (PresupuestosFiltrados == null || PresupuestosFiltrados.Count == 0)
                 {
                     <tr>
                         <td colspan="13" class="text-center text-muted">No hay presupuestos registrados.</td>
@@ -56,12 +83,12 @@
                 }
                 else
                 {
-                    @foreach (var p in Presupuestos)
+                    @foreach (var p in PresupuestosFiltrados)
                     {
                         <tr>
                             <td>@p.Id</td>
                             <td>@p.NombreCliente</td>
-                            <td>@p.RubroNombre</td> @* Mostrar nombre del rubro *@
+                            <td>@p.RubroNombre</td>
                             <td>@p.OpcionDePago</td>
                             <td>$ @p.ManodeObra?.ToString("N2")</td>
                             <td>$ @p.TotalP.ToString("N2")</td>
@@ -74,7 +101,6 @@
                                 }
                                 else
                                 {
-
                                     <span class="badge bg-secondary">Pendiente</span>
                                 }
                             </td>
@@ -105,15 +131,59 @@
             </tbody>
         </table>
     }
+    
 </div>
 
 @code {
     private List<GET_PresupuestoDTO> Presupuestos { get; set; } = new();
+    private List<GET_PresupuestoDTO> PresupuestosFiltrados = new();
+    private List<string> RubrosDisponibles = new();
     private bool Cargando = true;
+
+    private string SearchTerm = string.Empty;
+    private string SelectedRubro = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarPresupuestos();
+        RubrosDisponibles = Presupuestos
+           .Select(p => p.RubroNombre)
+           .Where(r => !string.IsNullOrEmpty(r))
+           .Distinct()
+           .OrderBy(r => r)
+           .ToList();
+
+        PresupuestosFiltrados = Presupuestos;
+        Cargando = false;
+    }
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        SearchTerm = e.Value?.ToString()?.ToLower() ?? string.Empty;
+        AplicarFiltros();
+    }
+
+    private void FiltrarPorRubro(ChangeEventArgs e)
+    {
+        SelectedRubro = e.Value?.ToString() ?? string.Empty;
+        AplicarFiltros();
+    }
+
+    private void ResetFilters()
+    {
+        SearchTerm = string.Empty;
+        SelectedRubro = string.Empty;
+        PresupuestosFiltrados = Presupuestos;
+    }
+
+    private void AplicarFiltros()
+    {
+        PresupuestosFiltrados = Presupuestos
+            .Where(p =>
+                (string.IsNullOrEmpty(SelectedRubro) || p.RubroNombre == SelectedRubro) &&
+                (string.IsNullOrEmpty(SearchTerm) ||
+                 (p.NombreCliente?.ToLower().Contains(SearchTerm) ?? false) ||
+                 (p.Observacion?.ToLower().Contains(SearchTerm) ?? false)))
+            .ToList();
     }
 
     private async Task CargarPresupuestos()

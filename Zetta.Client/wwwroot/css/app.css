@@ -229,4 +229,30 @@ code {
         background-color: var(--table-row-hover);
     }
 
+.text-naranja {
+    color: orange !important;
+}
+
+.bg-dark .form-select,
+.bg-dark .form-control {
+    background-color: #1e1e1e;
+    color: white;
+    border: 1px solid orange;
+}
+
+    .bg-dark .form-select:focus,
+    .bg-dark .form-control:focus {
+        box-shadow: 0 0 10px orange;
+        border-color: orange;
+    }
+
+.btn-naranja {
+    background-color: orange;
+    color: #000;
+    border: none;
+}
+
+    .btn-naranja:hover {
+        background-color: #ff9a1f;
+    }
 
