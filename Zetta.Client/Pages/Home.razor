@@ -39,4 +39,119 @@
             </div>
         </div>
     </section>
+
+    <section class="weather-section mt-5">
+        <h2 class="text-center text-naranja mb-3">
+            <i class="bi bi-cloud-sun"></i> Verifique el tiempo antes de presupuestar
+        </h2>
+
+        @if (weatherForecast == null)
+        {
+            <p class="text-center text-muted">Cargando pronóstico del clima...</p>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                @foreach (var day in weatherForecast)
+                {
+                    <div class="card shadow-sm text-center p-3 bg-dark text-white" style="width: 150px; border: 1px solid orange;">
+                        <h5>@day.Date.ToString("ddd")</h5>
+                        <i class="@day.Icon" style="font-size: 2rem; color: orange;"></i>
+                        <p class="mb-0">@day.TempMax°C / @day.TempMin°C</p>
+                        <small class="text-muted">@day.Description</small>
+                    </div>
+                }
+            </div>
+        }
+    </section>
+
 </div>
+
+@code {
+    private List<WeatherDay>? weatherForecast;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarClimaAsync();
+    }
+
+    private async Task CargarClimaAsync()
+    {
+        try
+        {
+            using var http = new HttpClient();
+            // 🌍 Reemplaza “Córdoba,AR” por tu ciudad si querés
+            string city = "Córdoba,AR";
+            string apiKey = "403747cd7730269d7c72d434130a461a"; // reemplazá con tu clave gratuita de OpenWeatherMap
+
+            string url = $"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={apiKey}&units=metric&lang=es";
+            var response = await http.GetFromJsonAsync<WeatherApiResponse>(url);
+
+            // Procesamos los próximos 5 días (filtrando por día)
+            weatherForecast = response?.List?
+                .GroupBy(f => DateTime.Parse(f.Dt_txt).Date)
+                .Take(5)
+                .Select(g => new WeatherDay
+                {
+                    Date = g.Key,
+                    TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)),
+                    TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)),
+                    Description = g.First().Weather.First().Description,
+                    Icon = GetIcon(g.First().Weather.First().Main)
+                })
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error obteniendo clima: {ex.Message}");
+        }
+    }
+
+    private string GetIcon(string main)
+    {
+        return main switch
+        {
+            "Clear" => "bi bi-brightness-high",
+            "Clouds" => "bi bi-cloudy",
+            "Rain" => "bi bi-cloud-rain",
+            "Drizzle" => "bi bi-cloud-drizzle",
+            "Thunderstorm" => "bi bi-cloud-lightning",
+            "Snow" => "bi bi-snow",
+            _ => "bi bi-cloud"
+        };
+    }
+
+    private class WeatherApiResponse
+    {
+        public List<WeatherItem> List { get; set; } = new();
+    }
+
+    private class WeatherItem
+    {
+        public WeatherMain Main { get; set; } = new();
+        public List<WeatherDescription> Weather { get; set; } = new();
+        public string Dt_txt { get; set; } = string.Empty;
+    }
+
+    private class WeatherMain
+    {
+        public double Temp_min { get; set; }
+        public double Temp_max { get; set; }
+    }
+
+    private class WeatherDescription
+    {
+        public string Main { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    private class WeatherDay
+    {
+        public DateTime Date { get; set; }
+        public int TempMax { get; set; }
+        public int TempMin { get; set; }
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = "bi bi-cloud";
+    }
+}
+
