@@ -49,11 +49,38 @@
                         {
                             <tr>
                                 <td>@o.Id</td>
-                                <td>@o.ClienteNombre</td>
+                                <td>
+                                    @{
+                                        // Buscar el presupuesto de la obra
+                                        var pres = Clientes
+                                            .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
+                                            .FirstOrDefault(p => p.Id == o.PresupuestoId);
+
+                                        // Buscar el cliente usando el ClienteId del presupuesto
+                                        var cliente = pres != null
+                                            ? Clientes.FirstOrDefault(c => c.Id == pres.ClienteId)
+                                            : null;
+
+                                        var nombreCliente = cliente != null
+                                            ? $"{cliente.Nombre} {cliente.Apellido}"
+                                            : $"— (Id: {pres?.ClienteId ?? o.ClienteId})";
+                                    }
+                                    @nombreCliente
+                                </td>
                                 <td>@o.PresupuestoId</td>
                                 <td>@o.EstadoObra</td>
                                 <td>@o.FechaInicio.ToShortDateString()</td>
-                                <td>@DuracionEnDias(o.FechaInicio)</td>
+                                <td>
+                                    @{
+                                        // Buscar el presupuesto correspondiente por Id
+                                        var presupuesto = Clientes
+                                        .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
+                                        .FirstOrDefault(p => p.Id == o.PresupuestoId);
+
+                                        var tiempoAproxObra = presupuesto?.TiempoAproxObra ?? "—";
+                                    }
+                                    @tiempoAproxObra
+                                </td>
                                 <td>
                                     @if (o.Comentarios != null && o.Comentarios.Any())
                                     {
@@ -216,25 +243,6 @@
     {
         try
         {
-            // --- Validaciones base ---
-            if (ObraModel.ClienteId == 0)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe seleccionar un cliente válido.");
-                return;
-            }
-
-            if (ObraModel.PresupuestoId <= 0)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ El PresupuestoId debe ser un número mayor que 0.");
-                return;
-            }
-
-            // Validar secuencias o repeticiones en los números
-            if (EsValorInvalido(ObraModel.PresupuestoId))
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ El PresupuestoId contiene una secuencia o repetición numérica no válida.");
-                return;
-            }
 
             // Validar fechas imposibles o futuras extremas
             if (ObraModel.FechaInicio > DateTime.Today.AddDays(30))
@@ -243,9 +251,9 @@
                 return;
             }
 
-            if (ObraModel.FechaInicio < new DateTime(2000, 1, 1))
+            if (ObraModel.FechaInicio < DateTime.Today)
             {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser anterior al año 2000.");
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser anterior a la fecha actual.");
                 return;
             }
 
@@ -298,13 +306,6 @@
                     EstadoObra = ObraModel.EstadoObra
                 };
 
-                // Validar nuevamente antes de enviar
-                if (EsValorInvalido(ObraModel.PresupuestoId))
-                {
-                    await JSRuntime.InvokeVoidAsync("alert", "⚠️ Valor inválido en PresupuestoId (secuencia o repetición numérica).");
-                    return;
-                }
-
                 var id = await ObraService.CreateAsync(postDto);
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra creada correctamente.");
             }
@@ -327,15 +328,15 @@
     {
         var numStr = numero.ToString();
 
-        // Detectar secuencia ascendente o descendente
-        const string secuenciaAsc = "0123456789";
-        const string secuenciaDesc = "9876543210";
+        // // Detectar secuencia ascendente o descendente
+        // const string secuenciaAsc = "0123456789";
+        // const string secuenciaDesc = "9876543210";
 
-        if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
-            return true;
+        // if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
+        //     return true;
 
         // Todos los dígitos iguales (1111, 22222)
-        if (numStr.Distinct().Count() == 1)
+        if (numStr.Distinct().Count() == 4)
             return true;
 
         // Repeticiones tipo 121212 o 343434
