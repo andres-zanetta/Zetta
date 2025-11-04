@@ -11,8 +11,7 @@ namespace Zetta.Shared.DTOS.Obra
         public string EstadoObra { get; set; } = string.Empty;
         public DateTime FechaInicio { get; set; }
         public int ClienteId { get; set; }
-
-        // Si querés permitir modificar comentarios desde el PUT
+        public int PresupuestoId { get; set; }
         public List<string>? Comentarios { get; set; }
     }
 }

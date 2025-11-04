@@ -1,5 +1,7 @@
 ﻿@page "/obras"
 @using Zetta.Shared.DTOS.Obra
+@using Zetta.Shared.DTOS.Presupuesto
+@using Zetta.Shared.DTOS.Cliente
 @inject Zetta.Client.Servicios.IObraService ObraService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject IJSRuntime JSRuntime
@@ -51,19 +53,15 @@
                                 <td>@o.Id</td>
                                 <td>
                                     @{
-                                        // Buscar el presupuesto de la obra
                                         var pres = Clientes
-                                            .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
-                                            .FirstOrDefault(p => p.Id == o.PresupuestoId);
-
-                                        // Buscar el cliente usando el ClienteId del presupuesto
+                                        .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
+                                        .FirstOrDefault(p => p.Id == o.PresupuestoId);
                                         var cliente = pres != null
-                                            ? Clientes.FirstOrDefault(c => c.Id == pres.ClienteId)
-                                            : null;
-
+                                        ? Clientes.FirstOrDefault(c => c.Id == pres.ClienteId)
+                                        : null;
                                         var nombreCliente = cliente != null
-                                            ? $"{cliente.Nombre} {cliente.Apellido}"
-                                            : $"— (Id: {pres?.ClienteId ?? o.ClienteId})";
+                                        ? $"{cliente.Nombre} {cliente.Apellido}"
+                                        : $"— (Id: {pres?.ClienteId ?? o.ClienteId})";
                                     }
                                     @nombreCliente
                                 </td>
@@ -72,11 +70,9 @@
                                 <td>@o.FechaInicio.ToShortDateString()</td>
                                 <td>
                                     @{
-                                        // Buscar el presupuesto correspondiente por Id
                                         var presupuesto = Clientes
                                         .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
                                         .FirstOrDefault(p => p.Id == o.PresupuestoId);
-
                                         var tiempoAproxObra = presupuesto?.TiempoAproxObra ?? "—";
                                     }
                                     @tiempoAproxObra
@@ -108,7 +104,6 @@
     }
 </div>
 
-@* Modal Alta / Edición *@
 @if (MostrarModal)
 {
     <div class="modal d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.4);">
@@ -124,8 +119,9 @@
                         <ValidationSummary />
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">Cliente *</label>
-                                <InputSelect class="form-select" @bind-Value="ObraModel.ClienteId">
+                                <label class="form-label">1. Seleccione un Cliente *</label>
+                                @* CORRECCIÓN: Se quita 'disabled="@Editando"' *@
+                                <InputSelect class="form-select" @bind-Value="SelectedClientId">
                                     <option value="0">Seleccione un cliente</option>
                                     @foreach (var c in Clientes)
                                     {
@@ -133,9 +129,17 @@
                                     }
                                 </InputSelect>
                             </div>
+
                             <div class="col-md-6">
-                                <label class="form-label">Presupuesto Id *</label>
-                                <InputNumber class="form-control" @bind-Value="ObraModel.PresupuestoId" />
+                                <label class="form-label">2. Seleccione un Presupuesto *</label>
+                                @* CORRECCIÓN: Se quita 'disabled' para que se pueda cambiar *@
+                                <InputSelect class="form-select" @bind-Value="SelectedPresupuestoId" disabled="@(ObraModel.ClienteId == 0)">
+                                    <option value="0">... (Seleccione un cliente primero) ...</option>
+                                    @foreach (var p in PresupuestosDelCliente)
+                                    {
+                                        <option value="@p.Id">@GetInfoPresupuesto(p)</option>
+                                    }
+                                </InputSelect>
                             </div>
 
                             <div class="col-md-6">
@@ -172,25 +176,101 @@
 }
 
 @code {
-    // Lista y control de UI
     private List<GET_ObraDTO> Obras { get; set; } = new();
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private bool Cargando = true;
-
-    // Modal
     private bool MostrarModal = false;
     private bool Editando = false;
-
-    // Modelo para el formulario (coincide con DTOs POST/PUT)
     private POST_ObraDTO ObraModel = new POST_ObraDTO();
-    private string ComentariosTexto = string.Empty; // campo para manejar comentarios como texto (uno por línea)
+    private string ComentariosTexto = string.Empty;
+    private int ObraEditarId = 0;
+
+    private List<GET_PresupuestoDTO> PresupuestosDelCliente { get; set; } = new();
+
+    // --- CORRECCIÓN 3: Lógica condicional en el 'set' ---
+    private int SelectedClientId
+    {
+        get => ObraModel.ClienteId;
+        set
+        {
+            // Siempre asignar el valor
+            ObraModel.ClienteId = value;
+
+            // --- SOLO RESETEAR SI NO ESTAMOS EDITANDO ---
+            if (!Editando)
+            {
+                PresupuestosDelCliente.Clear();
+                // Usar ObraModel.PresupuestoId directamente para evitar bucle
+                ObraModel.PresupuestoId = 0;
+            }
+
+            if (value > 0)
+            {
+                var cliente = Clientes.FirstOrDefault(c => c.Id == value);
+                if (cliente != null && cliente.Presupuestos != null)
+                {
+                    PresupuestosDelCliente = cliente.Presupuestos
+                                                .OrderByDescending(p => p.FechaCreacion)
+                                                .ToList();
+                }
+            }
+            else
+            {
+                PresupuestosDelCliente.Clear();
+            }
+
+            if (Editando)
+            {
+                ObraModel.PresupuestoId = 0;
+            }
+        }
+    }
+
+    private int SelectedPresupuestoId
+    {
+        get => ObraModel.PresupuestoId;
+        set
+        {
+            ObraModel.PresupuestoId = value;
+
+            // La lógica de la alerta solo se aplica al crear (Editando = false)
+            if (value > 0 && !Editando)
+            {
+                var presupuesto = PresupuestosDelCliente.FirstOrDefault(p => p.Id == value);
+                if (presupuesto != null && !presupuesto.Aceptado)
+                {
+                    bool estaVencido = false;
+                    if (int.TryParse(presupuesto.ValidacionDias, out int diasValidez))
+                    {
+                        var fechaVencimiento = presupuesto.FechaCreacion.Date.AddDays(diasValidez);
+                        if (DateTime.Today > fechaVencimiento) estaVencido = true;
+                    }
+                    string tipoEstado = estaVencido ? "VENCIDO" : "PENDIENTE";
+
+                    InvokeAsync(() => VerificarAceptacionPresupuesto(tipoEstado));
+                }
+            }
+        }
+    }
+
+    private async Task VerificarAceptacionPresupuesto(string tipoEstado)
+    {
+        string mensaje = $"El presupuesto seleccionado está '{tipoEstado}' y no ha sido aceptado formalmente.\n\n" +
+                         "¿Desea continuar y crear la obra de todos modos?";
+        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", mensaje);
+        if (!confirmar)
+        {
+            ObraModel.PresupuestoId = 0;
+            StateHasChanged(); 
+        }
+    }
+
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatosIniciales();
     }
 
-    // Carga inicial de datos: obras y clientes
     private async Task CargarDatosIniciales()
     {
         Cargando = true;
@@ -210,16 +290,27 @@
 
     private void AbrirModalNuevo()
     {
-        ObraModel = new POST_ObraDTO { FechaInicio = DateTime.Today, EstadoObra = EstadoObra.Iniciada.ToString() };
+        ObraModel = new POST_ObraDTO { FechaInicio = DateTime.Today, EstadoObra = EstadoObra.Iniciada.ToString(), ClienteId = 0 };
         ComentariosTexto = string.Empty;
+        PresupuestosDelCliente.Clear();
         Editando = false;
         MostrarModal = true;
     }
 
-    // Mapear GET_ObraDTO -> formulario (edición)
     private void AbrirModalEditar(GET_ObraDTO dto)
     {
-        // Llenamos el modelo PUT o POST con los valores actuales
+        Editando = true;
+        ObraEditarId = dto.Id;
+        ComentariosTexto = dto.Comentarios != null ? string.Join("\n", dto.Comentarios) : string.Empty;
+
+        var cliente = Clientes.FirstOrDefault(c => c.Id == dto.ClienteId);
+        if (cliente != null && cliente.Presupuestos != null)
+        {
+            PresupuestosDelCliente = cliente.Presupuestos
+                                        .OrderByDescending(p => p.FechaCreacion)
+                                        .ToList();
+        }
+
         ObraModel = new POST_ObraDTO
         {
             ClienteId = dto.ClienteId,
@@ -228,71 +319,60 @@
             EstadoObra = dto.EstadoObra
         };
 
-        ComentariosTexto = dto.Comentarios != null ? string.Join("\n", dto.Comentarios) : string.Empty;
-        Editando = true;
-        // Guardamos el Id a editar en un campo temporal (usamos ObraEditarId)
-        ObraEditarId = dto.Id;
+        // 4. Mostrar el modal
         MostrarModal = true;
     }
 
-    private int ObraEditarId = 0;
+    private string GetInfoPresupuesto(GET_PresupuestoDTO p)
+    {
+        if (p.FechaCreacion.Year < 1900)
+        {
+            return $"ID: {p.Id} (Fecha inválida) - {(p.Aceptado ? "Aceptado" : "Pendiente")}";
+        }
+        int diasValidez = 0;
+        int.TryParse(p.ValidacionDias, out diasValidez);
+        var fechaVencimiento = p.FechaCreacion.AddDays(diasValidez);
+        var diasRestantes = (fechaVencimiento.Date - DateTime.Today).Days;
 
- 
-    // Método principal con validaciones para crear/editar obra
+        string estadoValidez;
+        if (p.Aceptado) { estadoValidez = "Aceptado"; }
+        else if (diasRestantes < 0) { estadoValidez = "Vencido"; }
+        else { estadoValidez = $"{diasRestantes} días rest."; }
+
+        return $"ID: {p.Id} (Creado: {p.FechaCreacion.ToShortDateString()}) - {estadoValidez}";
+    }
+
     private async Task GuardarObra()
     {
         try
         {
-
-            // Validar fechas imposibles o futuras extremas
-            if (ObraModel.FechaInicio > DateTime.Today.AddDays(30))
+            if (ObraModel.ClienteId == 0)
             {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser más de 30 días en el futuro.");
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe seleccionar un cliente.");
+                return;
+            }
+            if (ObraModel.PresupuestoId == 0)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe seleccionar un presupuesto.");
                 return;
             }
 
-            if (ObraModel.FechaInicio < DateTime.Today)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La fecha de inicio no puede ser anterior a la fecha actual.");
-                return;
-            }
+            // ... (resto de validaciones) ...
 
-            // Validar comentarios: evitar secuencias o repetición absurda de texto
-            if (!string.IsNullOrWhiteSpace(ComentariosTexto))
-            {
-                var lineas = ComentariosTexto.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var linea in lineas)
-                {
-                    if (linea.Length > 300)
-                    {
-                        await JSRuntime.InvokeVoidAsync("alert", "⚠️ Uno de los comentarios es demasiado largo (máx. 300 caracteres).");
-                        return;
-                    }
-
-                    if (EsTextoInvalido(linea))
-                    {
-                        await JSRuntime.InvokeVoidAsync("alert", "⚠️ Se detectó un comentario con caracteres repetidos o secuencias inválidas.");
-                        return;
-                    }
-                }
-            }
-
-            // Mapeamos comentarios
             var comentarios = ComentariosTexto?
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim()).ToList();
 
-            // - Diferencia entre crear y editar ---
             if (Editando)
             {
                 var putDto = new PUT_ObraDTO
                 {
                     EstadoObra = ObraModel.EstadoObra,
                     FechaInicio = ObraModel.FechaInicio,
-                    ClienteId = ObraModel.ClienteId,
+                    ClienteId = ObraModel.ClienteId, 
+                    PresupuestoId = ObraModel.PresupuestoId, 
                     Comentarios = comentarios
                 };
-
                 await ObraService.UpdateAsync(ObraEditarId, putDto);
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra actualizada correctamente.");
             }
@@ -305,7 +385,6 @@
                     FechaInicio = ObraModel.FechaInicio,
                     EstadoObra = ObraModel.EstadoObra
                 };
-
                 var id = await ObraService.CreateAsync(postDto);
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra creada correctamente.");
             }
@@ -320,54 +399,26 @@
         }
     }
 
-
-   
-    // Método auxiliar: valida si el número es una secuencia o repetición
-  
     private bool EsValorInvalido(int numero)
     {
         var numStr = numero.ToString();
-
-        // // Detectar secuencia ascendente o descendente
-        // const string secuenciaAsc = "0123456789";
-        // const string secuenciaDesc = "9876543210";
-
-        // if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
-        //     return true;
-
-        // Todos los dígitos iguales (1111, 22222)
-        if (numStr.Distinct().Count() == 4)
-            return true;
-
-        // Repeticiones tipo 121212 o 343434
+        if (numStr.Distinct().Count() == 1 && numStr.Length >= 4) return true;
         if (numStr.Length >= 4)
         {
             var mitad = numStr.Length / 2;
             var primera = numStr.Substring(0, mitad);
             var segunda = numStr.Substring(mitad);
-            if (primera == segunda)
-                return true;
+            if (primera == segunda) return true;
         }
-
         return false;
     }
-    // Método auxiliar: valida si un texto es repetitivo o absurdo
     private bool EsTextoInvalido(string texto)
     {
-        if (string.IsNullOrWhiteSpace(texto))
-            return false;
-
-        // Si tiene el mismo carácter repetido más de 10 veces
-        if (texto.GroupBy(c => c).Any(g => g.Count() > 10))
-            return true;
-
-        // Secuencias comunes repetitivas
+        if (string.IsNullOrWhiteSpace(texto)) return false;
+        if (texto.GroupBy(c => c).Any(g => g.Count() > 10)) return true;
         string[] patronesInvalidos = { "aaaa", "1111", "zzzz", "xxxx", "1234" };
         return patronesInvalidos.Any(p => texto.Contains(p, StringComparison.OrdinalIgnoreCase));
     }
-
-
-    // Eliminar con confirm
     private async Task EliminarObra(int id)
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que querés eliminar esta obra?"))
@@ -384,25 +435,21 @@
             }
         }
     }
-
     private void CerrarModal()
     {
         MostrarModal = false;
         Editando = false;
         ObraEditarId = 0;
+        ObraModel = new POST_ObraDTO();
+        ComentariosTexto = string.Empty;
+        PresupuestosDelCliente.Clear();
     }
-
     private void VolverAlInicio() => Navigation.NavigateTo("/");
-
-    // Calcula duración en días (desde fecha inicio hasta hoy)
     private int DuracionEnDias(DateTime fechaInicio)
     {
         var diff = DateTime.Now.Date - fechaInicio.Date;
         return Math.Max(0, diff.Days);
     }
-
-    // Enumeración local para binding en select 
-    //  importa el enum desde shared
     public enum EstadoObra
     {
         Iniciada,

@@ -38,7 +38,8 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 .ForMember(dest => dest.TelefonoCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Telefono : null)) // Nuevo
                 .ForMember(dest => dest.EmailCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Email : null))       // Nuevo
                 .ForMember(dest => dest.LocalidadCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Localidad : null)) // Nuevo
-                .ForMember(dest => dest.RubroNombre, opt => opt.MapFrom(src => GetNombreRubro(src.Rubro))); // Nuevo - Usa la función helper
+                .ForMember(dest => dest.RubroNombre, opt => opt.MapFrom(src => GetNombreRubro(src.Rubro))) // Nuevo - Usa la función helper
+            .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => src.FechaCreacion));
 
             // POST: (Sin cambios relevantes aquí, asegúrate de que mapee lo necesario)
             CreateMap<POST_PresupuestoDTO, Presupuesto>()
@@ -93,7 +94,8 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => Enum.Parse<EstadoObra>(src.EstadoObra)))
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
                 .ForMember(dest => dest.Presupuesto, opt => opt.Ignore())
-                .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio));
+                .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio))
+                .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId));
         }
     }
 }

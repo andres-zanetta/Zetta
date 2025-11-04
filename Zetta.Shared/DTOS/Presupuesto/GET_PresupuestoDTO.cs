@@ -32,5 +32,6 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public string? RubroNombre { get; set; } // Nombre legible del rubro
 
         public List<GET_PresItemDetalleDTO>? ItemsDetalle { get; set; }
+        public DateTime FechaCreacion { get; set; }
     }
 }

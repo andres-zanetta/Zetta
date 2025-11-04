@@ -104,7 +104,7 @@ namespace Zetta.BD.Migrations
                     b.Property<string>("Fabricante")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("FechActuPrecio")
+                    b.Property<DateTime?>("FechActuPrecio")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Marca")
@@ -211,6 +211,9 @@ namespace Zetta.BD.Migrations
 
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal?>("ManodeObra")
                         .HasPrecision(18, 2)

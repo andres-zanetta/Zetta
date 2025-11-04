@@ -44,6 +44,7 @@ namespace Zetta.BD.DATA.ENTITY
         public int ClienteId { get; set; } // Clave foránea para la relación con Cliente
         public Cliente Cliente { get; set; } = null!; // Propiedad de navegación
         public bool Materiales { get; set; } //materiales si o no.
+        public DateTime FechaCreacion { get; set; } // Fecha del presupuesto
 
     }
 

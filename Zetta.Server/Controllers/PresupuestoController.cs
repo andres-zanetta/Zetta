@@ -54,6 +54,8 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
             {
                 Presupuesto entidad = _mapper.Map<Presupuesto>(dto);
 
+                entidad.FechaCreacion = DateTime.Now;
+
                 // El repositorio agrega la entidad al DbContext (en memoria)
                 await _presupuestoRepo.AddAsync(entidad);
 
