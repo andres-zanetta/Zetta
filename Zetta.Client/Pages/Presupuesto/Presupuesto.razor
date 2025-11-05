@@ -10,16 +10,58 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
+
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
+    <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Presupuesto</button>
+</div>
+
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
         <h1>Gestión de Presupuestos</h1>
         <p class="subtitle">Administrá, controlá y generá presupuestos detallados.</p>
     </header>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-        <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Presupuesto</button>
+    <div class="filtros-container mb-4 p-3 bg-light rounded shadow-sm">
+        <h5 class="mb-3">🔍 Filtrar presupuestos</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <input type="text" class="form-control" placeholder="Buscar por cliente..." @bind="filtroCliente" />
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" @bind="filtroRubro">
+                    <option value="">Todos los rubros</option>
+                    @foreach (var rubro in RubrosDisponibles)
+                    {
+                        <option value="@rubro">@rubro</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="filtroEstado">
+                    <option value="">Todos los estados</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aceptado">Aceptado</option>
+                    <option value="En Obra">En Obra</option>
+                    <option value="Vencido">Vencido</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select class="form-select" @bind="filtroPago">
+                    <option value="">Todas las opciones</option>
+                    <option value="MercadoPago">MercadoPago</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Cuenta Link">Cuenta Link</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-dark w-100" @onclick="AplicarFiltros">Aplicar filtros</button>
+            </div>
+        </div>
     </div>
+
+
+    
 
     @if (Cargando)
     {
@@ -246,6 +288,44 @@
             await JSRuntime.InvokeVoidAsync("alert", $"❌ Error al generar el PDF: {ex.Message}");
         }
     }
+
+    private string filtroCliente = string.Empty;
+    private string filtroRubro = string.Empty;
+    private string filtroEstado = string.Empty;
+    private string filtroPago = string.Empty;
+
+    private List<string> RubrosDisponibles => Presupuestos
+        .Select(p => p.RubroNombre)
+        .Distinct()
+        .OrderBy(p =>p )
+        .ToList();
+
+    private async Task AplicarFiltros()
+    {
+        Cargando = true;
+
+        var presupuestosFiltrados = await PresupuestoService.GetAll();
+
+        if (!string.IsNullOrWhiteSpace(filtroCliente))
+            presupuestosFiltrados = presupuestosFiltrados
+                .Where(p => p.NombreCliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        if (!string.IsNullOrWhiteSpace(filtroRubro))
+            presupuestosFiltrados = presupuestosFiltrados
+                .Where(p => p.RubroNombre == filtroRubro).ToList();
+
+        if (!string.IsNullOrWhiteSpace(filtroEstado))
+            presupuestosFiltrados = presupuestosFiltrados
+                .Where(p => GetEstadoPresupuesto(p).Status == filtroEstado).ToList();
+
+        // if (!string.IsNullOrWhiteSpace(filtroPago))
+        //     presupuestosFiltrados = presupuestosFiltrados
+        //         .Where(p => p.OpcionDePago.Contains(filtroPago, StringComparison.OrdinalIgnoreCase)).ToList();
+
+        Presupuestos = presupuestosFiltrados;
+        Cargando = false;
+    }
+
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
 }
