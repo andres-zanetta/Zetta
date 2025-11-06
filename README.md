@@ -1,6 +1,6 @@
-# 📊 Zetta Servicios
+# 📊 Zettium Servicios
 
-**Zetta** es un sistema web de gestión de presupuestos y control de obras técnicas, diseñado para empresas de instalación y mantenimiento (aires acondicionados, electricidad, gas, plomería, energía solar, etc).
+**Zettium** es un sistema web de gestión de presupuestos y control de obras técnicas, diseñado para empresas de instalación y mantenimiento (aires acondicionados, electricidad, gas, plomería, energía solar, etc).
 
 Permite generar, administrar y analizar presupuestos con un enfoque moderno y eficiente.
 
