@@ -10,10 +10,10 @@
     </header>
 
     <!-- 🔍 FILTROS DE CLIENTES -->
-    <div class="filtros-container mb-4 p-3 bg-light rounded shadow-sm border-start border-4 border-warning">
-        <h5 class="mb-3 text-dark fw-bold">🔍 Filtrar clientes</h5>
+    <div class="filtros-container mb-4 p-3 bg-dark text-white rounded shadow-sm" style="border: 1px solid orange;">
+        <h5 class="mb-3 text-naranja">🔍 Filtrar clientes</h5>
 
-        <div class="row g-3">
+        <div class="row g-3 align-items-end">
             <!-- Buscar por nombre o apellido -->
             <div class="col-md-4">
                 <input type="text" class="form-control border-dark shadow-sm"
@@ -34,7 +34,7 @@
 
             <!-- Botones de acción -->
             <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-outline-dark me-2 w-50" @onclick="() => FiltrarClientes()">Aplicar filtros</button>
+                <button class="btn btn-outline-dark me-2 w-50 text-white border-warning" @onclick="() => FiltrarClientes()">Aplicar filtros</button>
 
                 <button class="btn btn-outline-warning w-50" @onclick="ResetFilters">Limpiar</button>
             </div>
