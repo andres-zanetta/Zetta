@@ -22,14 +22,14 @@
         <h1>Gestión de Presupuestos</h1>
         <p class="subtitle">Administrá, controlá y generá presupuestos detallados.</p>
     </header>
-    <div class="filtros-container mb-4 p-3 bg-light rounded shadow-sm">
+    <div class="filtros-container mb-4 p-3 bg-black rounded shadow-sm">
         <h5 class="mb-3">🔍 Filtrar presupuestos</h5>
         <div class="row g-3">
             <div class="col-md-3">
-                <input type="text" class="form-control" placeholder="Buscar por cliente..." @bind="filtroCliente" />
+                <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por cliente..." @bind="filtroCliente" />
             </div>
             <div class="col-md-3">
-                <select class="form-select" @bind="filtroRubro">
+                <select class="form-select bg-dark text-white border-warning" @bind="filtroRubro">
                     <option value="">Todos los rubros</option>
                     @foreach (var rubro in RubrosDisponibles)
                     {
@@ -38,7 +38,7 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="filtroEstado">
+                <select class="form-select bg-dark text-white border-warning" @bind="filtroEstado">
                     <option value="">Todos los estados</option>
                     <option value="Pendiente">Pendiente</option>
                     <option value="Aceptado">Aceptado</option>
@@ -47,15 +47,15 @@
                 </select>
             </div>
             <div class="col-md-2">
-                <select class="form-select" @bind="filtroPago">
-                    <option value="">Todas las opciones</option>
+                <select class="form-select bg-dark text-white border-warning" @bind="filtroPago">
+                    <option value="">Todas las opciones de pago</option>
                     <option value="MercadoPago">MercadoPago</option>
                     <option value="Tarjeta">Tarjeta</option>
                     <option value="Cuenta Link">Cuenta Link</option>
                 </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-outline-dark w-100" @onclick="AplicarFiltros">Aplicar filtros</button>
+                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="AplicarFiltros">Aplicar filtros</button>
             </div>
         </div>
     </div>
