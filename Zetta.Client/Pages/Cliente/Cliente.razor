@@ -76,8 +76,11 @@
                             <td>@cliente.Email</td>
                             <td>@cliente.Localidad</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirModalEditar(cliente)">✏️ Editar</button>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => EliminarCliente(cliente.Id)">❌ Eliminar</button> 
+                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn btn-sm btn-outline-danger" title="Eliminar Cliente"
+                                        @onclick="() => EliminarCliente(cliente.Id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </td>
                         </tr>
                     }

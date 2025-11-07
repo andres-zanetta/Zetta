@@ -64,8 +64,13 @@
                                 <td>@item.Marca</td>
                                 <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => AbrirFormularioEdicion(item.Id)">✏️ Editar</button>
-                                    <button class="btn btn-sm btn-outline-danger me-1" @onclick="() => EliminarItem(item.Id)">🗑️ Eliminar</button>
+                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                            title="Editar Item" @onclick="() => AbrirFormularioEdicion(item.Id)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" title="Eliminar Item" @onclick="() => EliminarItem(item.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         }
