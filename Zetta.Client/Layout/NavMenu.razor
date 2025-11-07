@@ -1,27 +1,41 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">Zettium</a>
-        <img src="Imagenes/Zetta.jpg" alt="Zetta Servicios" style="width:40px; border-radius:5px;" class="zetta-logo" />
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </div>
-</div>
+﻿<nav class="sidebar bg-gradient">
+  
+    <ul class="nav flex-column px-2">
+        <li class="nav-item mb-2">
+            <NavLink class="nav-link text-white" href="/">
+                <i class="bi bi-house-door me-2"></i> Home
+            </NavLink>
+        </li>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home @* span es el tipo de simbolo *@
+        <li class="nav-item mb-2">
+            <NavLink class="nav-link text-white" href="/presupuestos">
+                <i class="bi bi-file-earmark-text me-2"></i> Presupuestos
             </NavLink>
-        </div>
-@*         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="https://localhost:7202/swagger" target="_blank">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Swagger
+        </li>
+
+        <li class="nav-item mb-2">
+            <NavLink class="nav-link text-white" href="/clientes">
+                <i class="bi bi-person-lines-fill me-2"></i> Clientes
             </NavLink>
-        </div> *@
-    </nav>
-</div>
+        </li>
+
+        <li class="nav-item mb-2">
+            <NavLink class="nav-link text-white" href="/obras">
+                <i class="bi bi-hammer me-2"></i> Obras
+            </NavLink>
+        </li>
+
+        <li class="nav-item mb-2">
+            <NavLink class="nav-link text-white" href="/items">
+                <i class="bi bi-list-check me-2"></i> Ítems de Presupuesto
+            </NavLink>
+        </li>
+    </ul>
+</nav>
+
+
+
+
 
 @code {
     private bool collapseNavMenu = true;
