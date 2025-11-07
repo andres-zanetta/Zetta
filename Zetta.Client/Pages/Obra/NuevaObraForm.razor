@@ -321,6 +321,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await CargarDatosIniciales();
         ObrasOriginales = await ObraService.GetAllAsync();
         ObrasFiltradas = ObrasOriginales;
     }
