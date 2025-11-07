@@ -411,3 +411,43 @@ code {
     font-style: italic;
     font-size: 0.9rem;
 }
+
+.sidebar {
+    width: 200px;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0b0b1a 0%, #1c0030 100%);
+    color: white;
+}
+
+.sidebar-header img {
+    filter: drop-shadow(0 0 3px orange);
+}
+
+.nav-link {
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+
+    .nav-link:hover, .nav-link.active {
+        background-color: orange;
+        color: black !important;
+        font-weight: 600;
+    }
+
+.bi {
+    font-size: 1.1rem;
+    vertical-align: middle;
+}
+.text-naranja {
+    color: orange;
+}
+
+.filtros-container {
+    transition: 0.3s ease-in-out;
+}
+
+    .filtros-container:hover {
+        box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+    }
