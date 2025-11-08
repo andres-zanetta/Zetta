@@ -7,6 +7,13 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
+    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Obra</button>
+</div>
+
+
+
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
         <h1>Gestión de Obras</h1>
@@ -60,10 +67,7 @@
 
 
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-        <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Obra</button>
-    </div>
+
 
     @if (Cargando)
     {

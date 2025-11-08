@@ -1,7 +1,13 @@
 ﻿@page "/clientes"
 @inject Zetta.Client.Servicios.IClienteService ClienteService 
 @inject NavigationManager Navigation
-@inject Microsoft.JSInterop.IJSRuntime JSRuntime 
+@inject Microsoft.JSInterop.IJSRuntime JSRuntime
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-outline-dark" @onclick="VolverAlInicio">← Volver al Menú</button>
+    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
+</div>
+
 
 <div class="clientes-container">
     <header class="clientes-header text-center">
@@ -42,10 +48,7 @@
     </div>
 
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <button class="btn btn-outline-dark" @onclick="VolverAlInicio">← Volver al Menú</button>
-        <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
-    </div>
+
 
     @if (Cargando)
     {
