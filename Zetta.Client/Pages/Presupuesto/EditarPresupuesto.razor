@@ -27,7 +27,8 @@
     }
     else
     {
-        <EditForm Model="@PresupuestoModel" OnValidSubmit="GuardarPresupuesto">
+        @* --- CORRECCIÓN 1: Se quita OnValidSubmit --- *@
+        <EditForm Model="@PresupuestoModel">
             <DataAnnotationsValidator />
             <ValidationSummary />
 
@@ -84,11 +85,7 @@
                         <option value="false">Pendiente</option>
                         <option value="true">Aceptado</option>
                     </InputSelect>
-                    @* Opcional: Agregar validación si es necesario *@
-                    @* <ValidationMessage For="@(() => PresupuestoModel.Aceptado)" /> *@
                 </div>
-                @* --- FIN DEL CAMPO AGREGADO --- *@
-
 
                 <div class="col-md-6 mb-3">
                     <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
@@ -124,7 +121,7 @@
                     <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
                 </div>
 
-                @* --- Sección de Items (sin cambios) --- *@
+                @* --- Sección de Items --- *@
                 <div class="col-12 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label fw-bold">Items</label>
@@ -154,18 +151,28 @@
 
                     <div class="row g-2 mb-2 p-2 border rounded bg-light">
                         <div class="col">
-                            <input class="form-control form-control-sm" placeholder="Buscar por nombre..." @bind="searchNombre" />
+                            <input class="form-control form-control-sm" placeholder="Buscar por nombre..."
+                                   @bind="searchNombre"
+                                   @onkeydown="BuscarEnter"
+                                   @onkeydown:stopPropagation />
                         </div>
                         <div class="col">
-                            <input class="form-control form-control-sm" placeholder="Buscar por marca..." @bind="searchMarca" />
+                            <input class="form-control form-control-sm" placeholder="Buscar por marca..."
+                                   @bind="searchMarca"
+                                   @onkeydown="BuscarEnter"
+                                   @onkeydown:stopPropagation />
                         </div>
                         <div class="col">
-                            <input class="form-control form-control-sm" placeholder="Buscar por fabricante..." @bind="searchFabricante" />
+                            <input class="form-control form-control-sm" placeholder="Buscar por fabricante..."
+                                   @bind="searchFabricante"
+                                   @onkeydown="BuscarEnter"
+                                   @onkeydown:stopPropagation />
                         </div>
                         <div class="col-auto">
                             <button type="button" class="btn btn-sm btn-primary" @onclick="BuscarItems">Buscar</button>
                         </div>
                     </div>
+
 
                     @if (!CatalogoItemsFiltrados.Any())
                     {
@@ -228,7 +235,9 @@
 
             <div class="d-flex justify-content-end gap-2 mt-4">
                 <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
-                <button type="submit" class="btn btn-naranja" disabled="@Guardando">
+
+                @* --- CORRECCIÓN 2: Cambiar 'type' y agregar @onclick --- *@
+                <button type="button" class="btn btn-naranja" disabled="@Guardando" @onclick="GuardarPresupuesto">
                     @(Guardando ? "Guardando..." : "Guardar Cambios")
                 </button>
             </div>
@@ -246,10 +255,8 @@
 @code {
     [Parameter] public int Id { get; set; }
 
-    // El PUT_PresupuestoDTO ya tiene 'Aceptado'
-    private PUT_PresupuestoDTO PresupuestoModel { get; set; } = new PUT_PresupuestoDTO { ClienteId = 0, Materiales = false, Aceptado = false }; // Inicializar Aceptado a false
+    private PUT_PresupuestoDTO PresupuestoModel { get; set; } = new PUT_PresupuestoDTO { ClienteId = 0, Materiales = false, Aceptado = false };
 
-    // ... (resto de variables sin cambios)
     private bool CargandoDatosIniciales = true;
     private string? ErrorAlCargar = null;
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
@@ -275,6 +282,14 @@
         public int? DetalleId { get; set; }
     }
 
+    private async Task BuscarEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await BuscarItems();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -289,7 +304,6 @@
                 return;
             }
 
-            // Mapeo (ya incluye Aceptado del DTO recibido)
             PresupuestoModel = new PUT_PresupuestoDTO
             {
                 Id = presupuestoExistente.Id,
@@ -297,7 +311,7 @@
                 Rubro = presupuestoExistente.Rubro,
                 OpcionDePago = presupuestoExistente.OpcionDePago,
                 Materiales = presupuestoExistente.Materiales,
-                Aceptado = presupuestoExistente.Aceptado, // <-- Asignar el valor existente
+                Aceptado = presupuestoExistente.Aceptado,
                 ManodeObra = presupuestoExistente.ManodeObra,
                 TiempoAproxObra = presupuestoExistente.TiempoAproxObra,
                 ValidacionDias = presupuestoExistente.ValidacionDias,
@@ -333,7 +347,6 @@
         }
     }
 
-    // --- Métodos sin cambios ---
     private async Task LoadCatalogItemsAsync()
     {
         if (AllCatalogItems == null || !AllCatalogItems.Any())
@@ -351,14 +364,16 @@
         if (!string.IsNullOrWhiteSpace(searchNombre)) { var s = searchNombre.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Nombre) && i.Nombre.Contains(s, StringComparison.OrdinalIgnoreCase)); }
         if (!string.IsNullOrWhiteSpace(searchMarca)) { var s = searchMarca.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Marca) && i.Marca.Contains(s, StringComparison.OrdinalIgnoreCase)); }
         if (!string.IsNullOrWhiteSpace(searchFabricante)) { var s = searchFabricante.Trim(); query = query.Where(i => !string.IsNullOrEmpty(i.Fabricante) && i.Fabricante.Contains(s, StringComparison.OrdinalIgnoreCase)); }
-        CatalogoItemsFiltrados = query.ToList(); await InvokeAsync(StateHasChanged);
+        CatalogoItemsFiltrados = query.ToList();
+        await InvokeAsync(StateHasChanged);
     }
     private void AbrirItemModalNuevo() { ItemIdParaEditar = null; MostrarItemModal = true; }
     private void AbrirItemModalEditar(int id) { ItemIdParaEditar = id; MostrarItemModal = true; }
     private void CerrarItemModal() { ItemIdParaEditar = null; MostrarItemModal = false; }
     private async Task ItemGuardado(int itemId)
     {
-        await LoadCatalogItemsAsync(); await BuscarItems();
+        await LoadCatalogItemsAsync();
+        await BuscarItems();
         var itemEditado = SelectedItems.FirstOrDefault(si => si.ItemId == itemId);
         if (itemEditado != null && itemId > 0)
         { var itemActualizadoCatalogo = AllCatalogItems.FirstOrDefault(ci => ci.Id == itemId); if (itemActualizadoCatalogo != null) { itemEditado.Precio = itemActualizadoCatalogo.Precio; RecalcularFromSelectedItems(); } }
@@ -392,19 +407,22 @@
     }
     private async Task RecalcularTotal(ChangeEventArgs e)
     {
-        _recalcCts?.Cancel(); _recalcCts?.Dispose(); _recalcCts = new CancellationTokenSource(); var token = _recalcCts.Token;
+        _recalcCts?.Cancel();
+        _recalcCts?.Dispose(); _recalcCts = new CancellationTokenSource(); var token = _recalcCts.Token;
         try { await Task.Delay(250, token); } catch (TaskCanceledException) { return; }
-        var mano = PresupuestoModel.ManodeObra ?? 0m; PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP); await InvokeAsync(StateHasChanged);
+        var mano = PresupuestoModel.ManodeObra ?? 0m; PresupuestoModel.Total = Math.Max(0m, mano + PresupuestoModel.TotalP);
+        await InvokeAsync(StateHasChanged);
     }
     private async Task GuardarPresupuesto()
     {
-        Guardando = true; Mensaje = null;
+        Guardando = true;
+        Mensaje = null;
         try
         {
             if (PresupuestoModel.ClienteId == 0) { MostrarMensaje("Debe seleccionar un cliente.", "alert-warning"); Guardando = false; return; }
             if (PresupuestoModel.Total <= 0) { MostrarMensaje("El total debe ser mayor a 0.", "alert-warning"); Guardando = false; return; }
             PresupuestoModel.ItemsDetalle = SelectedItems.Select(s => new PUT_PresItemDetalleDTO { Id = s.DetalleId ?? 0, ItemPresupuestoId = s.ItemId, Cantidad = s.Cantidad, PrecioUnitario = s.Precio }).ToList();
-            await PresupuestoService.Update(Id, PresupuestoModel); // Llama a Update
+            await PresupuestoService.Update(Id, PresupuestoModel);
             MostrarMensaje("✅ Presupuesto actualizado con éxito.", "alert-success");
             await Task.Delay(800); Navigation.NavigateTo("/presupuestos");
         }

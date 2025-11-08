@@ -16,7 +16,8 @@
         <p class="subtitle">Completá los datos para crear un nuevo presupuesto.</p>
     </header>
 
-    <EditForm Model="@PresupuestoModel" OnValidSubmit="GuardarPresupuesto">
+    @* --- CORRECCIÓN 1: Se quita OnValidSubmit --- *@
+    <EditForm Model="@PresupuestoModel">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -80,11 +81,13 @@
                 <InputNumber id="totalItems" class="form-control" @bind-Value="PresupuestoModel.TotalP" readonly />
             </div>
 
+
             <div class="col-md-6 mb-3">
                 <label for="totalFinal" class="form-label">Total Final ($)</label>
                 <input id="totalFinal" class="form-control bg-light fw-bold text-end"
                        value="@PresupuestoModel.Total.ToString("N2")" readonly />
             </div>
+
 
             <div class="col-md-6 mb-3">
                 <label for="tiempo" class="form-label">Tiempo Aprox. de Obra (días)</label>
@@ -96,6 +99,7 @@
                 <InputText id="validez" class="form-control" @bind-Value="PresupuestoModel.ValidacionDias" />
             </div>
 
+
             <div class="col-12 mb-3">
                 <label for="observacion" class="form-label">Observación</label>
                 <InputTextArea id="observacion" class="form-control" rows="3" @bind-Value="PresupuestoModel.Observacion" />
@@ -103,12 +107,13 @@
 
             @* --- SECCIÓN DE ITEMS --- *@
             <div class="col-12 mb-3">
+
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <label class="form-label fw-bold">Items</label>
                     <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
                 </div>
 
-                @* --- NUEVA SECCIÓN: LISTA DE ÍTEMS AGREGADOS --- *@
+                @* --- LISTA DE ÍTEMS AGREGADOS --- *@
                 @if (SelectedItems.Any())
                 {
                     <div class="mb-3 border rounded p-3" style="background-color: #fdfdfd;">
@@ -123,33 +128,39 @@
                                             Cantidad: @item.Cantidad | Precio Unitario: @item.Precio.ToString("C")
                                         </small>
                                     </div>
-                                    @* Botón para quitar el ítem directamente desde esta lista *@
                                     <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => QuitarItemSeleccionado(item.ItemId)">Quitar</button>
                                 </li>
                             }
                         </ul>
                     </div>
                 }
-                @* --- FIN DE LA NUEVA SECCIÓN --- *@
 
-
-                @* --- SECCIÓN DE BÚSQUEDA (SIN CAMBIOS) --- *@
+                @* --- FILTROS DE BÚSQUEDA --- *@
                 <div class="row g-2 mb-2 p-2 border rounded bg-light">
                     <div class="col">
-                        <input class="form-control form-control-sm" placeholder="Buscar por nombre..." @bind="searchNombre" />
+                        <input class="form-control form-control-sm" placeholder="Buscar por nombre..."
+                               @bind="searchNombre"
+                               @onkeydown="BuscarEnter"
+                               @onkeydown:stopPropagation />
                     </div>
                     <div class="col">
-                        <input class="form-control form-control-sm" placeholder="Buscar por marca..." @bind="searchMarca" />
+                        <input class="form-control form-control-sm" placeholder="Buscar por marca..."
+                               @bind="searchMarca"
+                               @onkeydown="BuscarEnter"
+                               @onkeydown:stopPropagation />
                     </div>
                     <div class="col">
-                        <input class="form-control form-control-sm" placeholder="Buscar por fabricante..." @bind="searchFabricante" />
+                        <input class="form-control form-control-sm" placeholder="Buscar por fabricante..."
+                               @bind="searchFabricante"
+                               @onkeydown="BuscarEnter"
+                               @onkeydown:stopPropagation />
                     </div>
                     <div class="col-auto">
                         <button type="button" class="btn btn-sm btn-primary" @onclick="BuscarItems">Buscar</button>
                     </div>
                 </div>
 
-                @* --- TABLA DE RESULTADOS DE BÚSQUEDA (SIN CAMBIOS) --- *@
+                @* --- TABLA DE RESULTADOS DE BÚSQUEDA --- *@
                 @if (!CatalogoItemsFiltrados.Any())
                 {
                     <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
@@ -211,7 +222,9 @@
 
         <div class="d-flex justify-content-end gap-2 mt-4">
             <button type="button" class="btn btn-secondary" @onclick="Volver">Cancelar</button>
-            <button type="submit" class="btn btn-naranja" disabled="@Guardando">
+
+            @* --- CORRECCIÓN 2: Cambiar 'type' y agregar @onclick --- *@
+            <button type="button" class="btn btn-naranja" disabled="@Guardando" @onclick="GuardarPresupuesto">
                 @(Guardando ? "Guardando..." : "Guardar Presupuesto")
             </button>
         </div>
@@ -227,12 +240,10 @@
 
 @code {
     private POST_PresupuestoDTO PresupuestoModel { get; set; } = new POST_PresupuestoDTO { ClienteId = 0, Materiales = false };
-
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> AllCatalogItems { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> CatalogoItemsFiltrados { get; set; } = new();
     private List<SelectedItemVM> SelectedItems { get; set; } = new();
-
     private bool Guardando = false;
     private string? Mensaje;
     private string? MensajeCss;
@@ -253,10 +264,17 @@
         public decimal Precio { get; set; } = 0m;
     }
 
+    private async Task BuscarEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await BuscarItems();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Clientes = (await ClienteService.GetAll())?.ToList() ?? new List<GET_ClienteDTO>();
-
         Navigation.LocationChanged += OnLocationChanged;
     }
 
@@ -274,7 +292,6 @@
         }
         catch
         {
-            // no hacemos nada si falla
         }
     }
 
@@ -356,12 +373,12 @@
         if (existe == null)
         {
             SelectedItems.Add(new SelectedItemVM
-                {
-                    ItemId = cat.Id,
-                    Nombre = cat.Nombre,
-                    Cantidad = 1,
-                    Precio = cat.Precio
-                });
+            {
+                ItemId = cat.Id,
+                Nombre = cat.Nombre,
+                Cantidad = 1,
+                Precio = cat.Precio
+            });
         }
         else
         {
@@ -429,7 +446,6 @@
 
         try
         {
-            // Validación: Cliente seleccionado
             if (PresupuestoModel.ClienteId == 0)
             {
                 MostrarMensaje("Debe seleccionar un cliente.", "alert-warning");
@@ -437,7 +453,6 @@
                 return;
             }
 
-            // Validación: Total > 0
             if (PresupuestoModel.Total <= 0)
             {
                 MostrarMensaje("El total debe ser mayor a 0.", "alert-warning");
@@ -445,7 +460,6 @@
                 return;
             }
 
-            // Validar que los valores numéricos no sean secuencias o repeticiones
             if (EsNumeroInvalido(PresupuestoModel.Total))
             {
                 MostrarMensaje("El valor TOTAL ingresado no es válido (secuencia o repetición numérica detectada).", "alert-warning");
@@ -467,7 +481,6 @@
                 return;
             }
 
-            // Validar montos absurdos
             if (PresupuestoModel.Total > 100000000)
             {
                 MostrarMensaje("El monto total es demasiado alto. Verifique los valores ingresados.", "alert-warning");
@@ -475,7 +488,6 @@
                 return;
             }
 
-            // Mapeo de ítems
             PresupuestoModel.ItemsDetalle = SelectedItems
                 .Select(s => new POST_PresItemDetalleDTO
                 {
@@ -484,8 +496,6 @@
                     PrecioUnitario = s.Precio
                 })
                 .ToList();
-
-            // Guardar presupuesto
             await PresupuestoService.Create(PresupuestoModel);
             MostrarMensaje("✅ Presupuesto creado con éxito.", "alert-success");
 
@@ -500,31 +510,19 @@
         Guardando = false;
     }
 
-    /// <summary>
-    /// Valida si un número contiene secuencias o repeticiones poco probables.
-    /// </summary>
     private bool EsNumeroInvalido(decimal valor)
     {
-        // Convierte a cadena limpia solo con dígitos
         var numStr = new string(valor.ToString(System.Globalization.CultureInfo.InvariantCulture)
             .Where(char.IsDigit).ToArray());
-
-        // Si tiene menos de 4 dígitos, no se valida (evita falsos positivos)
         if (numStr.Length < 4)
             return false;
-
-        // Detectar secuencias ascendentes o descendentes
         const string secuenciaAsc = "0123456789";
         const string secuenciaDesc = "9876543210";
 
         if (secuenciaAsc.Contains(numStr) || secuenciaDesc.Contains(numStr))
             return true;
-
-        // Detectar si todos los dígitos son iguales (1111, 999999)
         if (numStr.Distinct().Count() == 1)
             return true;
-
-        // Detectar repeticiones tipo "121212" o "343434"
         if (numStr.Length >= 6)
         {
             var mitad = numStr.Length / 2;
@@ -548,7 +546,6 @@
 
 
     private void Volver() => Navigation.NavigateTo("/presupuestos");
-
     public void Dispose()
     {
         try { Navigation.LocationChanged -= OnLocationChanged; } catch { }
@@ -557,14 +554,13 @@
         _recalcCts = null;
     }
 
-    // --- NUEVO MÉTODO PARA EL BOTÓN "QUITAR" ---
     private void QuitarItemSeleccionado(int itemId)
     {
         var item = SelectedItems.FirstOrDefault(s => s.ItemId == itemId);
         if (item != null)
         {
             SelectedItems.Remove(item);
-            RecalcularFromSelectedItems(); // Llama al método existente para actualizar el total
+            RecalcularFromSelectedItems();
         }
     }
 

@@ -74,7 +74,7 @@
             doc.text("Cliente:", margenIzquierdo, posY);
             posY += lineHeight * 0.9;
             doc.setFont('times', 'normal');
-            doc.setFontSize(9.5); // Tamaño un poco más pequeño para detalles
+            doc.setFontSize(9.5);
             doc.text(`${datosPresupuesto.nombreCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
             posY += lineHeight * 0.7;
             doc.text(`Dirección: ${datosPresupuesto.direccionCliente ?? 'N/A'}`, margenIzquierdo + 2, posY);
@@ -97,7 +97,7 @@
             // Ajustar posY principal
             posY = Math.max(posY, posYPresupuesto) + lineHeight * 2.5;
 
-            // --- TABLA DE ÍTEMS MEJORADA ---
+            // --- TABLA DE ITEMS ---
             if (datosPresupuesto.itemsDetalle && typeof doc.autoTable === 'function') {
                 const tableColumns = [
                     { header: 'Item', dataKey: 'nombre' },
@@ -111,13 +111,13 @@
                 const tableRows = datosPresupuesto.itemsDetalle.map(item => {
                     let fechaStr = '-';
                     if (item.fechaActPrecioItem) {
-                        try { fechaStr = new Date(item.fechaActPrecioItem).toLocaleDateString('es-AR'); } catch { /* Ignorar */ }
+                        try { fechaStr = new Date(item.fechaActPrecioItem).toLocaleDateString('es-AR'); } catch { }
                     }
                     return {
                         nombre: item.nombreItem ?? 'N/A',
-                        medida: item.medidaItem ?? '-', // Nueva columna
-                        desc: item.descripcionItem ?? '-', // Nueva columna
-                        fecha: fechaStr, // Nueva columna
+                        medida: item.medidaItem ?? '-', 
+                        desc: item.descripcionItem ?? '-', 
+                        fecha: fechaStr, 
                         cant: item.cantidad.toLocaleString('es-AR'),
                         pUnit: item.precioUnitario.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }),
                         subtotal: (item.precioUnitario * item.cantidad).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
@@ -128,15 +128,15 @@
                     columns: tableColumns,
                     body: tableRows,
                     startY: posY,
-                    theme: 'grid', // 'plain', 'striped', 'grid'
+                    theme: 'grid',
                     styles: {
                         font: 'times',
-                        fontSize: 8.5, // Fuente más pequeña para que quepa más info
+                        fontSize: 8.5, // Fuente pequeña para que entre mas info
                         cellPadding: 1.2,
                         valign: 'middle' // Alinear verticalmente
                     },
                     headStyles: {
-                        fillColor: [70, 70, 70], // Gris más oscuro
+                        fillColor: [70, 70, 70], // Gris oscuro
                         textColor: [255, 255, 255],
                         fontStyle: 'bold',
                         halign: 'center',
@@ -152,7 +152,6 @@
                         subtotal: { halign: 'right', cellWidth: 23 }
                     },
                     didDrawPage: function (data) {
-                        // Podrías añadir encabezados/pies en cada nueva página si la tabla es larga
                     }
                 });
                 posY = doc.lastAutoTable.finalY;
@@ -163,7 +162,7 @@
 
             posY += lineHeight * 1.5;
 
-            // --- TOTALES (Sin cambios visuales grandes, ajustada posición Y) ---
+            // --- TOTALES ---
             const posXTotalLabel = margenDerecho - 45;
             const posXTotalValue = margenDerecho;
             doc.setFontSize(10);
@@ -189,9 +188,8 @@
             doc.text(datosPresupuesto.total.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' }), posXTotalValue, posY, null, null, 'right');
             posY += lineHeight * 2;
 
-            // --- OBSERVACIONES (Sin cambios) ---
+            // --- OBSERVACIONES ---
             if (datosPresupuesto.observacion) {
-                // ... (código existente para observaciones) ...
                 doc.setFont('times', 'bold');
                 doc.setFontSize(10);
                 doc.text("Observaciones:", margenIzquierdo, posY);
@@ -203,13 +201,13 @@
                 posY += textoObservaciones.length * (lineHeight * 0.65);
             }
 
-            // --- PIE DE PÁGINA (Sin cambios) ---
+            // --- PIE DE PÁGINA---
             const pageCount = doc.internal.getNumberOfPages();
             doc.setFont('times', 'italic');
             doc.setFontSize(8);
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
-                doc.text('Zetta Servicios - [Tu CUIT/Dirección/Teléfono]', margenIzquierdo, doc.internal.pageSize.height - 10);
+                doc.text('Zetta Servicios - [3512345678]', margenIzquierdo, doc.internal.pageSize.height - 10);
                 doc.text(`Página ${i} de ${pageCount}`, margenDerecho, doc.internal.pageSize.height - 10, { align: 'right' });
             }
 

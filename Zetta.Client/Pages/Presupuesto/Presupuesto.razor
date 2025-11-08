@@ -10,8 +10,6 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
-
-
 <div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
     <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Presupuesto</button>
@@ -22,46 +20,51 @@
         <h1>Gestión de Presupuestos</h1>
         <p class="subtitle">Administrá, controlá y generá presupuestos detallados.</p>
     </header>
+
     <div class="filtros-container mb-4 p-3 bg-black rounded shadow-sm">
         <h5 class="mb-3">🔍 Filtrar presupuestos</h5>
-        <div class="row g-3">
-            <div class="col-md-3">
-                <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por cliente..." @bind="filtroCliente" />
+
+        @* 1. Envolver los filtros en un EditForm *@
+        <EditForm Model="filtros" OnValidSubmit="AplicarFiltros">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    @* 2. El 'bind' ahora apunta al modelo de filtros *@
+                    <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por cliente..." @bind="filtros.Cliente" />
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Rubro">
+                        <option value="">Todos los rubros</option>
+                        @foreach (var rubro in RubrosDisponibles)
+                        {
+                            <option value="@rubro">@rubro</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Estado">
+                        <option value="">Todos los estados</option>
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Aceptado">Aceptado</option>
+                        <option value="En Obra">En Obra</option>
+                        <option value="Vencido">Vencido</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Pago">
+                        <option value="">Todas las opciones de pago</option>
+                        <option value="MercadoPago">MercadoPago</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="Cuenta Link">Cuenta Link</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    @* 3. El botón ahora es 'type="submit"' y no necesita @onclick *@
+                    <button type="submit" class="btn btn-outline-dark w-100 text-white border-white">Aplicar filtros</button>
+                </div>
             </div>
-            <div class="col-md-3">
-                <select class="form-select bg-dark text-white border-warning" @bind="filtroRubro">
-                    <option value="">Todos los rubros</option>
-                    @foreach (var rubro in RubrosDisponibles)
-                    {
-                        <option value="@rubro">@rubro</option>
-                    }
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select bg-dark text-white border-warning" @bind="filtroEstado">
-                    <option value="">Todos los estados</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Aceptado">Aceptado</option>
-                    <option value="En Obra">En Obra</option>
-                    <option value="Vencido">Vencido</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select class="form-select bg-dark text-white border-warning" @bind="filtroPago">
-                    <option value="">Todas las opciones de pago</option>
-                    <option value="MercadoPago">MercadoPago</option>
-                    <option value="Tarjeta">Tarjeta</option>
-                    <option value="Cuenta Link">Cuenta Link</option>
-                </select>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="AplicarFiltros">Aplicar filtros</button>
-            </div>
-        </div>
+        </EditForm>
     </div>
 
-
-    
 
     @if (Cargando)
     {
@@ -74,7 +77,6 @@
     {
         <table class="table table-hover align-middle">
             <thead class="table-dark">
-                @* 1. THEAD ACTUALIZADO (Columna "Es Obra" eliminada) *@
                 <tr>
                     <th>ID</th>
                     <th>Cliente</th>
@@ -84,7 +86,7 @@
                     <th>Total Items</th>
                     <th>Items SI/NO</th>
                     <th>Total Final</th>
-                    <th>Estado</th> @* <-- Columna única de estado *@
+                    <th>Estado</th>
                     <th>Tiempo Obra</th>
                     <th>Validez (días)</th>
                     <th>Observación</th>
@@ -96,7 +98,6 @@
                 @if (Presupuestos == null || Presupuestos.Count == 0)
                 {
                     <tr>
-                        @* 2. COLSPAN CORREGIDO A 13 *@
                         <td colspan="13" class="text-center text-muted">No hay presupuestos registrados.</td>
                     </tr>
                 }
@@ -113,20 +114,15 @@
                             <td>$ @p.TotalP.ToString("N2")</td>
                             <td>@(p.Materiales ? "Sí" : "No")</td>
                             <td class="fw-bold">$ @p.Total.ToString("N2")</td>
-
-                            @* 3. TBODY ACTUALIZADO (Llama a la función GetEstadoPresupuesto) *@
                             <td>
                                 @{
                                     var estado = GetEstadoPresupuesto(p);
                                     <span class="@estado.BadgeClass">@estado.Status</span>
                                 }
                             </td>
-
                             <td>@p.TiempoAproxObra</td>
                             <td>@p.ValidacionDias</td>
                             <td>@(string.IsNullOrWhiteSpace(p.Observacion) ? "-" : p.Observacion)</td>
-
-                            @* botones editados pdf eliminar *@
                             <td class="text-center">
                                 <button class="btn btn-sm btn-outline-primary me-1"
                                         title="Editar presupuesto"
@@ -154,15 +150,26 @@
 
 @code {
     private List<GET_PresupuestoDTO> Presupuestos { get; set; } = new();
-    private List<GET_ObraDTO> Obras { get; set; } = new(); // Se mantiene para verificar estado "En Obra"
+    private List<GET_ObraDTO> Obras { get; set; } = new();
     private bool Cargando = true;
+
+    // 4. Clase interna para el modelo del EditForm
+    private class FiltroPresupuestosModel
+    {
+        public string Cliente { get; set; } = string.Empty;
+        public string Rubro { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string Pago { get; set; } = string.Empty;
+    }
+
+    // 5. Instancia del modelo de filtros
+    private FiltroPresupuestosModel filtros = new();
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatos();
     }
 
-    // CargarDatos sigue igual, trayendo Presupuestos y Obras
     private async Task CargarDatos()
     {
         try
@@ -172,7 +179,6 @@
             var obrasTask = ObraService.GetAllAsync() ?? Task.FromResult(new List<GET_ObraDTO>());
 
             await Task.WhenAll(presupuestosTask, obrasTask);
-
             Presupuestos = await presupuestosTask;
             Obras = await obrasTask;
         }
@@ -187,44 +193,30 @@
         }
     }
 
-    // 4. NUEVA FUNCIÓN HELPER PARA OBTENER EL ESTADO
-    /// <summary>
-    /// Determina el estado de un presupuesto basado en su relación con Obras,
-    /// si fue aceptado, o si ha expirado.
-    /// </summary>
     private (string Status, string BadgeClass) GetEstadoPresupuesto(GET_PresupuestoDTO p)
     {
-        // 1. Prioridad: Si ya es una obra
         if (Obras.Any(o => o.PresupuestoId == p.Id))
         {
-            return ("En Obra", "badge bg-primary"); // Azul
+            return ("En Obra", "badge bg-primary");
         }
-
-        // 2. Si está Aceptado (y aún no es obra)
         if (p.Aceptado)
         {
-            return ("Aceptado", "badge bg-success"); // Verde
+            return ("Aceptado", "badge bg-success");
         }
-
-        // 3. Si está Pendiente, verificar si está Vencido
         if (int.TryParse(p.ValidacionDias, out int diasValidez) && p.FechaCreacion != default(DateTime))
         {
             var fechaVencimiento = p.FechaCreacion.Date.AddDays(diasValidez);
             if (DateTime.Today > fechaVencimiento)
             {
-                return ("Vencido", "badge bg-danger"); // Rojo
+                return ("Vencido", "badge bg-danger");
             }
         }
-
-        // 4. Si no es nada de lo anterior, está Pendiente
-        return ("Pendiente", "badge bg-secondary"); // Gris
+        return ("Pendiente", "badge bg-secondary");
     }
-
 
     private void AbrirFormularioNuevo() => Navigation.NavigateTo("/presupuestos/nuevo");
     private void AbrirFormularioEdicion(int id) => Navigation.NavigateTo($"/presupuestos/editar/{id}");
 
-    // La lógica de EliminarPresupuesto sigue igual (con la verificación de obra)
     private async Task EliminarPresupuesto(int id)
     {
         if (Obras.Any(o => o.PresupuestoId == id))
@@ -232,7 +224,6 @@
             await JSRuntime.InvokeVoidAsync("alert", "❌ No se puede eliminar un presupuesto que ya está asociado a una obra.");
             return;
         }
-
         bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este presupuesto?");
         if (!confirmar) return;
 
@@ -249,7 +240,6 @@
         }
     }
 
-    // GenerarPdfCliente sigue igual
     private async Task GenerarPdfCliente(GET_PresupuestoDTO presupuesto)
     {
         if (presupuesto == null)
@@ -290,43 +280,44 @@
         }
     }
 
-    private string filtroCliente = string.Empty;
-    private string filtroRubro = string.Empty;
-    private string filtroEstado = string.Empty;
-    private string filtroPago = string.Empty;
-
     private List<string> RubrosDisponibles => Presupuestos
         .Select(p => p.RubroNombre)
         .Distinct()
-        .OrderBy(p =>p )
+        .OrderBy(p => p)
         .ToList();
 
+    // 6. Método 'AplicarFiltros' actualizado para usar el modelo 'filtros'
     private async Task AplicarFiltros()
     {
         Cargando = true;
-
         var presupuestosFiltrados = await PresupuestoService.GetAll();
 
-        if (!string.IsNullOrWhiteSpace(filtroCliente))
-            presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => p.NombreCliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (presupuestosFiltrados == null)
+        {
+            Presupuestos = new List<GET_PresupuestoDTO>();
+            Cargando = false;
+            return;
+        }
 
-        if (!string.IsNullOrWhiteSpace(filtroRubro))
+        if (!string.IsNullOrWhiteSpace(filtros.Cliente))
             presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => p.RubroNombre == filtroRubro).ToList();
+                .Where(p => p.NombreCliente != null && p.NombreCliente.Contains(filtros.Cliente, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        if (!string.IsNullOrWhiteSpace(filtroEstado))
+        if (!string.IsNullOrWhiteSpace(filtros.Rubro))
             presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => GetEstadoPresupuesto(p).Status == filtroEstado).ToList();
+                .Where(p => p.RubroNombre == filtros.Rubro).ToList();
 
-        // if (!string.IsNullOrWhiteSpace(filtroPago))
-        //     presupuestosFiltrados = presupuestosFiltrados
-        //         .Where(p => p.OpcionDePago.Contains(filtroPago, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (!string.IsNullOrWhiteSpace(filtros.Estado))
+            presupuestosFiltrados = presupuestosFiltrados
+                .Where(p => GetEstadoPresupuesto(p).Status == filtros.Estado).ToList();
+
+        if (!string.IsNullOrWhiteSpace(filtros.Pago))
+            presupuestosFiltrados = presupuestosFiltrados
+                .Where(p => p.OpcionDePago.ToString() == filtros.Pago).ToList(); // Convertir Enum a string para comparar
 
         Presupuestos = presupuestosFiltrados;
         Cargando = false;
     }
-
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
 }
