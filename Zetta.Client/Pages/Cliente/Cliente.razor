@@ -1,4 +1,5 @@
 ﻿@page "/clientes"
+@using System.ComponentModel.DataAnnotations
 @inject Zetta.Client.Servicios.IClienteService ClienteService 
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JSRuntime
@@ -124,6 +125,7 @@
                             <div class="mb-3">
                                 <label class="form-label">Email</label>
                                 <InputText @bind-Value="ClienteActual.Email" class="form-control" />
+                                <ValidationMessage For="@(() => ClienteActual.Email)" />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Localidad</label>
@@ -173,6 +175,9 @@
         public string Nombre { get; set; } = "";
         public string Apellido { get; set; } = "";
         public string Telefono { get; set; } = "";
+        [Required(ErrorMessage = "El email es obligatorio.")]
+        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",
+       ErrorMessage = "Debe ingresar un correo válido (ejemplo: usuario@dominio.com)")]
         public string? Email { get; set; }
         public string? Localidad { get; set; }
         public string? Direccion { get; set; }
@@ -238,6 +243,10 @@
         ClientesFiltrados = Clientes;
     }
 
+    private void ValidarEmail(ChangeEventArgs e)
+    {
+        ClienteActual.Email = e.Value?.ToString();
+    }
 
 
     private void AbrirModalNuevo()
