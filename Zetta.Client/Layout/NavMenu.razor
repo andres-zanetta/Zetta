@@ -1,41 +1,39 @@
-﻿<nav class="sidebar bg-gradient">
+﻿<nav class="sidebar bg-dark text-white shadow-sm">
+    <div class="sidebar-header text-center py-3 border-bottom border-warning">
+        <h4 class="text-naranja m-0 fw-bold"></h4>
+    </div>
 
-    <ul class="nav flex-column px-2">
+    <ul class="nav flex-column px-2 mt-3">
         <li class="nav-item mb-2">
-            <a class="nav-link text-white d-flex align-items-center" href="/">
-                <span>🏠 Home</span>
+            <a class="nav-link d-flex align-items-center nav-link-custom" href="/">
+                🏠 <span class="ms-2">Home</span>
             </a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link text-white d-flex align-items-center" href="/presupuestos">
-               <span>📄 Presupuestos</span>
+            <a class="nav-link d-flex align-items-center nav-link-custom" href="/presupuestos">
+                📄 <span class="ms-2">Presupuestos</span>
             </a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link text-white d-flex align-items-center" href="/clientes">
-               <span>👤 Clientes</span>
+            <a class="nav-link d-flex align-items-center nav-link-custom" href="/clientes">
+                👤 <span class="ms-2">Clientes</span>
             </a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link text-white d-flex align-items-center" href="/obras">
-               <span>🔨 Obras</span>
+            <a class="nav-link d-flex align-items-center nav-link-custom" href="/obras">
+                🔨 <span class="ms-2">Obras</span>
             </a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link text-white d-flex align-items-center" href="/items">
-               <span>📋 Ítems</span>
+            <a class="nav-link d-flex align-items-center nav-link-custom" href="/items">
+                📋 <span class="ms-2">Ítems</span>
             </a>
         </li>
     </ul>
 </nav>
 
-
-
-
-
 @code {
     private bool collapseNavMenu = true;
-
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
     private void ToggleNavMenu()
