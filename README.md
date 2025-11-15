@@ -11,10 +11,8 @@ Permite generar, administrar y analizar presupuestos con un enfoque moderno y ef
 ✅ ABM completo de presupuestos y clientes  
 ✅ Generación automática de PDFs con detalles del servicio  
 ✅ Control de obras (iniciadas, en proceso, finalizadas)  
-✅ Derivación de trabajos a terceros con comisión automática  
 ✅ Estadísticas de efectividad de presupuestos  
 ✅ Agenda visual de visitas técnicas  
-✅ Registro de ingresos, gastos y comisiones  
 ✅ Exportación de reportes mensuales  
 ✅ Diseño responsive y visual moderno  
 
