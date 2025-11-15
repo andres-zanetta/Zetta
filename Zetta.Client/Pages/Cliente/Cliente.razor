@@ -1,12 +1,12 @@
 ﻿@page "/clientes"
 @using System.ComponentModel.DataAnnotations
-@inject Zetta.Client.Servicios.IClienteService ClienteService 
+@inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
+    <button class="btn" @onclick="VolverAlInicio">← Volver al Menú</button>
+    <button class="btn" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
 </div>
 
 
@@ -17,20 +17,20 @@
     </header>
 
     <!-- 🔍 FILTROS DE CLIENTES -->
-    <div class="filtros-container mb-4 p-3 bg-dark text-white rounded shadow-sm" style="border: 1px solid orange;">
-        <h5 class="mb-3 text-naranja">🔍 Filtrar clientes</h5>
+    <div class="filtros-container mb-4 p-3 rounded shadow-sm">
+        <h5 class="mb-3">🔍 Filtrar clientes</h5>
 
         <div class="row g-3 align-items-end">
             <!-- Buscar por nombre o apellido -->
             <div class="col-md-4">
-                <input type="text" class="form-control border-dark shadow-sm"
+                <input type="text" class="form-control shadow-sm"
                        placeholder="Buscar por nombre o apellido..."
                        @bind="SearchTerm" @bind:event="oninput" />
             </div>
 
             <!-- Filtrar por localidad -->
             <div class="col-md-4">
-                <select class="form-select border-dark shadow-sm" @bind="SelectedLocalidad">
+                <select class="form-select shadow-sm" @bind="SelectedLocalidad">
                     <option value="">Todas las localidades</option>
                     @foreach (var loc in LocalidadesDisponibles)
                     {
@@ -41,15 +41,12 @@
 
             <!-- Botones de acción -->
             <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-outline-dark me-2 w-50 text-white border-warning" @onclick="() => FiltrarClientes()">Aplicar filtros</button>
+                <button class="btn me-2 w-50" @onclick="() => FiltrarClientes()">Aplicar filtros</button>
 
-                <button class="btn btn-outline-warning w-50" @onclick="ResetFilters">Limpiar</button>
+                <button class="btn w-50" @onclick="ResetFilters">Limpiar</button>
             </div>
         </div>
     </div>
-
-
-
 
     @if (Cargando)
     {
@@ -59,7 +56,7 @@
     {
         <div class="table-responsive shadow-sm">
             <table class="table table-hover align-middle">
-                <thead class="table-dark">
+                <thead>
                     <tr>
                         <th>Nombre</th>
                         <th>Apellido</th>
@@ -80,8 +77,8 @@
                             <td>@cliente.Email</td>
                             <td>@cliente.Localidad</td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" title="Eliminar Cliente"
+                                <button class="btn btn-sm me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn btn-sm" title="Eliminar Cliente"
                                         @onclick="() => EliminarCliente(cliente.Id)">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -92,7 +89,6 @@
             </table>
         </div>
     }
-
 
     @* Modal de Creación/Edición *@
     @if (MostrarModal)
@@ -139,8 +135,8 @@
 
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                            <button type="submit" class="btn btn-naranja">Guardar</button>
+                            <button type="button" class="btn" @onclick="CerrarModal">Cancelar</button>
+                            <button type="submit" class="btn">Guardar</button>
                         </div>
                     </EditForm>
                 </div>
