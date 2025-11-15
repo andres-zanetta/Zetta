@@ -357,11 +357,7 @@ code {
         transition: 0.2s;
     }
 
-/* Variante Bootstrap .table-dark (por si la usás) */
-.table-dark {
-    background-color: var(--table-header);
-    color: var(--orange);
-}
+
 
 /* =========================================================
    10) MODALES (Clientes, Ítems, Obras, etc.)
