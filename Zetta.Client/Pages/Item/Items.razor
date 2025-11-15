@@ -5,7 +5,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-    <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Agregar Ítem</button>
+    <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Ítem</button>
 </div>
 
 
@@ -15,24 +15,57 @@
         <p class="subtitle">Configurá y administrá los ítems base de tus presupuestos.</p>
     </header>
 
-        @* FILTROS *@
+    @* FILTROS *@
     <div class="filtros-container mb-4 p-3 rounded shadow-sm">
-        <h5 class="mb-3"">
-            <i class="bi bi-funnel"></i>🔍 Filtrar Items
+        <h5 class="mb-3">
+            <i class="bi bi-funnel"></i> 🔍 Filtrar ítems
         </h5>
 
         <div class="row g-3 align-items-end">
-            <!-- Buscar por cliente -->
-            <div class="col-md-4">
-                <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por nombre" value="@SearchTerm" @oninput="OnSearchInput" />
+
+            <!-- Buscar por nombre / descripción -->
+            <div class="col-md-3">
+                <input type="text"
+                       class="form-control bg-dark text-white border-warning"
+                       placeholder="Buscar por nombre o descripción..."
+                       @bind="SearchTerm"
+                       @bind:event="oninput" />
             </div>
 
-            <div class="col-auto">
-                <button class="btn btn-secondary" @onclick="ResetFilters">Limpiar</button>
+            <!-- Filtrar por Fabricante -->
+            <div class="col-md-3">
+                <select class="form-select bg-dark text-white border-warning"
+                        @bind="SelectedFabricante"
+                        @bind:event="onchange">
+                    <option value="">Todos los fabricantes</option>
+                    @foreach (var fab in FabricantesDisponibles)
+                    {
+                        <option value="@fab">@fab</option>
+                    }
+                </select>
             </div>
 
-            <div class="col-auto text-muted">
-                @($"{PresupuestoItems.Count} ítems mostrados")
+            <!-- Filtrar por Marca -->
+            <div class="col-md-3">
+                <select class="form-select bg-dark text-white border-warning"
+                        @bind="SelectedMarca"
+                        @bind:event="onchange">
+                    <option value="">Todas las marcas</option>
+                    @foreach (var marca in MarcasDisponibles)
+                    {
+                        <option value="@marca">@marca</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Botón limpiar -->
+            <div class="col-md-2">
+                <button class="btn btn-warning w-100" @onclick="ResetFilters">Limpiar</button>
+            </div>
+
+            <!-- Contador -->
+            <div class="col-md-1 text-muted">
+                @($"{PresupuestoItems.Count} ítems")
             </div>
         </div>
     </div>
@@ -104,12 +137,55 @@
 </div>
 
 @code {
-    private List<GET_ItemPresupuestoDTO> AllItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
-    private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new List<GET_ItemPresupuestoDTO>();
+    private List<GET_ItemPresupuestoDTO> AllItems { get; set; } = new();
+    private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new();
     private bool Cargando = true;
 
-    // Filtros
-    private string SearchTerm { get; set; } = string.Empty;
+    // --- Filtros ---
+    private string _searchTerm = string.Empty;
+    private string SearchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            if (_searchTerm != value)
+            {
+                _searchTerm = value;
+                FilterItems();
+            }
+        }
+    }
+
+    private string _selectedFabricante = string.Empty;
+    private string SelectedFabricante
+    {
+        get => _selectedFabricante;
+        set
+        {
+            if (_selectedFabricante != value)
+            {
+                _selectedFabricante = value;
+                FilterItems();
+            }
+        }
+    }
+
+    private string _selectedMarca = string.Empty;
+    private string SelectedMarca
+    {
+        get => _selectedMarca;
+        set
+        {
+            if (_selectedMarca != value)
+            {
+                _selectedMarca = value;
+                FilterItems();
+            }
+        }
+    }
+
+    private List<string> FabricantesDisponibles { get; set; } = new();
+    private List<string> MarcasDisponibles { get; set; } = new();
 
     // Estado para el modal de Ítem
     private bool MostrarItemModal = false;
@@ -126,6 +202,22 @@
         try
         {
             AllItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+
+            // Poblar listas para los combos de filtro
+            FabricantesDisponibles = AllItems
+                .Where(i => !string.IsNullOrWhiteSpace(i.Fabricante))
+                .Select(i => i.Fabricante!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
+            MarcasDisponibles = AllItems
+                .Where(i => !string.IsNullOrWhiteSpace(i.Marca))
+                .Select(i => i.Marca!)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
             FilterItems(); // Aplica filtros iniciales (ninguno)
         }
         catch (Exception ex)
@@ -133,20 +225,17 @@
             Console.WriteLine($"Error al cargar ítems: {ex.Message}");
             AllItems = new List<GET_ItemPresupuestoDTO>();
             PresupuestoItems = new List<GET_ItemPresupuestoDTO>();
+            FabricantesDisponibles = new();
+            MarcasDisponibles = new();
         }
         Cargando = false;
-    }
-
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        SearchTerm = e?.Value?.ToString() ?? string.Empty;
-        FilterItems();
     }
 
     private void FilterItems()
     {
         IEnumerable<GET_ItemPresupuestoDTO> query = AllItems;
 
+        // Buscar por nombre o descripción
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var s = SearchTerm.Trim().ToLowerInvariant();
@@ -156,13 +245,32 @@
             );
         }
 
+        // Filtro por fabricante
+        if (!string.IsNullOrWhiteSpace(SelectedFabricante))
+        {
+            query = query.Where(i =>
+                !string.IsNullOrEmpty(i.Fabricante) &&
+                i.Fabricante.Equals(SelectedFabricante, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Filtro por marca
+        if (!string.IsNullOrWhiteSpace(SelectedMarca))
+        {
+            query = query.Where(i =>
+                !string.IsNullOrEmpty(i.Marca) &&
+                i.Marca.Equals(SelectedMarca, StringComparison.OrdinalIgnoreCase));
+        }
+
         PresupuestoItems = query.ToList();
-        StateHasChanged(); // Asegurarse de que la UI se actualice
+        StateHasChanged();
     }
 
     private void ResetFilters()
     {
         SearchTerm = string.Empty;
+        SelectedFabricante = string.Empty;
+        SelectedMarca = string.Empty;
+
         PresupuestoItems = AllItems.ToList();
         StateHasChanged();
     }
@@ -175,8 +283,8 @@
             {
                 await ItemService.Delete(id);
                 AllItems.RemoveAll(i => i.Id == id);
-                PresupuestoItems.RemoveAll(i => i.Id == id); // Sincroniza ambas listas
-                StateHasChanged(); // Actualiza la UI
+                PresupuestoItems.RemoveAll(i => i.Id == id);
+                StateHasChanged();
             }
             catch (Exception ex)
             {
@@ -185,7 +293,7 @@
         }
     }
 
-    // Métodos para el modal
+    // --- Modal Ítem ---
     private void AbrirFormularioNuevo()
     {
         ItemIdParaEditar = null;
