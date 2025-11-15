@@ -10,26 +10,30 @@
 
 
 <div class="clientes-container">
-    <header class="clientes-header text-center">
+    <header class="clientes-header text-center mb-4">
         <h1>Gestión de Ítems de Presupuesto</h1>
         <p class="subtitle">Configurá y administrá los ítems base de tus presupuestos.</p>
     </header>
 
+        @* FILTROS *@
+    <div class="filtros-container mb-4 p-3 rounded shadow-sm">
+        <h5 class="mb-3"">
+            <i class="bi bi-funnel"></i>🔍 Filtrar Items
+        </h5>
 
+        <div class="row g-3 align-items-end">
+            <!-- Buscar por cliente -->
+            <div class="col-md-4">
+                <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por nombre" value="@SearchTerm" @oninput="OnSearchInput" />
+            </div>
 
-    @* FILTROS *@
-    <div class="row mb-3 g-2 align-items-center">
+            <div class="col-auto">
+                <button class="btn btn-secondary" @onclick="ResetFilters">Limpiar</button>
+            </div>
 
-        <div class="col">
-            <input class="form-control" placeholder="Buscar por nombre o descripción..." value="@SearchTerm" @oninput="OnSearchInput" />
-        </div>
-
-        <div class="col-auto">
-            <button class="btn btn-secondary" @onclick="ResetFilters">Limpiar</button>
-        </div>
-
-        <div class="col-auto text-muted">
-            @($"{PresupuestoItems.Count} ítems mostrados")
+            <div class="col-auto text-muted">
+                @($"{PresupuestoItems.Count} ítems mostrados")
+            </div>
         </div>
     </div>
 
