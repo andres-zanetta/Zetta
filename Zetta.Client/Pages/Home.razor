@@ -1,7 +1,11 @@
 ﻿@page "/"
+@using Zetta.Client.Servicios
+@inject IEstadisticaService EstadisticaService
+@inject IJSRuntime JSRuntime
 
-<div class="home-container">
-    <header class="home-header">
+
+<div class="home-container" style="margin-top:0;padding-top:0;">
+    <header class="home-header" style="margin:0;padding:0;">
         <h1>Zettium</h1>
         <p class="subtitle">Gestión integral de presupuestos y obras</p>
     </header>
@@ -31,15 +35,94 @@
             </div>
         }
     </section>
+    <!-- SECCIÓN ESTADÍSTICAS / DASHBOARD -->
+    <section class="mt-5">
+        <h2 class="text-center text-naranja mb-3">
+            <i class="bi bi-graph-up"></i> Resumen de tu actividad
+        </h2>
+
+        @if (dashboardStats == null)
+        {
+            <p class="text-center text-muted">Cargando estadísticas...</p>
+        }
+        else
+        {
+            <!-- Métricas principales -->
+            <div class="row g-3 mb-4 justify-content-center">
+                <div class="col-md-3 col-sm-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <span class="text-muted small">Clientes</span>
+                        <h2 class="mb-0">@dashboardStats.TotalClientes</h2>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <span class="text-muted small">Presupuestos</span>
+                        <h2 class="mb-0">@dashboardStats.TotalPresupuestos</h2>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <span class="text-muted small">Obras</span>
+                        <h2 class="mb-0">@dashboardStats.TotalObras</h2>
+                    </div>
+                </div>
+
+                <div class="col-md-3 col-sm-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <span class="text-muted small">Ítems de catálogo</span>
+                        <h2 class="mb-0">@dashboardStats.TotalItems</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detalle de estados -->
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <h5 class="mb-3">Obras por estado</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li>Iniciadas: <strong>@dashboardStats.ObrasIniciadas</strong></li>
+                            <li>En proceso: <strong>@dashboardStats.ObrasProceso</strong></li>
+                            <li>Finalizadas: <strong>@dashboardStats.ObrasFinalizadas</strong></li>
+                        </ul>
+                    </div>
+
+                    <div class="card bg-dark text-white p-3 shadow-sm mt-3" style="border:1px solid orange;">
+                        <h5 class="mb-2">Presupuestos por estado</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li>Aceptados: <strong>@dashboardStats.PresupuestosAceptados</strong></li>
+                            <li>Pendientes: <strong>@dashboardStats.PresupuestosPendientes</strong></li>
+                            <li>Vencidos: <strong>@dashboardStats.PresupuestosVencidos</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Gráfico -->
+                <div class="col-md-6">
+                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                        <h5 class="mb-3">Gráfico de presupuestos por estado</h5>
+                        <canvas id="presupuestosChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
 
 </div>
 
 @code {
     private List<WeatherDay>? weatherForecast;
+    private DashboardStatsDTO? dashboardStats;
+
+    private bool _chartNeedsRender = false;
 
     protected override async Task OnInitializedAsync()
     {
         await CargarClimaAsync();
+        await CargarEstadisticasAsync();
     }
 
     private async Task CargarClimaAsync()
@@ -71,6 +154,37 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error obteniendo clima: {ex.Message}");
+        }
+    }
+
+    private async Task CargarEstadisticasAsync()
+    {
+        try
+        {
+            dashboardStats = await EstadisticaService.GetDashboardStats();
+            // Llamada a JS para dibujar el gráfico
+            await JSRuntime.InvokeVoidAsync("zettiumDashboard.initPresupuestosChart", dashboardStats);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando estadísticas: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Si hay stats y está pendiente dibujar el gráfico
+        if (dashboardStats != null && _chartNeedsRender)
+        {
+            _chartNeedsRender = false; // evitamos redibujar en cada render
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("zettiumDashboard.initPresupuestosChart", dashboardStats);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error invocando JS del gráfico: {ex.Message}");
+            }
         }
     }
 
@@ -120,5 +234,8 @@
         public string Description { get; set; } = string.Empty;
         public string Icon { get; set; } = "bi bi-cloud";
     }
+
+
+
 }
 
