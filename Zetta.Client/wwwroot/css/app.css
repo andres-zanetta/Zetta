@@ -1,4 +1,10 @@
 /* =========================================================
+   0) NOTA
+   - Archivo organizado: variables -> base -> layout -> blazor ->
+     componentes -> sidebar -> utilidades -> fixes finales.
+   ========================================================= */
+
+/* =========================================================
    1) VARIABLES DE COLOR Y CONSTANTES
    ========================================================= */
 :root {
@@ -21,6 +27,8 @@
    ========================================================= */
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
 }
 
 h1:focus {
@@ -33,7 +41,8 @@ a,
 }
 
 code {
-    color: #c02d76;
+    /* Evita el violeta remanente */
+    color: var(--orange);
 }
 
 .content {
@@ -63,7 +72,47 @@ code {
 }
 
 /* =========================================================
-   3) BLAZOR: ERROR UI Y LOADING
+   3) LAYOUT PRINCIPAL (page / main / top-row / article)
+   ========================================================= */
+/* Contenedor general: sidebar + main */
+.page {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    background: var(--bg-body);
+}
+
+/* Main: ocupa el resto y cubre fondo para evitar franjas */
+.page > main {
+    flex: 1 1 auto;
+    background: #ffffff;
+    min-width: 0;
+}
+
+/* Top row (encabezado superior dentro del main) */
+.top-row {
+    background-color: #f7f7f7;
+    border-bottom: 1px solid #d6d5d5;
+    justify-content: flex-end;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+}
+
+/* Ajustes de padding global para pantallas grandes */
+@media (min-width: 641px) {
+    .top-row, article {
+        padding-left: 2rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+
+/* =========================================================
+   4) BLAZOR: ERROR UI Y LOADING
    ========================================================= */
 #blazor-error-ui {
     background: lightyellow;
@@ -76,23 +125,21 @@ code {
     width: 100%;
     z-index: 1000;
 }
-
-    #blazor-error-ui .dismiss {
-        cursor: pointer;
-        position: absolute;
-        right: 0.75rem;
-        top: 0.5rem;
-    }
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
 
 .blazor-error-boundary {
     background: #b32121;
     padding: 1rem 1rem 1rem 3.7rem;
     color: white;
 }
-
-    .blazor-error-boundary::after {
-        content: "An error has occurred.";
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
 
 /* Loader circular */
 .loading-progress {
@@ -102,37 +149,298 @@ code {
     height: 8rem;
     margin: 20vh auto 1rem auto;
 }
-
-    .loading-progress circle {
-        fill: none;
-        stroke: #e0e0e0;
-        stroke-width: 0.6rem;
-        transform-origin: 50% 50%;
-        transform: rotate(-90deg);
-    }
-
-        .loading-progress circle:last-child {
-            stroke: #1b6ec2;
-            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-            transition: stroke-dasharray 0.05s ease-in-out;
-        }
-
+.loading-progress circle {
+    fill: none;
+    stroke: #e0e0e0;
+    stroke-width: 0.6rem;
+    transform-origin: 50% 50%;
+    transform: rotate(-90deg);
+}
+.loading-progress circle:last-child {
+    stroke: #1b6ec2;
+    stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
+    transition: stroke-dasharray 0.05s ease-in-out;
+}
 .loading-progress-text {
     position: absolute;
     text-align: center;
     font-weight: bold;
     inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
 }
-
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
-    }
+.loading-progress-text:after {
+    content: var(--blazor-load-percentage-text, "Loading");
+}
 
 /* =========================================================
-   4) PALETA Y UTILIDADES GENERALES
+   5) COMPONENTES: BOTONES
    ========================================================= */
-.bg-dark {
-    background-color: var(--bg-dark) !important;
+/* Botón principal naranja (Nuevo, Guardar, etc.) */
+.btn-naranja {
+    background-color: var(--orange);
+    border-color: var(--orange);
+    color: #111;
+    font-weight: 600;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-naranja:hover {
+    background-color: var(--orange-hover);
+    border-color: var(--orange-hover);
+    color: #111;
+}
+
+/* Botón secundario oscuro (Volver, Cancelar) */
+.btn-secondary {
+    background-color: #111;
+    color: #fff;
+    border: 1px solid var(--orange);
+    font-weight: 500;
+    border-radius: 4px;
+}
+.btn-secondary:hover {
+    background-color: var(--orange);
+    border-color: var(--orange);
+    color: #111;
+}
+
+/* Outlines y variantes */
+.btn-outline-primary {
+    border: 1px solid var(--orange);
+    color: var(--orange);
+    background-color: transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-primary:hover {
+    background-color: var(--orange);
+    color: #fff;
+}
+
+.btn-outline-warning {
+    border: 1px solid var(--orange);
+    color: var(--orange);
+    background-color: transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-warning:hover {
+    background-color: var(--orange);
+    color: #111;
+}
+
+.btn-outline-danger {
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    background-color: transparent;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-danger:hover {
+    background-color: var(--danger);
+    color: #fff;
+}
+
+.btn-outline-dark {
+    border: 1px solid var(--orange);
+    background-color: #111;
+    color: #ffffff;
+    border-radius: 4px;
+    transition: all 0.2s ease-in-out;
+}
+.btn-outline-dark:hover {
+    background-color: var(--orange);
+    border-color: var(--orange);
+    color: #111;
+}
+
+/* =========================================================
+   6) COMPONENTES: FORMULARIOS / FILTROS
+   ========================================================= */
+.filtros-container {
+    background-color: #111;
+    color: #ffffff;
+    border: 1px solid var(--orange);
+    border-radius: 6px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+.filtros-container h5,
+.filtros-container label {
+    color: var(--orange);
+}
+.filtros-container .form-control,
+.filtros-container .form-select {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    border: 1px solid var(--orange);
+    border-radius: 4px;
+}
+.filtros-container .form-control::placeholder {
+    color: #aaaaaa;
+}
+.filtros-container:hover {
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+    transform: translateY(-1px);
+}
+
+/* =========================================================
+   7) COMPONENTES: TABLAS
+   ========================================================= */
+.table {
+    width: 100%;
+    background-color: #222;
+    color: #ffffff;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.table thead {
+    background-color: var(--table-header);
+    color: var(--orange);
+    font-weight: bold;
+}
+.table thead th {
+    border-bottom: 1px solid #333;
+}
+.table tbody tr:hover {
+    background-color: var(--table-row-hover);
+    transition: 0.2s;
+}
+
+/* =========================================================
+   8) COMPONENTES: MODALES
+   ========================================================= */
+.modal-content {
+    background-color: var(--bg-panel);
+    border: 1px solid var(--orange);
+    color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
+}
+.modal-header {
+    border-bottom: 1px solid #333;
+    background-color: #121212;
+}
+.modal-title {
+    color: var(--orange);
+}
+.modal-footer {
+    border-top: 1px solid #333;
+}
+
+/* =========================================================
+   9) HOME / CARDS / DASHBOARD
+   ========================================================= */
+.home-container {
+    padding: 2rem;
+    background-color: var(--bg-body);
+    min-height: 100vh;
+}
+.home-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+.home-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--orange-dark);
+}
+.home-header .subtitle {
+    font-size: 1.2rem;
+    color: var(--orange-dark);
+}
+.card-access {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-access:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+/* =========================================================
+   10) SIDEBAR / NAV LATERAL
+   ========================================================= */
+/* Contenedor lateral */
+.sidebar {
+    width: 250px; /* coherente con MainLayout.razor.css */
+    min-height: 100vh;
+    background: linear-gradient(180deg, #000000 0%, #111111 50%, var(--orange) 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: none;
+    border-right: 0;
+}
+
+/* Encabezado del sidebar */
+.sidebar-header {
+    background: linear-gradient(90deg, var(--orange) 0%, #ff5500 100%);
+    border-bottom: 1px solid #ffa31a;
+}
+.sidebar-header img {
+    filter: drop-shadow(0 0 3px var(--orange));
+}
+
+/* Scroll del sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--orange);
+    border-radius: 10px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+/* Links del menú lateral */
+.nav-link-custom {
+    color: #f5f5f5;
+    font-weight: 500;
+    border-left: 4px solid transparent;
+    border-radius: 6px;
+    padding: 10px 15px;
+    transition: all 0.2s ease-in-out;
+}
+.nav-link-custom:hover {
+    background-color: #1c1c1c;
+    border-left: 4px solid var(--orange);
+    color: var(--orange);
+    text-shadow: 0 0 5px rgba(255, 140, 0, 0.6);
+}
+.nav-link-custom.active {
+    background-color: #1a1a1a;
+    border-left: 4px solid var(--orange);
+    color: var(--orange);
+}
+
+/* Nav base */
+.nav-link {
+    color: #ffffff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s ease-in-out;
+}
+.nav-link:hover,
+.nav-link.active {
+    background-color: var(--orange);
+    color: #000 !important;
+    font-weight: 600;
+}
+
+/* =========================================================
+   11) ICONOS / DETALLES / UTILIDADES
+   ========================================================= */
+.bi {
+    font-size: 1.1rem;
+    vertical-align: middle;
 }
 
 .text-naranja {
@@ -147,335 +455,47 @@ code {
     border-color: var(--orange) !important;
 }
 
-/* =========================================================
-   5) BOTONES (GENERALES)
-   ========================================================= */
-
-/* Botón principal naranja (Nuevo, Guardar, etc.) */
-.btn-naranja {
-    background-color: var(--orange);
-    border-color: var(--orange);
-    color: #111;
-    font-weight: 600;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .btn-naranja:hover {
-        background-color: var(--orange-hover);
-        border-color: var(--orange-hover);
-        color: #111;
-    }
-
-/* Botón secundario oscuro (Volver, Cancelar) */
-.btn-secondary {
-    background-color: #111;
-    color: #fff;
-    border: 1px solid var(--orange);
-    font-weight: 500;
-    border-radius: 4px;
-}
-
-    .btn-secondary:hover {
-        background-color: var(--orange);
-        border-color: var(--orange);
-        color: #111;
-    }
-
-/* Botón de acción principal (pencil, trash, etc.) */
-.btn-outline-primary {
-    border: 1px solid var(--orange);
-    color: var(--orange);
-    background-color: transparent;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .btn-outline-primary:hover {
-        background-color: var(--orange);
-        color: #fff;
-    }
-
-/* Botón de advertencia (lo usas en filtros, etc.) */
-.btn-outline-warning {
-    border: 1px solid var(--orange);
-    color: var(--orange);
-    background-color: transparent;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .btn-outline-warning:hover {
-        background-color: var(--orange);
-        color: #111;
-    }
-
-/* Botón de peligro */
-.btn-outline-danger {
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    background-color: transparent;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .btn-outline-danger:hover {
-        background-color: var(--danger);
-        color: #fff;
-    }
-
-/* Botón oscuro para filtros (Aplicar filtros / Limpiar) */
-.btn-outline-dark {
-    border: 1px solid var(--orange);
-    background-color: #111;
-    color: #ffffff;
-    border-radius: 4px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .btn-outline-dark:hover {
-        background-color: var(--orange);
-        border-color: var(--orange);
-        color: #111;
-    }
-
-/* =========================================================
-   6) HOME / CLIMA / DASHBOARD
-   ========================================================= */
-
-/* Contenedor de Home */
-.home-container {
-    padding: 2rem;
-    background-color: var(--bg-body);
-    min-height: 100vh;
-}
-
-/* Encabezado Home */
-.home-header {
-    text-align: center;
-    margin-bottom: 3rem;
-}
-
-    .home-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--orange-dark);
-    }
-
-    .home-header .subtitle {
-        font-size: 1.2rem;
-        color: var(--orange-dark);
-    }
-
-/* =========================================================
-   7) PÁGINAS DE GESTIÓN (Clientes, Presupuestos, Obras, Ítems)
-   ========================================================= */
-
-/* Contenedor principal de páginas de gestión */
-.clientes-container {
-    padding: 2rem;
-    color: #ffffff;
-}
-
-/* Encabezado de las páginas de gestión */
-.clientes-header h1 {
-    color: var(--orange);
-    font-weight: 700;
-    margin-bottom: 0.3rem;
-}
-
-.clientes-header .subtitle {
-    color: #bbbbbb;
-    font-size: 0.95rem;
-}
-
-/* =========================================================
-   8) BLOQUE DE FILTROS (Clientes, Presupuestos, Obras)
-   ========================================================= */
-
-.filtros-container {
-    background-color: #111; /* fondo negro */
-    color: #ffffff;
-    border: 1px solid var(--orange);
-    border-radius: 6px;
-    padding: 1rem 1.5rem;
-    margin-bottom: 1.5rem;
-    transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out;
-}
-
-    /* títulos y labels dentro del filtro */
-    .filtros-container h5,
-    .filtros-container label {
-        color: var(--orange);
-    }
-
-    /* inputs y selects dentro del filtro */
-    .filtros-container .form-control,
-    .filtros-container .form-select {
-        background-color: #1a1a1a;
-        color: #ffffff;
-        border: 1px solid var(--orange);
-        border-radius: 4px;
-    }
-
-        .filtros-container .form-control::placeholder {
-            color: #aaaaaa;
-        }
-
-    /* efecto hover del bloque completo */
-    .filtros-container:hover {
-        box-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
-        transform: translateY(-1px);
-    }
-
-/* =========================================================
-   9) TABLAS (Clientes / Presupuestos / Obras / Ítems)
-   ========================================================= */
-
-.table {
-    width: 100%;
-    background-color: #222;
-    color: #ffffff;
-    border-collapse: separate;
-    border-spacing: 0;
-    border-radius: 6px;
-    overflow: hidden;
-}
-
-    .table thead {
-        background-color: var(--table-header);
-        color: var(--orange);
-        font-weight: bold;
-    }
-
-        .table thead th {
-            border-bottom: 1px solid #333;
-        }
-
-    .table tbody tr:hover {
-        background-color: var(--table-row-hover);
-        transition: 0.2s;
-    }
-
-
-
-/* =========================================================
-   10) MODALES (Clientes, Ítems, Obras, etc.)
-   ========================================================= */
-
-.modal-content {
-    background-color: var(--bg-panel);
-    border: 1px solid var(--orange);
-    color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
-}
-
-.modal-header {
-    border-bottom: 1px solid #333;
-    background-color: #121212;
-}
-
-.modal-title {
-    color: var(--orange);
-}
-
-.modal-footer {
-    border-top: 1px solid #333;
-}
-
-/* =========================================================
-   11) SIDEBAR / NAV LATERAL
-   ========================================================= */
-
-/* Contenedor lateral */
-.sidebar {
-    width: 200px;
-    min-height: 100vh;
-    background: linear-gradient(180deg, #000000 0%, #111111 50%, var(--orange) 100%);
-    color: #ffffff;
-    display: flex;
-    flex-direction: column;
-}
-
-/* Encabezado del sidebar (si tenés logo allí) */
-.sidebar-header {
-    background: linear-gradient(90deg, var(--orange) 0%, #ff5500 100%);
-    border-bottom: 1px solid #ffa31a;
-}
-
-    .sidebar-header img {
-        filter: drop-shadow(0 0 3px orange);
-    }
-
-/* Scroll del sidebar */
-.sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-    background-color: var(--orange);
-    border-radius: 10px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-    background: #1a1a1a;
-}
-
-/* Links personalizados del menú lateral */
-.nav-link-custom {
-    color: #f5f5f5;
-    font-weight: 500;
-    border-left: 4px solid transparent;
-    border-radius: 6px;
-    padding: 10px 15px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .nav-link-custom:hover {
-        background-color: #1c1c1c;
-        border-left: 4px solid var(--orange);
-        color: var(--orange);
-        text-shadow: 0 0 5px rgba(255, 140, 0, 0.6);
-    }
-
-    .nav-link-custom.active {
-        background-color: #1a1a1a;
-        border-left: 4px solid var(--orange);
-        color: var(--orange);
-    }
-
-/* Links base (por si usas NavLink sin la clase custom) */
-.nav-link {
-    color: #ffffff;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: all 0.2s ease-in-out;
-}
-
-    .nav-link:hover,
-    .nav-link.active {
-        background-color: var(--orange);
-        color: #000 !important;
-        font-weight: 600;
-    }
-
-/* =========================================================
-   12) ICONOS / DETALLES
-   ========================================================= */
-.bi {
-    font-size: 1.1rem;
-    vertical-align: middle;
-}
-
-/* Spinner en naranja */
 .spinner-border.text-warning {
     color: var(--orange) !important;
 }
 
-/* Info de resultados (p.ej. "X ítems mostrados") */
 .resultados-info {
     color: #bbbbbb;
     font-style: italic;
     font-size: 0.9rem;
+}
+
+/* =========================================================
+   12) FIXES FINALES: eliminar franjas y residuos violetas
+   ========================================================= */
+/* Asegurar sin gaps entre sidebar y main */
+.page > .sidebar,
+.page > main {
+    margin: 0;
+    padding: 0;
+}
+
+/* Quitar sombras/bordes que puedan generar líneas visibles */
+nav.sidebar,
+.page .sidebar,
+.sidebar {
+    box-shadow: none !important;
+    outline: none !important;
+    border-right: 0 !important;
+}
+
+/* Elimina padding lateral que pueda subir separación visual */
+.page main,
+.page main article,
+.page main .content,
+.top-row,
+article {
+    padding-left: 0 !important;
+}
+
+/* Forzar transparencia si hay estilos inline con morado remanente */
+*[style*="#1c0030"],
+*[style*="#1c0030"] * {
+    border-color: transparent !important;
+    background-image: none !important;
 }
