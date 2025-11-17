@@ -78,7 +78,7 @@
         <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>ID</th>
+                    <th class="visually-hidden">ID</th>@* ID oculto visualmente pero presente en DOM para desarrolladores *@
                     <th>Cliente</th>
                     <th>Rubro</th>
                     <th>Opción de Pago</th>
@@ -105,8 +105,9 @@
                 {
                     @foreach (var p in Presupuestos)
                     {
-                        <tr>
-                            <td>@p.Id</td>
+                        @* añadimos data-presupuesto-id para inspección rápida y dejamos la celda ID invisible *@
+                        <tr data-presupuesto-id="@p.Id">
+                            <td class="visually-hidden">@p.Id</td>
                             <td>@p.NombreCliente</td>
                             <td>@p.RubroNombre</td>
                             <td>@p.OpcionDePago</td>
