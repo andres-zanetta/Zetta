@@ -1,8 +1,16 @@
 ﻿@page "/"
 @using Zetta.Client.Servicios
+@using Zetta.Shared.DTOS.Obra
+@using Zetta.Shared.DTOS.Presupuesto
+@using Zetta.Shared.DTOS.Cliente
+@using Zetta.Shared.DTOS
+@using System.Globalization
 @inject IEstadisticaService EstadisticaService
 @inject IJSRuntime JSRuntime
-
+@inject IObraService ObraService
+@inject IPresupuestoServices PresupuestoService
+@inject IClienteService ClienteService
+@inject HttpClient Http
 
 <div class="home-container" style="margin-top:0;padding-top:0;">
     <header class="home-header" style="margin:0;padding:0;">
@@ -10,164 +18,269 @@
         <p class="subtitle">Gestión integral de presupuestos y obras</p>
     </header>
 
-   
-    <section class="weather-section mt-5">
-        <h2 class="text-center text-naranja mb-3">
-            <i class="bi bi-cloud-sun"></i> Verifique el tiempo antes de presupuestar
-        </h2>
+    @if (Cargando)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-3 text-white">Cargando dashboard...</p>
+        </div>
+    }
+    else
+    {
+        <section class="weather-section mt-5">
+            <h2 class="text-center text-naranja mb-3">
+                <i class="bi bi-cloud-sun"></i> Verifique el tiempo antes de presupuestar
+            </h2>
 
-        @if (weatherForecast == null)
-        {
-            <p class="text-center text-muted">Cargando pronóstico del clima...</p>
-        }
-        else
-        {
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-                @foreach (var day in weatherForecast)
-                {
-                    <div class="card shadow-sm text-center p-3 bg-dark text-white" style="width: 150px; border: 1px solid orange;">
-                        <h5>@day.Date.ToString("ddd")</h5>
-                        <i class="@day.Icon" style="font-size: 2rem; color: orange;"></i>
-                        <p class="mb-0">@day.TempMax°C / @day.TempMin°C</p>
-                        <small class="text-muted">@day.Description</small>
+            @if (weatherForecast == null)
+            {
+                <p class="text-center text-muted">No se pudo cargar el pronóstico del clima.</p>
+            }
+            else
+            {
+                <div class="d-flex flex-wrap justify-content-center gap-3">
+                    @foreach (var day in weatherForecast)
+                    {
+                        <div class="card shadow-sm text-center p-3 bg-dark text-white" style="width: 150px; border: 1px solid orange;">
+                            <h5>@day.Date.ToString("ddd")</h5>
+                            <i class="@day.Icon" style="font-size: 2rem; color: orange;"></i>
+                            <p class="mb-0">@day.TempMax°C / @day.TempMin°C</p>
+                            <small class="text-muted">@day.Description</small>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="mt-5">
+            <h2 class="text-center text-naranja mb-3">
+                <i class="bi bi-calendar-week"></i> Obras Activas (Próximos 7 Días)
+            </h2>
+
+            @if (!DiasDeTrabajo.Any() || !DiasDeTrabajo.Any(d => d.ObrasDelDia.Any()))
+            {
+                <p class="text-center text-muted">No hay obras programadas para los próximos 7 días.</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var dia in DiasDeTrabajo)
+                    {
+                        <div class="col-12 col-lg-6">
+                            <div class="card bg-dark text-white mb-3" style="border: 1px solid orange;">
+                                <div class="card-header bg-black text-warning">
+                                    <h5 class="mb-0">@dia.Fecha.ToString("dddd dd 'de' MMMM", new CultureInfo("es-ES"))</h5>
+                                </div>
+                                <div class="card-body">
+                                    @if (!dia.ObrasDelDia.Any())
+                                    {
+                                        <p class="text-muted fst-italic">No hay obras programadas para este día.</p>
+                                    }
+                                    @foreach (var obraInfo in dia.ObrasDelDia)
+                                    {
+                                        <div class="p-3 rounded mb-2" style="background-color: @(obraInfo.Presupuesto?.Aceptado == true ? "#D95B00" : "#6c757d");">
+                                            <h6 class="text-white mb-3">
+                                                Obra #@obraInfo.Obra.Id - @(obraInfo.Presupuesto?.RubroNombre ?? "N/A")
+                                                <span class="badge bg-light text-dark ms-2">@obraInfo.Obra.EstadoObra</span>
+                                            </h6>
+                                            
+                                            <div class="col-6">
+                                                <button class="btn btn-secondary w-100" 
+                                                        @onclick='() => ToggleDetalle(obraInfo, "PRESUPUESTO")'>Presupuesto</button>
+                                            </div>
+                                            <div class="col-6">
+                                                <button class="btn btn-secondary w-100" 
+                                                        @onclick='() => ToggleDetalle(obraInfo, "DIRECCION")'>Dirección Obra</button>
+                                            </div>
+                                            <div class="col-6">
+                                                <button class="btn btn-dark w-100" 
+                                                        @onclick='() => ToggleDetalle(obraInfo, "MATERIALES")'>Materiales</button>
+                                            </div>
+                                            <div class="col-6">
+                                                <button class="btn btn-dark w-100" 
+                                                        @onclick='() => ToggleDetalle(obraInfo, "CLIENTE")'>Datos Cliente</button>
+                                            </div>
+                                            <div class="col-12">
+                                                <button class="btn btn-dark w-100" 
+                                                        @onclick='() => ToggleDetalle(obraInfo, "COMENTARIOS")'>
+                                                    Actualizaciones/Comentarios (@(obraInfo.Obra.Comentarios?.Count ?? 0))
+                                                </button>
+                                            </div>
+
+
+                                            @if (DetallesAbiertos.Contains($"{obraInfo.Obra.Id}-PRESUPUESTO"))
+                                            {
+                                                <div class="card bg-dark text-white mt-2 p-2">
+                                                    <strong>Total:</strong> @(obraInfo.Presupuesto?.Total.ToString("C") ?? "N/A")<br/>
+                                                    <strong>Validez:</strong> @(obraInfo.Presupuesto?.ValidacionDias ?? "N/A") días<br/>
+                                                    <strong>Estado:</strong> @(obraInfo.Presupuesto?.Aceptado == true ? "Aceptado" : "Pendiente")
+                                                </div>
+                                            }
+                                            @if (DetallesAbiertos.Contains($"{obraInfo.Obra.Id}-DIRECCION"))
+                                            {
+                                                <div class="card bg-dark text-white mt-2 p-2">
+                                                    <strong>Dirección:</strong> @(obraInfo.Presupuesto?.DireccionObra ?? "N/A")
+                                                </div>
+                                            }
+                                            @if (DetallesAbiertos.Contains($"{obraInfo.Obra.Id}-MATERIALES"))
+                                            {
+                                                <div class="card bg-dark text-white mt-2 p-2">
+                                                    <strong>Quién compra:</strong> @(obraInfo.Presupuesto?.Materiales == true ? "Usuario (Zetta)" : "Cliente")<br/>
+                                                    @if(obraInfo.Presupuesto?.Materiales == true)
+                                                    {
+                                                        <strong>Comprados:</strong> @GetEstadoMaterial(obraInfo.Obra.MaterialesCompradosPorUsuario) <br/>
+                                                        <strong>Entregados:</strong> @GetEstadoMaterial(obraInfo.Obra.MaterialesEntregados)
+                                                    }
+                                                    else
+                                                    {
+                                                        <strong class="text-warning">Recordatorio:</strong> <text>Preguntar al cliente si ya compró los materiales.</text>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (DetallesAbiertos.Contains($"{obraInfo.Obra.Id}-CLIENTE"))
+                                            {
+                                                <div class="card bg-dark text-white mt-2 p-2">
+                                                    <strong>Nombre:</strong> @(obraInfo.Cliente?.Nombre ?? "N/A") @(obraInfo.Cliente?.Apellido ?? "")<br/>
+                                                    <strong>Teléfono:</strong> @(obraInfo.Cliente?.Telefono ?? "N/A")<br/>
+                                                    <strong>Email:</strong> @(obraInfo.Cliente?.Email ?? "N/A")
+                                                </div>
+                                            }
+                                            @if (DetallesAbiertos.Contains($"{obraInfo.Obra.Id}-COMENTARIOS"))
+                                            {
+                                                <div class="card bg-dark text-white mt-2 p-2">
+                                                    @if(obraInfo.Obra.Comentarios == null || !obraInfo.Obra.Comentarios.Any())
+                                                    { <small class="text-muted">No hay comentarios.</small> }
+                                                    else
+                                                    {
+                                                        @foreach(var com in obraInfo.Obra.Comentarios)
+                                                        { <small class="d-block border-bottom border-secondary pb-1 mb-1">@com</small> }
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="mt-5">
+            <h2 class="text-center text-naranja mb-3">
+                <i class="bi bi-graph-up"></i> Resumen de tu actividad
+            </h2>
+
+            @if (dashboardStats == null)
+            {
+                <p class="text-center text-muted">Cargando estadísticas...</p>
+            }
+            else
+            {
+                <div class="row g-3 mb-4 justify-content-center">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <span class="text-muted small">Clientes</span>
+                            <h2 class="mb-0">@dashboardStats.TotalClientes</h2>
+                        </div>
                     </div>
-                }
-            </div>
-        }
-    </section>
-    <!-- SECCIÓN ESTADÍSTICAS / DASHBOARD -->
-    <section class="mt-5">
-        <h2 class="text-center text-naranja mb-3">
-            <i class="bi bi-graph-up"></i> Resumen de tu actividad
-        </h2>
 
-        @if (dashboardStats == null)
-        {
-            <p class="text-center text-muted">Cargando estadísticas...</p>
-        }
-        else
-        {
-            <!-- Métricas principales -->
-            <div class="row g-3 mb-4 justify-content-center">
-                <div class="col-md-3 col-sm-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <span class="text-muted small">Clientes</span>
-                        <h2 class="mb-0">@dashboardStats.TotalClientes</h2>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <span class="text-muted small">Presupuestos</span>
+                            <h2 class="mb-0">@dashboardStats.TotalPresupuestos</h2>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <span class="text-muted small">Obras</span>
+                            <h2 class="mb-0">@dashboardStats.TotalObras</h2>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <span class="text-muted small">Ítems de catálogo</span>
+                            <h2 class="mb-0">@dashboardStats.TotalItems</h2>
+                        </div>
                     </div>
                 </div>
 
-                <div class="col-md-3 col-sm-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <span class="text-muted small">Presupuestos</span>
-                        <h2 class="mb-0">@dashboardStats.TotalPresupuestos</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <h5 class="mb-3">Obras por estado</h5>
+                            <ul class="list-unstyled mb-0">
+                                <li>Iniciadas: <strong>@dashboardStats.ObrasIniciadas</strong></li>
+                                <li>En proceso: <strong>@dashboardStats.ObrasProceso</strong></li>
+                                <li>Finalizadas: <strong>@dashboardStats.ObrasFinalizadas</strong></li>
+                            </ul>
+                        </div>
+
+                        <div class="card bg-dark text-white p-3 shadow-sm mt-3" style="border:1px solid orange;">
+                            <h5 class="mb-2">Presupuestos por estado</h5>
+                            <ul class="list-unstyled mb-0">
+                                <li>Aceptados: <strong>@dashboardStats.PresupuestosAceptados</strong></li>
+                                <li>Pendientes: <strong>@dashboardStats.PresupuestosPendientes</strong></li>
+                                <li>Vencidos: <strong>@dashboardStats.PresupuestosVencidos</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
+                            <h5 class="mb-3">Gráfico de presupuestos por estado</h5>
+                            <canvas id="presupuestosChart" height="200"></canvas>
+                        </div>
                     </div>
                 </div>
-
-                <div class="col-md-3 col-sm-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <span class="text-muted small">Obras</span>
-                        <h2 class="mb-0">@dashboardStats.TotalObras</h2>
-                    </div>
-                </div>
-
-                <div class="col-md-3 col-sm-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <span class="text-muted small">Ítems de catálogo</span>
-                        <h2 class="mb-0">@dashboardStats.TotalItems</h2>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Detalle de estados -->
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <h5 class="mb-3">Obras por estado</h5>
-                        <ul class="list-unstyled mb-0">
-                            <li>Iniciadas: <strong>@dashboardStats.ObrasIniciadas</strong></li>
-                            <li>En proceso: <strong>@dashboardStats.ObrasProceso</strong></li>
-                            <li>Finalizadas: <strong>@dashboardStats.ObrasFinalizadas</strong></li>
-                        </ul>
-                    </div>
-
-                    <div class="card bg-dark text-white p-3 shadow-sm mt-3" style="border:1px solid orange;">
-                        <h5 class="mb-2">Presupuestos por estado</h5>
-                        <ul class="list-unstyled mb-0">
-                            <li>Aceptados: <strong>@dashboardStats.PresupuestosAceptados</strong></li>
-                            <li>Pendientes: <strong>@dashboardStats.PresupuestosPendientes</strong></li>
-                            <li>Vencidos: <strong>@dashboardStats.PresupuestosVencidos</strong></li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Gráfico -->
-                <div class="col-md-6">
-                    <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                        <h5 class="mb-3">Gráfico de presupuestos por estado</h5>
-                        <canvas id="presupuestosChart" height="200"></canvas>
-                    </div>
-                </div>
-            </div>
-        }
-    </section>
-
+            }
+        </section>
+    }
 </div>
 
 @code {
-    private List<WeatherDay>? weatherForecast;
-    private DashboardStatsDTO? dashboardStats;
+    private bool Cargando = true;
 
+    // --- Variables para Sección Clima ---
+    private List<WeatherDay>? weatherForecast;
+    private const string ApiKey = "403747cd7730269d7c72d434130a461a"; // Tu API Key
+    private const string Ciudad = "Cordoba,AR";
+
+    // --- Variables para Sección Calendario ---
+    private List<DiaDeTrabajo> DiasDeTrabajo = new List<DiaDeTrabajo>();
+    private List<GET_PresupuestoDTO> TodosLosPresupuestos = new();
+    private List<GET_ClienteDTO> TodosLosClientes = new();
+    private List<GET_ObraDTO> TodasLasObras = new();
+    private HashSet<string> DetallesAbiertos = new HashSet<string>();
+
+    // --- Variables para Sección Estadísticas ---
+    private DashboardStatsDTO? dashboardStats;
     private bool _chartNeedsRender = false;
 
+    // --- Carga de Datos Principal ---
     protected override async Task OnInitializedAsync()
     {
-        await CargarClimaAsync();
-        await CargarEstadisticasAsync();
-    }
-
-    private async Task CargarClimaAsync()
-    {
+        Cargando = true;
         try
         {
-            using var http = new HttpClient();
-          
-            string city = "Córdoba,AR";
-            string apiKey = "403747cd7730269d7c72d434130a461a"; 
-
-            string url = $"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={apiKey}&units=metric&lang=es";
-            var response = await http.GetFromJsonAsync<WeatherApiResponse>(url);
-
-            // Procesamos los próximos 5 días (filtrando por día)
-            weatherForecast = response?.List?
-                .GroupBy(f => DateTime.Parse(f.Dt_txt).Date)
-                .Take(5)
-                .Select(g => new WeatherDay
-                {
-                    Date = g.Key,
-                    TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)),
-                    TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)),
-                    Description = g.First().Weather.First().Description,
-                    Icon = GetIcon(g.First().Weather.First().Main)
-                })
-                .ToList();
+            // Ejecutar todas las cargas de datos en paralelo
+            await Task.WhenAll(
+                CargarClimaAsync(),
+                CargarDatosDashboard(),
+                CargarEstadisticasAsync()
+            );
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error obteniendo clima: {ex.Message}");
+            Console.WriteLine($"Error al cargar el Home: {ex.Message}");
+            // Manejar error general si es necesario
         }
-    }
-
-    private async Task CargarEstadisticasAsync()
-    {
-        try
+        finally
         {
-            dashboardStats = await EstadisticaService.GetDashboardStats();
-            // Llamada a JS para dibujar el gráfico
-            await JSRuntime.InvokeVoidAsync("zettiumDashboard.initPresupuestosChart", dashboardStats);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cargando estadísticas: {ex.Message}");
+            Cargando = false;
         }
     }
 
@@ -188,54 +301,142 @@
         }
     }
 
-    private string GetIcon(string main)
+
+    // --- Lógica de Sección Clima ---
+    private async Task CargarClimaAsync()
     {
-        return main switch
+        try
         {
-            "Clear" => "bi bi-brightness-high",
-            "Clouds" => "bi bi-cloudy",
-            "Rain" => "bi bi-cloud-rain",
-            "Drizzle" => "bi bi-cloud-drizzle",
-            "Thunderstorm" => "bi bi-cloud-lightning",
-            "Snow" => "bi bi-snow",
-            _ => "bi bi-cloud"
-        };
+            string url = $"https://api.openweathermap.org/data/2.5/forecast?q={Ciudad}&appid={ApiKey}&units=metric&lang=es";
+            var response = await Http.GetFromJsonAsync<WeatherApiResponse>(url);
+
+            if (response?.List != null)
+            {
+                weatherForecast = response.List
+                    .GroupBy(f => DateTime.Parse(f.Dt_txt).Date)
+                    .Take(5)
+                    .Select(g => new WeatherDay
+                    {
+                        Date = g.Key,
+                        TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)),
+                        TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)),
+                        Description = g.First().Weather.First().Description,
+                        Icon = GetIcon(g.First().Weather.First().Main)
+                    })
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error obteniendo clima: {ex.Message}");
+        }
     }
 
-    private class WeatherApiResponse
+    private string GetIcon(string main) => main switch
     {
-        public List<WeatherItem> List { get; set; } = new();
-    }
+        "Clear" => "bi bi-brightness-high",
+        "Clouds" => "bi bi-cloudy",
+        "Rain" => "bi bi-cloud-rain",
+        "Drizzle" => "bi bi-cloud-drizzle",
+        "Thunderstorm" => "bi bi-cloud-lightning",
+        "Snow" => "bi bi-snow",
+        _ => "bi bi-cloud"
+    };
+    
+    private class WeatherApiResponse { public List<WeatherItem> List { get; set; } = new(); }
+    private class WeatherItem { public WeatherMain Main { get; set; } = new(); public List<WeatherDescription> Weather { get; set; } = new(); public string Dt_txt { get; set; } = string.Empty; }
+    private class WeatherMain { public double Temp_min { get; set; } public double Temp_max { get; set; } }
+    private class WeatherDescription { public string Main { get; set; } = string.Empty; public string Description { get; set; } = string.Empty; }
+    private class WeatherDay { public DateTime Date { get; set; } public int TempMax { get; set; } public int TempMin { get; set; } public string Description { get; set; } = string.Empty; public string Icon { get; set; } = "bi bi-cloud"; }
 
-    private class WeatherItem
+
+    // --- Lógica de Sección Calendario ---
+    private class DiaDeTrabajo { public DateTime Fecha { get; set; } public List<ObraConDetalles> ObrasDelDia { get; set; } = new List<ObraConDetalles>(); }
+    private class ObraConDetalles { public GET_ObraDTO Obra { get; set; } public GET_PresupuestoDTO? Presupuesto { get; set; } public GET_ClienteDTO? Cliente { get; set; } }
+
+    private async Task CargarDatosDashboard()
     {
-        public WeatherMain Main { get; set; } = new();
-        public List<WeatherDescription> Weather { get; set; } = new();
-        public string Dt_txt { get; set; } = string.Empty;
-    }
+        try
+        {
+            var obrasTask = ObraService.GetAllAsync();
+            var presupuestosTask = PresupuestoService.GetAll();
+            var clientesTask = ClienteService.GetAll();
+            
+            await Task.WhenAll(obrasTask, presupuestosTask, clientesTask);
 
-    private class WeatherMain
+            TodasLasObras = (await obrasTask) ?? new List<GET_ObraDTO>();
+            TodosLosPresupuestos = (await presupuestosTask) ?? new List<GET_PresupuestoDTO>();
+            TodosLosClientes = (await clientesTask) ?? new List<GET_ClienteDTO>();
+
+            DiasDeTrabajo.Clear();
+            var hoy = DateTime.Today;
+
+            for (int i = 0; i < 7; i++)
+            {
+                var diaActual = hoy.AddDays(i);
+                var diaVM = new DiaDeTrabajo { Fecha = diaActual };
+
+                foreach (var obra in TodasLasObras.Where(o => o.EstadoObra != "Finalizada"))
+                {
+                    var presupuesto = TodosLosPresupuestos.FirstOrDefault(p => p.Id == obra.PresupuestoId);
+                    if (presupuesto == null || !int.TryParse(presupuesto.TiempoAproxObra, out int diasDuracion) || diasDuracion <= 0)
+                    {
+                        if (obra.FechaInicio.Date == diaActual.Date)
+                        {
+                            diaVM.ObrasDelDia.Add(await MapearObraConDetalles(obra, presupuesto));
+                        }
+                    }
+                    else
+                    {
+                        var fechaFin = obra.FechaInicio.Date.AddDays(diasDuracion - 1);
+                        if (diaActual.Date >= obra.FechaInicio.Date && diaActual.Date <= fechaFin)
+                        {
+                            diaVM.ObrasDelDia.Add(await MapearObraConDetalles(obra, presupuesto));
+                        }
+                    }
+                }
+                DiasDeTrabajo.Add(diaVM);
+            }
+        }
+        catch (Exception ex) { Console.WriteLine($"Error cargando calendario: {ex.Message}"); }
+    }
+    
+    private async Task<ObraConDetalles> MapearObraConDetalles(GET_ObraDTO obra, GET_PresupuestoDTO? presupuesto)
     {
-        public double Temp_min { get; set; }
-        public double Temp_max { get; set; }
+        if (presupuesto == null)
+        {
+            try { presupuesto = await PresupuestoService.GetById(obra.PresupuestoId); }
+            catch(Exception ex) { Console.WriteLine($"Error al buscar presupuesto ID {obra.PresupuestoId}: {ex.Message}"); presupuesto = null; }
+        }
+        GET_ClienteDTO? cliente = null;
+        if (presupuesto != null) { cliente = TodosLosClientes.FirstOrDefault(c => c.Id == presupuesto.ClienteId); }
+        return new ObraConDetalles { Obra = obra, Presupuesto = presupuesto, Cliente = cliente };
     }
 
-    private class WeatherDescription
+    private void ToggleDetalle(ObraConDetalles obraInfo, string seccion)
     {
-        public string Main { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        string key = $"{obraInfo.Obra.Id}-{seccion}";
+        if (DetallesAbiertos.Contains(key)) { DetallesAbiertos.Remove(key); }
+        else { DetallesAbiertos.Add(key); }
     }
 
-    private class WeatherDay
+    private string GetEstadoMaterial(bool? estado)
     {
-        public DateTime Date { get; set; }
-        public int TempMax { get; set; }
-        public int TempMin { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public string Icon { get; set; } = "bi bi-cloud";
+        if (!estado.HasValue) return "Pendiente";
+        return estado.Value ? "Sí" : "No";
     }
 
-
-
+    // --- Lógica de Sección Estadísticas ---
+    private async Task CargarEstadisticasAsync()
+    {
+        try
+        {
+            dashboardStats = await EstadisticaService.GetDashboardStats();
+            _chartNeedsRender = true; // Marcar que el gráfico necesita dibujarse
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando estadísticas: {ex.Message}");
+        }
+    }
 }
-

@@ -18,6 +18,8 @@ namespace Zetta.Shared.DTOS.Obra
 
         // Si quiero devolver comentarios
         public List<string>? Comentarios { get; set; }
+        public bool? MaterialesCompradosPorUsuario { get; set; }
+        public bool? MaterialesEntregados { get; set; }
 
     }
 }

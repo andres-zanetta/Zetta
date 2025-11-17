@@ -45,6 +45,7 @@ namespace Zetta.BD.DATA.ENTITY
         public Cliente Cliente { get; set; } = null!; // Propiedad de navegación
         public bool Materiales { get; set; } //materiales si o no.
         public DateTime FechaCreacion { get; set; } // Fecha del presupuesto
+        public string? DireccionObra { get; set; } // por si la direccion de la obra es diferente a la direccion del cliente
 
     }
 

@@ -22,9 +22,8 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public Rubro Rubro { get; set; } // El enum
         public bool Materiales { get; set; }
         public int ClienteId { get; set; }
-
-        // --- CAMPOS AGREGADOS ---
         public string? NombreCliente { get; set; }
+        public string? ApellidoCliente { get; set; }
         public string? DireccionCliente { get; set; }
         public string? TelefonoCliente { get; set; }
         public string? EmailCliente { get; set; }
@@ -33,5 +32,6 @@ namespace Zetta.Shared.DTOS.Presupuesto
 
         public List<GET_PresItemDetalleDTO>? ItemsDetalle { get; set; }
         public DateTime FechaCreacion { get; set; }
+        public string? DireccionObra { get; set; }
     }
 }

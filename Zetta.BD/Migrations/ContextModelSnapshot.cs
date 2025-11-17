@@ -149,6 +149,12 @@ namespace Zetta.BD.Migrations
                     b.Property<DateTime>("FechaInicio")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool?>("MaterialesCompradosPorUsuario")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("MaterialesEntregados")
+                        .HasColumnType("bit");
+
                     b.Property<int>("PresupuestoId")
                         .HasColumnType("int");
 
@@ -211,6 +217,9 @@ namespace Zetta.BD.Migrations
 
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
+
+                    b.Property<string>("DireccionObra")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");

@@ -7,65 +7,16 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Obra</button>
-</div>
-
-
-
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
         <h1>Gestión de Obras</h1>
         <p class="subtitle">Ver, crear y administrar las obras relacionadas a presupuestos y clientes.</p>
     </header>
 
-    <!-- === FILTROS Y BUSCADOR === -->
-    <div class="filtros-container mb-4 p-3 bg-dark text-white rounded shadow-sm" style="border: 1px solid orange;">
-        <h5 class="mb-3 text-naranja">
-            <i class="bi bi-funnel"></i>🔍 Filtrar Obras
-        </h5>
-
-        <div class="row g-3 align-items-end">
-            <!-- Buscar por cliente -->
-            <div class="col-md-4">
-                <input type="text" class="form-control bg-dark text-white border-warning"
-                       placeholder="Buscar por cliente o presupuesto"
-                       @bind="SearchTerm"
-                       @oninput="FiltrarObras" />
-            </div>
-
-            <!-- Filtrar por estado -->
-            <div class="col-md-3">
-                <InputSelect class="form-select bg-dark text-white border-warning"
-                             @bind-Value="SelectedEstado"
-                             @onchange="FiltrarObras">
-                    <option value="">-- Seleccione los Estado de la Obra --</option>
-                    <option value="Pendiente">Pendiente</option>
-                    <option value="Iniciada">Iniciada</option>
-                    <option value="En proceso">En proceso</option>
-                    <option value="Finalizada">Finalizada</option>
-                </InputSelect>
-            </div>
-
-            <!-- Filtrar por fecha inicio -->
-            <div class="col-md-3">
-                <label class="form-label fw-bold text-naranja">Desde fecha inicio</label>
-                <InputDate class="form-select bg-dark text-white border-warning" @bind-Value="FechaInicioFiltro" />
-            </div>
-
-            <!-- Botones -->
-            <div class="col-md-2 d-flex align-items-end">
-                <button class="btn btn-outline-warning me-2 w-50" @onclick="() => FiltrarObras()">Aplicar</button>
-                <button class="btn btn-outline-light w-50" @onclick="LimpiarFiltros">Limpiar</button>
-            </div>
-
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
+        <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Obra</button>
     </div>
-
-
-
-
 
     @if (Cargando)
     {
@@ -153,11 +104,13 @@
     }
 </div>
 
+@* --- MODAL CORREGIDO --- *@
 @if (MostrarModal)
 {
-    <div class="modal d-block" tabindex="-1" role="dialog">
+    <div class="modal d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.4);">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
+                @* El EditForm AHORA está aquí dentro *@
                 <EditForm Model="ObraModel" OnValidSubmit="GuardarObra">
                     <DataAnnotationsValidator />
                     <div class="modal-header">
@@ -167,10 +120,11 @@
                     <div class="modal-body">
                         <ValidationSummary />
                         <div class="row g-3">
+
                             <div class="col-md-6">
                                 <label class="form-label">1. Seleccione un Cliente *</label>
-                                @* CORRECCIÓN: Se quita 'disabled="@Editando"' *@
-                                <InputSelect class="form-select" @bind-Value="SelectedClientId">
+                                @* Se usa @bind-Value a la propiedad intermediaria *@
+                                <InputSelect class="form-select" @bind-Value="SelectedClientId" disabled="@Editando">
                                     <option value="0">Seleccione un cliente</option>
                                     @foreach (var c in Clientes)
                                     {
@@ -181,8 +135,8 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">2. Seleccione un Presupuesto *</label>
-                                @* CORRECCIÓN: Se quita 'disabled' para que se pueda cambiar *@
-                                <InputSelect class="form-select" @bind-Value="SelectedPresupuestoId" disabled="@(ObraModel.ClienteId == 0)">
+                                @* Se usa @bind-Value a la propiedad intermediaria *@
+                                <InputSelect class="form-select" @bind-Value="SelectedPresupuestoId" disabled="@(ObraModel.ClienteId == 0 || Editando)">
                                     <option value="0">... (Seleccione un cliente primero) ...</option>
                                     @foreach (var p in PresupuestosDelCliente)
                                     {
@@ -206,7 +160,29 @@
                                 <InputDate class="form-control" @bind-Value="ObraModel.FechaInicio" />
                             </div>
 
-                            <div class="col-12">
+                            <div class="col-12 mt-4">
+                                <h6 class="text-naranja">Seguimiento de Materiales</h6>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Materiales Comprados (Usuario)</label>
+                                <InputSelect class="form-select" @bind-Value="ObraModel.MaterialesCompradosPorUsuario">
+                                    <option value="">Pendiente / N/A</option>
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Materiales Entregados en Obra</label>
+                                <InputSelect class="form-select" @bind-Value="ObraModel.MaterialesEntregados">
+                                    <option value="">Pendiente / N/A</option>
+                                    <option value="true">Sí</option>
+                                    <option value="false">No</option>
+                                </InputSelect>
+                            </div>
+
+                            <div class="col-12 mt-4">
                                 <label class="form-label">Comentarios (uno por línea)</label>
                                 <InputTextArea rows="4" class="form-control" @bind-Value="ComentariosTexto" />
                             </div>
@@ -230,58 +206,42 @@
     private bool Cargando = true;
     private bool MostrarModal = false;
     private bool Editando = false;
-    private POST_ObraDTO ObraModel = new POST_ObraDTO();
+
+    private PUT_ObraDTO ObraModel = new PUT_ObraDTO();
     private string ComentariosTexto = string.Empty;
     private int ObraEditarId = 0;
 
-    private string SearchTerm = string.Empty;
-    private string SelectedEstado = string.Empty;
-    private DateTime? FechaInicioFiltro = null;
-    private List<GET_ObraDTO> ObrasOriginales = new();
-    private List<GET_ObraDTO> ObrasFiltradas = new();
-
-
     private List<GET_PresupuestoDTO> PresupuestosDelCliente { get; set; } = new();
 
-    // --- CORRECCIÓN 3: Lógica condicional en el 'set' ---
+    // --- PROPIEDAD INTERMEDIARIA PARA EL CLIENTE ---
     private int SelectedClientId
     {
         get => ObraModel.ClienteId;
         set
         {
-            // Siempre asignar el valor
             ObraModel.ClienteId = value;
 
-            // --- SOLO RESETEAR SI NO ESTAMOS EDITANDO ---
+            // Esta lógica solo debe ejecutarse si NO estamos editando
             if (!Editando)
             {
                 PresupuestosDelCliente.Clear();
-                // Usar ObraModel.PresupuestoId directamente para evitar bucle
-                ObraModel.PresupuestoId = 0;
-            }
-
-            if (value > 0)
-            {
-                var cliente = Clientes.FirstOrDefault(c => c.Id == value);
-                if (cliente != null && cliente.Presupuestos != null)
+                ObraModel.PresupuestoId = 0; // Resetear presupuesto
+                if (value > 0)
                 {
-                    PresupuestosDelCliente = cliente.Presupuestos
-                                                .OrderByDescending(p => p.FechaCreacion)
-                                                .ToList();
+                    var cliente = Clientes.FirstOrDefault(c => c.Id == value);
+                    if (cliente != null && cliente.Presupuestos != null)
+                    {
+                        PresupuestosDelCliente = cliente.Presupuestos
+                                                    .OrderByDescending(p => p.FechaCreacion)
+                                                    .ToList();
+                    }
                 }
             }
-            else
-            {
-                PresupuestosDelCliente.Clear();
-            }
-
-            if (Editando)
-            {
-                ObraModel.PresupuestoId = 0;
-            }
+            // StateHasChanged() no es necesario aquí porque el @bind-Value lo maneja
         }
     }
 
+    // --- PROPIEDAD INTERMEDIARIA PARA EL PRESUPUESTO ---
     private int SelectedPresupuestoId
     {
         get => ObraModel.PresupuestoId;
@@ -296,7 +256,7 @@
                 if (presupuesto != null && !presupuesto.Aceptado)
                 {
                     bool estaVencido = false;
-                    if (int.TryParse(presupuesto.ValidacionDias, out int diasValidez))
+                    if (int.TryParse(presupuesto.ValidacionDias, out int diasValidez) && presupuesto.FechaCreacion.Year > 1900)
                     {
                         var fechaVencimiento = presupuesto.FechaCreacion.Date.AddDays(diasValidez);
                         if (DateTime.Today > fechaVencimiento) estaVencido = true;
@@ -317,58 +277,14 @@
         if (!confirmar)
         {
             ObraModel.PresupuestoId = 0;
-            StateHasChanged(); 
+            StateHasChanged(); // Forzar actualización de la UI
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatosIniciales();
-        ObrasOriginales = await ObraService.GetAllAsync();
-        ObrasFiltradas = ObrasOriginales;
     }
-
-    private void FiltrarObras(ChangeEventArgs? e = null)
-    {
-        ObrasFiltradas = ObrasOriginales
-            .Where(o =>
-                (string.IsNullOrEmpty(SearchTerm) ||
-                 (o.ClienteNombre?.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                 o.PresupuestoId.ToString().Contains(SearchTerm)) &&
-                (string.IsNullOrEmpty(SelectedEstado) || o.EstadoObra.Equals(SelectedEstado, StringComparison.OrdinalIgnoreCase)) &&
-                (!FechaInicioFiltro.HasValue || o.FechaInicio >= FechaInicioFiltro.Value))
-            .ToList();
-    }
-
-    private void LimpiarFiltros()
-    {
-        SearchTerm = string.Empty;
-        SelectedEstado = string.Empty;
-        FechaInicioFiltro = null;
-        ObrasFiltradas = ObrasOriginales;
-    }
-
-
-
-    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
-    {
-        try
-        {
-            var path = new Uri(e.Location).AbsolutePath?.TrimEnd('/').ToLowerInvariant() ?? string.Empty;
-            if (path == "/obras")
-            {
-                SearchTerm = string.Empty;
-                SelectedEstado = string.Empty;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        catch
-        {
-            // no hacemos nada si falla
-        }
-    }
-
-
 
     private async Task CargarDatosIniciales()
     {
@@ -389,19 +305,27 @@
 
     private void AbrirModalNuevo()
     {
-        ObraModel = new POST_ObraDTO { FechaInicio = DateTime.Today, EstadoObra = EstadoObra.Iniciada.ToString(), ClienteId = 0 };
+        Editando = false; // Asegurarse de que Editando sea false
+        ObraModel = new PUT_ObraDTO
+        {
+            FechaInicio = DateTime.Today,
+            EstadoObra = EstadoObra.Iniciada.ToString(),
+            ClienteId = 0,
+            MaterialesCompradosPorUsuario = null,
+            MaterialesEntregados = null
+        };
         ComentariosTexto = string.Empty;
         PresupuestosDelCliente.Clear();
-        Editando = false;
         MostrarModal = true;
     }
 
     private void AbrirModalEditar(GET_ObraDTO dto)
     {
-        Editando = true;
+        Editando = true; // Establecer Editando en true
         ObraEditarId = dto.Id;
         ComentariosTexto = dto.Comentarios != null ? string.Join("\n", dto.Comentarios) : string.Empty;
 
+        // Poblar la lista de presupuestos ANTES de asignar el modelo
         var cliente = Clientes.FirstOrDefault(c => c.Id == dto.ClienteId);
         if (cliente != null && cliente.Presupuestos != null)
         {
@@ -410,17 +334,25 @@
                                         .ToList();
         }
 
-        ObraModel = new POST_ObraDTO
+        ObraModel = new PUT_ObraDTO
         {
             ClienteId = dto.ClienteId,
             PresupuestoId = dto.PresupuestoId,
             FechaInicio = dto.FechaInicio,
-            EstadoObra = dto.EstadoObra
+            EstadoObra = dto.EstadoObra,
+            Comentarios = dto.Comentarios,
+            MaterialesCompradosPorUsuario = dto.MaterialesCompradosPorUsuario,
+            MaterialesEntregados = dto.MaterialesEntregados
         };
 
-        // 4. Mostrar el modal
         MostrarModal = true;
     }
+
+    // --- ESTOS MÉTODOS @onchange FUERON ELIMINADOS ---
+    // private async Task OnClienteChanged(ChangeEventArgs e) { ... }
+    // private async Task OnPresupuestoChanged(ChangeEventArgs e) { ... }
+    // La lógica ahora está en las propiedades 'set'
+
 
     private string GetInfoPresupuesto(GET_PresupuestoDTO p)
     {
@@ -456,23 +388,13 @@
                 return;
             }
 
-            // ... (resto de validaciones) ...
-
-            var comentarios = ComentariosTexto?
+            ObraModel.Comentarios = ComentariosTexto?
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim()).ToList();
 
             if (Editando)
             {
-                var putDto = new PUT_ObraDTO
-                {
-                    EstadoObra = ObraModel.EstadoObra,
-                    FechaInicio = ObraModel.FechaInicio,
-                    ClienteId = ObraModel.ClienteId, 
-                    PresupuestoId = ObraModel.PresupuestoId, 
-                    Comentarios = comentarios
-                };
-                await ObraService.UpdateAsync(ObraEditarId, putDto);
+                await ObraService.UpdateAsync(ObraEditarId, ObraModel);
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra actualizada correctamente.");
             }
             else
@@ -482,7 +404,9 @@
                     ClienteId = ObraModel.ClienteId,
                     PresupuestoId = ObraModel.PresupuestoId,
                     FechaInicio = ObraModel.FechaInicio,
-                    EstadoObra = ObraModel.EstadoObra
+                    EstadoObra = ObraModel.EstadoObra,
+                    MaterialesCompradosPorUsuario = ObraModel.MaterialesCompradosPorUsuario,
+                    MaterialesEntregados = ObraModel.MaterialesEntregados
                 };
                 var id = await ObraService.CreateAsync(postDto);
                 await JSRuntime.InvokeVoidAsync("alert", "✅ Obra creada correctamente.");
@@ -496,6 +420,48 @@
             Console.WriteLine($"Error guardando obra: {ex.Message}");
             await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
         }
+    }
+
+    private async Task EliminarObra(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que querés eliminar esta obra?"))
+        {
+            try
+            {
+                await ObraService.DeleteAsync(id);
+                Obras.RemoveAll(o => o.Id == id);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error eliminando obra: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error eliminando obra: {ex.Message}");
+            }
+        }
+    }
+
+    private void CerrarModal()
+    {
+        MostrarModal = false;
+        Editando = false;
+        ObraEditarId = 0;
+        ObraModel = new PUT_ObraDTO();
+        ComentariosTexto = string.Empty;
+        PresupuestosDelCliente.Clear();
+    }
+
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
+
+    private int DuracionEnDias(DateTime fechaInicio)
+    {
+        var diff = DateTime.Now.Date - fechaInicio.Date;
+        return Math.Max(0, diff.Days);
+    }
+
+    public enum EstadoObra
+    {
+        Iniciada,
+        EnProceso,
+        Finalizada
     }
 
     private bool EsValorInvalido(int numero)
@@ -517,42 +483,5 @@
         if (texto.GroupBy(c => c).Any(g => g.Count() > 10)) return true;
         string[] patronesInvalidos = { "aaaa", "1111", "zzzz", "xxxx", "1234" };
         return patronesInvalidos.Any(p => texto.Contains(p, StringComparison.OrdinalIgnoreCase));
-    }
-    private async Task EliminarObra(int id)
-    {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que querés eliminar esta obra?"))
-        {
-            try
-            {
-                await ObraService.DeleteAsync(id);
-                Obras.RemoveAll(o => o.Id == id);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error eliminando obra: {ex.Message}");
-                await JSRuntime.InvokeVoidAsync("alert", $"Error eliminando obra: {ex.Message}");
-            }
-        }
-    }
-    private void CerrarModal()
-    {
-        MostrarModal = false;
-        Editando = false;
-        ObraEditarId = 0;
-        ObraModel = new POST_ObraDTO();
-        ComentariosTexto = string.Empty;
-        PresupuestosDelCliente.Clear();
-    }
-    private void VolverAlInicio() => Navigation.NavigateTo("/");
-    private int DuracionEnDias(DateTime fechaInicio)
-    {
-        var diff = DateTime.Now.Date - fechaInicio.Date;
-        return Math.Max(0, diff.Days);
-    }
-    public enum EstadoObra
-    {
-        Iniciada,
-        EnProceso,
-        Finalizada
     }
 }

@@ -12,5 +12,7 @@ namespace Zetta.Shared.DTOS.Obra
         public int PresupuestoId { get; set; }
         public DateTime FechaInicio { get; set; } = DateTime.Now;
         public int ClienteId { get; set; }
+        public bool? MaterialesCompradosPorUsuario { get; set; }
+        public bool? MaterialesEntregados { get; set; }
     }
 }

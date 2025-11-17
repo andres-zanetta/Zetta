@@ -23,5 +23,6 @@ namespace Zetta.Shared.DTOS.Presupuesto
         public int ClienteId { get; set; }
         public List<PUT_PresItemDetalleDTO>? ItemsDetalle { get; set; }
         public bool Materiales { get; set; }
+        public string? DireccionObra { get; set; }
     }
 }

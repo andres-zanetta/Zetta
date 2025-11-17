@@ -31,7 +31,8 @@ namespace Zetta.Server.Util // O tu namespace correcto
             // --- Mapeos de Presupuesto ---
             // GET: Actualizado con todos los campos
             CreateMap<Presupuesto, GET_PresupuestoDTO>()
-                .ForMember(dest => dest.NombreCliente, opt => opt.MapFrom(src => src.Cliente != null ? $"{src.Cliente.Nombre} {src.Cliente.Apellido}" : null)) // Nombre y Apellido
+                .ForMember(dest => dest.NombreCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Nombre : null)) // Nombre
+                .ForMember(dest => dest.ApellidoCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Apellido : null)) // Apellido
                 .ForMember(dest => dest.ClienteId, opt => opt.MapFrom(src => src.ClienteId))
                 .ForMember(dest => dest.ItemsDetalle, opt => opt.MapFrom(src => src.ItemsDetalle))
                 .ForMember(dest => dest.DireccionCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Direccion : null)) // Nuevo
@@ -39,19 +40,22 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 .ForMember(dest => dest.EmailCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Email : null))       // Nuevo
                 .ForMember(dest => dest.LocalidadCliente, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Localidad : null)) // Nuevo
                 .ForMember(dest => dest.RubroNombre, opt => opt.MapFrom(src => GetNombreRubro(src.Rubro))) // Nuevo - Usa la función helper
-            .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => src.FechaCreacion));
+                .ForMember(dest => dest.FechaCreacion, opt => opt.MapFrom(src => src.FechaCreacion))
+                .ForMember(dest => dest.DireccionObra, opt => opt.MapFrom(src => src.DireccionObra));
 
             // POST: (Sin cambios relevantes aquí, asegúrate de que mapee lo necesario)
             CreateMap<POST_PresupuestoDTO, Presupuesto>()
                 .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
-                .ForMember(dest => dest.ItemsDetalle, opt => opt.MapFrom(src => src.ItemsDetalle));
+                .ForMember(dest => dest.ItemsDetalle, opt => opt.MapFrom(src => src.ItemsDetalle))
+                .ForMember(dest => dest.DireccionObra, opt => opt.MapFrom(src => src.DireccionObra));
 
             // PUT: (Sin cambios relevantes aquí, asegúrate de que mapee lo necesario)
             CreateMap<PUT_PresupuestoDTO, Presupuesto>()
                 .ForMember(dest => dest.Subtotal, opt => opt.Ignore())
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
-                .ForMember(dest => dest.ItemsDetalle, opt => opt.MapFrom(src => src.ItemsDetalle));
+                .ForMember(dest => dest.ItemsDetalle, opt => opt.MapFrom(src => src.ItemsDetalle))
+                .ForMember(dest => dest.DireccionObra, opt => opt.MapFrom(src => src.DireccionObra));
 
 
             // --- Mapeos de PresItemDetalle ---
@@ -81,21 +85,27 @@ namespace Zetta.Server.Util // O tu namespace correcto
             CreateMap<Obra, GET_ObraDTO>()
                .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => src.EstadoObra.ToString()))
                .ForMember(dest => dest.ClienteId, opt => opt.MapFrom(src => src.Cliente.Id))
-               .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.Nombre));
+               .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.Nombre))
+               .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
+               .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
 
             CreateMap<POST_ObraDTO, Obra>()
                 .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => Enum.Parse<EstadoObra>(src.EstadoObra)))
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
                 .ForMember(dest => dest.Presupuesto, opt => opt.Ignore())
                 .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId))
-                .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio));
+                .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio))
+                .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
+                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
 
             CreateMap<PUT_ObraDTO, Obra>()
                 .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => Enum.Parse<EstadoObra>(src.EstadoObra)))
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
                 .ForMember(dest => dest.Presupuesto, opt => opt.Ignore())
                 .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio))
-                .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId));
+                .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId))
+                .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
+                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
         }
     }
 }

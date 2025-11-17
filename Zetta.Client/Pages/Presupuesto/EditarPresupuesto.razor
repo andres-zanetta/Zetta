@@ -31,19 +31,34 @@
             <DataAnnotationsValidator />
             <ValidationSummary />
 
-            @* --- INTERFAZ APLICADA: Contenedor principal del formulario --- *@
             <div class="row g-3 bg-dark text-white p-3 rounded shadow-sm">
 
                 <div class="col-md-6 mb-3">
                     <label for="cliente" class="form-label">Cliente *</label>
-                    <InputSelect id="cliente" class="form-select bg-dark text-white border-secondary" @bind-Value="PresupuestoModel.ClienteId" disabled>
-                        <option value="">Seleccione un cliente</option>
+                    <select id="cliente" class="form-select bg-dark text-white border-secondary" @onchange="OnClienteSeleccionado" value="@PresupuestoModel.ClienteId" disabled>
+                        <option value="0">Seleccione un cliente</option>
                         @foreach (var cliente in Clientes)
                         {
-                            <option value="@cliente.Id">@cliente.Nombre</option>
+                            <option value="@cliente.Id">@cliente.Nombre @cliente.Apellido</option>
                         }
-                    </InputSelect>
+                    </select>
                     <ValidationMessage For="@(() => PresupuestoModel.ClienteId)" />
+                </div>
+
+                @* --- NUEVA SECCIÓN: DATOS DEL CLIENTE --- *@
+                <div class="col-md-6 mb-3">
+                    @if (ClienteSeleccionado != null)
+                    {
+                        <div class="card bg-black text-white border-secondary">
+                            <div class="card-body p-3">
+                                <h6 class="card-title text-naranja">Datos del Cliente</h6>
+                                <p class="card-text mb-1"><small><strong>Dirección:</strong> @(ClienteSeleccionado.Direccion ?? "N/A")</small></p>
+                                <p class="card-text mb-1"><small><strong>Localidad:</strong> @(ClienteSeleccionado.Localidad ?? "N/A")</small></p>
+                                <p class="card-text mb-1"><small><strong>Teléfono:</strong> @(ClienteSeleccionado.Telefono ?? "N/A")</small></p>
+                                <p class="card-text mb-0"><small><strong>Email:</strong> @(ClienteSeleccionado.Email ?? "N/A")</small></p>
+                            </div>
+                        </div>
+                    }
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -86,6 +101,12 @@
                     </InputSelect>
                 </div>
 
+                @* --- CAMPO AGREGADO --- *@
+                <div class="col-md-6 mb-3">
+                    <label for="direccionObra" class="form-label">Dirección de Obra</label>
+                    <InputText id="direccionObra" class="form-control bg-dark text-white border-secondary" @bind-Value="PresupuestoModel.DireccionObra" placeholder="Opcional: si es distinta a la del cliente" />
+                </div>
+
                 <div class="col-md-6 mb-3">
                     <label for="manodeObra" class="form-label">Mano de Obra ($)</label>
                     <InputNumber id="manodeObra" class="form-control bg-dark text-white border-secondary"
@@ -101,7 +122,6 @@
 
                 <div class="col-md-6 mb-3">
                     <label for="totalFinal" class="form-label">Total Final ($)</label>
-                    @* --- CORRECCIÓN: Clase cambiada a bg-dark y text-white --- *@
                     <input id="totalFinal" class="form-control bg-dark text-white border-secondary fw-bold text-end"
                            value="@PresupuestoModel.Total.ToString("N2")" readonly />
                 </div>
@@ -121,12 +141,12 @@
                     <InputTextArea id="observacion" class="form-control bg-dark text-white border-secondary" rows="3" @bind-Value="PresupuestoModel.Observacion" />
                 </div>
 
+                @* ... (Resto del formulario: sección de ítems, botones, etc. sin cambios) ... *@
                 <div class="col-12 mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label fw-bold">Items</label>
                         <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
                     </div>
-
                     @if (SelectedItems.Any())
                     {
                         <div class="mb-3 border rounded p-3 bg-black">
@@ -147,7 +167,6 @@
                             </ul>
                         </div>
                     }
-
                     <div class="row g-2 mb-2 p-2 border border-secondary rounded bg-black">
                         <div class="col">
                             <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por nombre..."
@@ -171,7 +190,6 @@
                             <button type="button" class="btn btn-sm btn-outline-warning" @onclick="BuscarItems">Buscar</button>
                         </div>
                     </div>
-
                     @if (!CatalogoItemsFiltrados.Any())
                     {
                         <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
@@ -184,6 +202,8 @@
                                     <tr>
                                         <th></th>
                                         <th>Nombre</th>
+                                        <th>Descripción</th>
+                                        <th>Medida</th>
                                         <th>Precio</th>
                                         <th>Cantidad</th>
                                         <th></th>
@@ -193,7 +213,6 @@
                                     @foreach (var cat in CatalogoItemsFiltrados)
                                     {
                                         var vm = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
-
                                         <tr class="@(vm != null ? "table-primary" : "")">
                                             <td>
                                                 <input type="checkbox" class="form-check-input"
@@ -201,13 +220,15 @@
                                                        @onchange="async (e) => await OnToggleItem(cat, e)" />
                                             </td>
                                             <td>@cat.Nombre</td>
+                                            <td><small>@cat.Descripcion</small></td>
+                                            <td>@cat.Medida</td>
                                             <td>
                                                 <input class="form-control form-control-sm text-end bg-dark text-white"
                                                        value="@(vm?.Precio.ToString("0.00") ?? cat.Precio.ToString("0.00"))"
                                                        @onchange="async (e) => await OnPrecioChanged(cat.Id, e)" />
                                             </td>
                                             <td>
-                                                <input class="form-control form-control-sm text-end bg-dark text-white"
+                                                <input type="number" step="1" min="1" class="form-control form-control-sm text-end bg-dark text-white"
                                                        value="@(vm?.Cantidad.ToString() ?? "1")"
                                                        @onchange="async (e) => await OnCantidadChanged(cat.Id, e)" />
                                             </td>
@@ -256,6 +277,7 @@
     private bool CargandoDatosIniciales = true;
     private string? ErrorAlCargar = null;
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
+    private GET_ClienteDTO? ClienteSeleccionado { get; set; }
     private List<GET_ItemPresupuestoDTO> AllCatalogItems { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> CatalogoItemsFiltrados { get; set; } = new();
     private List<SelectedItemVM> SelectedItems { get; set; } = new();
@@ -311,8 +333,14 @@
                 ManodeObra = presupuestoExistente.ManodeObra,
                 TiempoAproxObra = presupuestoExistente.TiempoAproxObra,
                 ValidacionDias = presupuestoExistente.ValidacionDias,
-                Observacion = presupuestoExistente.Observacion
+                Observacion = presupuestoExistente.Observacion,
+                DireccionObra = presupuestoExistente.DireccionObra
             };
+
+            if (PresupuestoModel.ClienteId > 0)
+            {
+                ClienteSeleccionado = Clientes.FirstOrDefault(c => c.Id == PresupuestoModel.ClienteId);
+            }
 
             if (presupuestoExistente.ItemsDetalle != null)
             {
@@ -341,6 +369,29 @@
         {
             CargandoDatosIniciales = false;
         }
+    }
+
+    private void OnClienteSeleccionado(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int clienteId))
+        {
+            PresupuestoModel.ClienteId = clienteId;
+            ClienteSeleccionado = Clientes.FirstOrDefault(c => c.Id == clienteId);
+
+            if (ClienteSeleccionado != null && !string.IsNullOrWhiteSpace(ClienteSeleccionado.Direccion))
+            {
+                if (string.IsNullOrWhiteSpace(PresupuestoModel.DireccionObra))
+                {
+                    PresupuestoModel.DireccionObra = ClienteSeleccionado.Direccion;
+                }
+            }
+        }
+        else
+        {
+            PresupuestoModel.ClienteId = 0;
+            ClienteSeleccionado = null;
+        }
+        StateHasChanged();
     }
 
     private async Task LoadCatalogItemsAsync()
