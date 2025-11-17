@@ -19,7 +19,110 @@
     <EditForm Model="@PresupuestoModel">
         <DataAnnotationsValidator />
         <ValidationSummary />
-
+        @* ... (Resto del formulario: sección de ítems, botones, etc. sin cambios) ... *@
+        <div class="col-12 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <label class="form-label fw-bold">Items</label>
+                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
+            </div>
+            @if (SelectedItems.Any())
+            {
+                <div class="mb-3 border rounded p-3 bg-black">
+                    <h6 class="fw-bold text-naranja">Ítems Agregados:</h6>
+                    <ul class="list-group list-group-flush">
+                        @foreach (var item in SelectedItems)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-2 bg-transparent text-white border-secondary">
+                                <div>
+                                    <span class="fw-bold">@item.Nombre</span>
+                                    <small class="text-muted d-block">
+                                        Cantidad: @item.Cantidad | Precio Unitario: @item.Precio.ToString("C")
+                                    </small>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => QuitarItemSeleccionado(item.ItemId)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+            <div class="row g-2 mb-2 p-2 border border-secondary rounded bg-black">
+                <div class="col">
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por nombre..."
+                           @bind="searchNombre"
+                           @onkeydown="BuscarEnter"
+                           @onkeydown:stopPropagation />
+                </div>
+                <div class="col">
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por marca..."
+                           @bind="searchMarca"
+                           @onkeydown="BuscarEnter"
+                           @onkeydown:stopPropagation />
+                </div>
+                <div class="col">
+                    <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por fabricante..."
+                           @bind="searchFabricante"
+                           @onkeydown="BuscarEnter"
+                           @onkeydown:stopPropagation />
+                </div>
+                <div class="col-auto">
+                    <button type="button" class="btn btn-sm btn-outline-warning" @onclick="BuscarItems">Buscar</button>
+                </div>
+            </div>
+            @if (!CatalogoItemsFiltrados.Any())
+            {
+                <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
+            }
+            else
+            {
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-sm table-hover table-dark">
+                        <thead class="table-dark sticky-top">
+                            <tr>
+                                <th></th>
+                                <th>Nombre</th>
+                                <th>Descripción</th>
+                                <th>Medida</th>
+                                <th>Precio</th>
+                                <th>Cantidad</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cat in CatalogoItemsFiltrados)
+                            {
+                                var vm = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
+                                <tr class="@(vm != null ? "table-primary" : "")">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input"
+                                               checked="@(vm != null)"
+                                               @onchange="async (e) => await OnToggleItem(cat, e)" />
+                                    </td>
+                                    <td>@cat.Nombre</td>
+                                    <td><small>@cat.Descripcion</small></td>
+                                    <td>@cat.Medida</td>
+                                    <td>
+                                        <input class="form-control form-control-sm text-end bg-dark text-white"
+                                               value="@(vm?.Precio.ToString("0.00") ?? cat.Precio.ToString("0.00"))"
+                                               @onchange="async (e) => await OnPrecioChanged(cat.Id, e)" />
+                                    </td>
+                                    <td>
+                                        <input type="number" step="1" min="1" class="form-control form-control-sm text-end bg-dark text-white"
+                                               value="@(vm?.Cantidad.ToString() ?? "1")"
+                                               @onchange="async (e) => await OnCantidadChanged(cat.Id, e)" />
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                @onclick="() => AbrirItemModalEditar(cat.Id)">
+                                            ✏️
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
         <div class="row g-3 bg-dark text-white p-3 rounded shadow-sm">
 
             <div class="col-md-6 mb-3">
@@ -121,110 +224,8 @@
                 <InputTextArea id="observacion" class="form-control bg-dark text-white border-secondary" rows="3" @bind-Value="PresupuestoModel.Observacion" />
             </div>
 
-            @* ... (Resto del formulario: sección de ítems, botones, etc. sin cambios) ... *@
-            <div class="col-12 mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <label class="form-label fw-bold">Items</label>
-                    <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AbrirItemModalNuevo">➕ Nuevo Ítem</button>
-                </div>
-                @if (SelectedItems.Any())
-                {
-                    <div class="mb-3 border rounded p-3 bg-black">
-                        <h6 class="fw-bold text-naranja">Ítems Agregados:</h6>
-                        <ul class="list-group list-group-flush">
-                            @foreach (var item in SelectedItems)
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center p-2 bg-transparent text-white border-secondary">
-                                    <div>
-                                        <span class="fw-bold">@item.Nombre</span>
-                                        <small class="text-muted d-block">
-                                            Cantidad: @item.Cantidad | Precio Unitario: @item.Precio.ToString("C")
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" @onclick="() => QuitarItemSeleccionado(item.ItemId)">Quitar</button>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                }
-                <div class="row g-2 mb-2 p-2 border border-secondary rounded bg-black">
-                    <div class="col">
-                        <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por nombre..."
-                               @bind="searchNombre"
-                               @onkeydown="BuscarEnter"
-                               @onkeydown:stopPropagation />
-                    </div>
-                    <div class="col">
-                        <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por marca..."
-                               @bind="searchMarca"
-                               @onkeydown="BuscarEnter"
-                               @onkeydown:stopPropagation />
-                    </div>
-                    <div class="col">
-                        <input class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="Buscar por fabricante..."
-                               @bind="searchFabricante"
-                               @onkeydown="BuscarEnter"
-                               @onkeydown:stopPropagation />
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-sm btn-outline-warning" @onclick="BuscarItems">Buscar</button>
-                    </div>
-                </div>
-                @if (!CatalogoItemsFiltrados.Any())
-                {
-                    <div class="alert alert-info p-2">Ingrese filtros y presione "Buscar" para ver ítems.</div>
-                }
-                else
-                {
-                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                        <table class="table table-sm table-hover table-dark">
-                            <thead class="table-dark sticky-top">
-                                <tr>
-                                    <th></th>
-                                    <th>Nombre</th>
-                                    <th>Descripción</th>
-                                    <th>Medida</th>
-                                    <th>Precio</th>
-                                    <th>Cantidad</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var cat in CatalogoItemsFiltrados)
-                                {
-                                    var vm = SelectedItems.FirstOrDefault(s => s.ItemId == cat.Id);
-                                    <tr class="@(vm != null ? "table-primary" : "")">
-                                        <td>
-                                            <input type="checkbox" class="form-check-input"
-                                                   checked="@(vm != null)"
-                                                   @onchange="async (e) => await OnToggleItem(cat, e)" />
-                                        </td>
-                                        <td>@cat.Nombre</td>
-                                        <td><small>@cat.Descripcion</small></td>
-                                        <td>@cat.Medida</td>
-                                        <td>
-                                            <input class="form-control form-control-sm text-end bg-dark text-white"
-                                                   value="@(vm?.Precio.ToString("0.00") ?? cat.Precio.ToString("0.00"))"
-                                                   @onchange="async (e) => await OnPrecioChanged(cat.Id, e)" />
-                                        </td>
-                                        <td>
-                                            <input type="number" step="1" min="1" class="form-control form-control-sm text-end bg-dark text-white"
-                                                   value="@(vm?.Cantidad.ToString() ?? "1")"
-                                                   @onchange="async (e) => await OnCantidadChanged(cat.Id, e)" />
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                    @onclick="() => AbrirItemModalEditar(cat.Id)">
-                                                ✏️
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
+
+            
         </div>
 
         @if (!string.IsNullOrEmpty(Mensaje))
