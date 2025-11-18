@@ -12,8 +12,8 @@ namespace Zetta.Shared.DTOS.PresItemDetalle
         public string? NombreItem { get; set; }
         public string? DescripcionItem { get; set; }
         public DateTime? FechaActPrecioItem { get; set; }
-
-        // --- CAMPO AGREGADO ---
         public string? MedidaItem { get; set; } // Unidad de medida del ítem (ej: 'm', 'u', 'kg')
+        public string? MarcaItem { get; set; }
+        public string? FabricanteItem { get; set; }
     }
 }

@@ -27,11 +27,13 @@
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
                         <InputText @bind-Value="item.Nombre" class="form-control" />
+                        <ValidationMessage For="@(() => item.Nombre)" class="text-danger" />
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Precio</label>
                         <InputNumber @bind-Value="item.Precio" class="form-control" />
+                        <ValidationMessage For="@(() => item.Precio)" class="text-danger" />
                     </div>
 
                     <div class="mb-3">
@@ -85,7 +87,8 @@
     [Parameter] public EventCallback OnCerrar { get; set; }
     [Parameter] public EventCallback<int> OnGuardado { get; set; } // Devuelve el Id del item (0 si es nuevo)
 
-    private POST_ItemPresupuestoDTO item = new();
+    private POST_ItemPresupuestoDTO item = new() { FechActuPrecio = DateTime.Today };
+
     private bool EsEdicion => ItemId.HasValue;
     private bool Cargando = true;
     private string? Error;

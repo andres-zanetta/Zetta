@@ -65,7 +65,9 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 // --- REGLAS AGREGADAS ---
                 .ForMember(dest => dest.DescripcionItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Descripcion : null))
                 .ForMember(dest => dest.FechaActPrecioItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.FechActuPrecio : null))
-                .ForMember(dest => dest.MedidaItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Medida : null));
+                .ForMember(dest => dest.MedidaItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Medida : null))
+                .ForMember(dest => dest.MarcaItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Marca : null))
+                .ForMember(dest => dest.FabricanteItem, opt => opt.MapFrom(src => src.ItemPresupuesto != null ? src.ItemPresupuesto.Fabricante : null));
 
             // DTO a Entidad (Sin cambios)
             CreateMap<POST_PresItemDetalleDTO, PresItemDetalle>()
