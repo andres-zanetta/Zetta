@@ -15,7 +15,7 @@ Permite generar, administrar y analizar presupuestos con un enfoque moderno y ef
 ✅ Agenda visual de visitas técnicas  
 ✅ Exportación de reportes mensuales  
 ✅ Diseño responsive y visual moderno  
-
+✅ Calendario Visual de Obras
 ---
 
 ## 🏗️ Arquitectura del proyecto
