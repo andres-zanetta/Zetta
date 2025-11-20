@@ -28,7 +28,7 @@
             <table class="table align-middle">
                 <thead class="table-dark">
                     <tr> @* sombras *@
-                        <th>ID</th>
+                        <th class="visually-hidden">ID</th>
                         <th>Cliente</th>
                         <th>PresupuestoId</th>
                         <th>Estado</th>
@@ -50,7 +50,7 @@
                         @foreach (var o in Obras)
                         {
                             <tr>
-                                <td>@o.Id</td>
+                                <td class="visually-hidden">@o.Id</td>
                                 <td>
                                     @{
                                         var pres = Clientes
