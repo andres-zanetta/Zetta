@@ -62,7 +62,8 @@
                         <th>Apellido</th>
                         <th>Teléfono</th>
                         <th>Email</th>
-                        <th>Localidad/Direccion</th>
+                        <th>Localidad</th>
+                        <th>Direccion</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -76,6 +77,7 @@
                             <td>@cliente.Telefono</td>
                             <td>@cliente.Email</td>
                             <td>@cliente.Localidad</td>
+                            <td>@cliente.Direccion</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
                                 <button class="btn btn-sm btn-outline-danger" title="Eliminar Cliente"
@@ -93,7 +95,7 @@
     @* Modal de Creación/Edición *@
     @if (MostrarModal)
     {
-        <div class="modal d-block" tabindex="-1">
+        <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog">
                 <div class="modal-content">
                     <EditForm Model="@ClienteActual" OnValidSubmit="@GuardarCliente">
@@ -116,12 +118,17 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Teléfono</label>
-                                <InputText @bind-Value="ClienteActual.Telefono" class="form-control" />
+                                <InputText @bind-Value="ClienteActual.Telefono"
+                                           class="form-control"
+                                           inputmode="numeric"
+                                           pattern="^[0-9]*$"
+                                           maxlength="10" />
+                                <ValidationMessage For="@(() => ClienteActual.Telefono)" />
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Email</label>
                                 <InputText @bind-Value="ClienteActual.Email" class="form-control" />
-                                <ValidationMessage For="@(() => ClienteActual.Email)" />
+                           
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Localidad</label>
@@ -135,8 +142,8 @@
 
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn" @onclick="CerrarModal">Cancelar</button>
-                            <button type="submit" class="btn">Guardar</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
                         </div>
                     </EditForm>
                 </div>
@@ -170,10 +177,13 @@
         public int Id { get; set; } // Id es necesario solo para identificar en edición
         public string Nombre { get; set; } = "";
         public string Apellido { get; set; } = "";
+        [Required(ErrorMessage = "El teléfono es obligatorio.")]
+        [RegularExpression(@"^351\d{7}$",
+        ErrorMessage = "El teléfono debe comenzar con 351 y tener 10 dígitos (ej: 3515909859).")]
         public string Telefono { get; set; } = "";
         [Required(ErrorMessage = "El email es obligatorio.")]
         [RegularExpression(@"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",
-       ErrorMessage = "Debe ingresar un correo válido (ejemplo: usuario@dominio.com)")]
+        ErrorMessage = "Debe ingresar un correo válido (ejemplo: usuario@dominio.com)")]
         public string? Email { get; set; }
         public string? Localidad { get; set; }
         public string? Direccion { get; set; }
