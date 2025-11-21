@@ -23,14 +23,18 @@
         <div class="row g-3 align-items-end">
             <!-- Buscar por nombre o apellido -->
             <div class="col-md-4">
-                <input type="text" class="form-control shadow-sm"
+                <input type="text"
+                       class="form-control shadow-sm"
                        placeholder="Buscar por nombre o apellido..."
-                       @bind="SearchTerm" @bind:event="oninput" />
+                       @bind="SearchTerm"
+                       @oninput="OnSearchInput" />
             </div>
 
             <!-- Filtrar por localidad -->
             <div class="col-md-4">
-                <select class="form-select shadow-sm" @bind="SelectedLocalidad">
+                <select class="form-select shadow-sm"
+                        value="@SelectedLocalidad"
+                        @onchange="OnLocalidadChanged">
                     <option value="">Todas las localidades</option>
                     @foreach (var loc in LocalidadesDisponibles)
                     {
@@ -41,9 +45,9 @@
 
             <!-- Botones de acción -->
             <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-outline-warning me-2 w-50" @onclick="() => FiltrarClientes()">Aplicar filtros</button>
-
-                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="ResetFilters">Limpiar</button>
+                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="ResetFilters">
+                    Limpiar
+                </button>
             </div>
         </div>
     </div>
@@ -167,8 +171,27 @@
     private bool Cargando = true;
 
     // Filtros
-    private string SearchTerm = string.Empty;
-    private string SelectedLocalidad = string.Empty;
+    private string _searchTerm = string.Empty;
+    private string SearchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            _searchTerm = value ?? string.Empty;
+            FiltrarClientes();
+        }
+    }
+
+    private string _selectedLocalidad = string.Empty;
+    private string SelectedLocalidad
+    {
+        get => _selectedLocalidad;
+        set
+        {
+            _selectedLocalidad = value ?? string.Empty;
+            FiltrarClientes();
+        }
+    }
 
  
     // Modelo intermedio para el formulario de cliente
@@ -222,22 +245,34 @@
             .Distinct()
             .OrderBy(x => x)
             .ToList();
+
+        // Al iniciar, mostramos todo aplicado a los filtros vacíos
+        FiltrarClientes();
     }
 
-    // --- FILTROS Y BÚSQUEDA ---
     private void OnSearchInput(ChangeEventArgs e)
     {
         SearchTerm = e.Value?.ToString() ?? string.Empty;
         FiltrarClientes();
     }
 
-    private void FiltrarClientes(ChangeEventArgs? e = null)
+    private void OnLocalidadChanged(ChangeEventArgs e)
     {
+        SelectedLocalidad = e.Value?.ToString() ?? string.Empty;
+        FiltrarClientes();
+    }
+ 
+    private void FiltrarClientes()
+    {
+        var termino = SearchTerm?.Trim() ?? string.Empty;
+
         ClientesFiltrados = Clientes
             .Where(c =>
-                (string.IsNullOrEmpty(SearchTerm) ||
-                 c.Nombre.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
-                 c.Apellido.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrEmpty(termino) ||
+                 (!string.IsNullOrEmpty(c.Nombre) &&
+                  c.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase)) ||
+                 (!string.IsNullOrEmpty(c.Apellido) &&
+                  c.Apellido.Contains(termino, StringComparison.OrdinalIgnoreCase))) &&
                 (string.IsNullOrEmpty(SelectedLocalidad) ||
                  c.Localidad == SelectedLocalidad))
             .ToList();
@@ -247,7 +282,7 @@
     {
         SearchTerm = string.Empty;
         SelectedLocalidad = string.Empty;
-        ClientesFiltrados = Clientes;
+        ClientesFiltrados = Clientes.ToList();
     }
 
     private void ValidarEmail(ChangeEventArgs e)
