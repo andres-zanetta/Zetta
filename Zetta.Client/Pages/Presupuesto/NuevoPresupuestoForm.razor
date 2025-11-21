@@ -84,7 +84,9 @@
                                 <th>Medida</th>
                                 <th>Precio</th>
                                 <th>Cantidad</th>
-                                <th></th>
+                                <th>Fabricante</th>
+                                <th>Fecha act. precio</th>
+                                <th>Marca</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -110,6 +112,9 @@
                                                value="@(vm?.Cantidad.ToString() ?? "1")"
                                                @onchange="async (e) => await OnCantidadChanged(cat.Id, e)" />
                                     </td>
+                                    <td>@cat.Fabricante</td>
+                                    <td>@(cat.FechActuPrecio?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                    <td>@cat.Marca</td>
                                     <td>
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
                                                 @onclick="() => AbrirItemModalEditar(cat.Id)">
