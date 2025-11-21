@@ -21,50 +21,65 @@
         <p class="subtitle">Administrá, controlá y generá presupuestos detallados.</p>
     </header>
 
+    <!-- 🔍 FILTROS (filtrado en tiempo real, sin botón aplicar) -->
     <div class="filtros-container mb-4 p-3 bg-black rounded shadow-sm">
         <h5 class="mb-3">🔍 Filtrar presupuestos</h5>
 
-        @* 1. Envolver los filtros en un EditForm *@
-        <EditForm Model="filtros" OnValidSubmit="AplicarFiltros">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    @* 2. El 'bind' ahora apunta al modelo de filtros *@
-                    <input type="text" class="form-control bg-dark text-white border-warning" placeholder="Buscar por cliente..." @bind="filtros.Cliente" />
-                </div>
-                <div class="col-md-3">
-                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Rubro">
-                        <option value="">Todos los rubros</option>
-                        @foreach (var rubro in RubrosDisponibles)
-                        {
-                            <option value="@rubro">@rubro</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Estado">
-                        <option value="">Todos los estados</option>
-                        <option value="Pendiente">Pendiente</option>
-                        <option value="Aceptado">Aceptado</option>
-                        <option value="En Obra">En Obra</option>
-                        <option value="Vencido">Vencido</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <select class="form-select bg-dark text-white border-warning" @bind="filtros.Pago">
-                        <option value="">Todas las opciones de pago</option>
-                        <option value="MercadoPago">MercadoPago</option>
-                        <option value="Tarjeta">Tarjeta</option>
-                        <option value="Cuenta Link">Cuenta Link</option>
-                    </select>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    @* 3. El botón ahora es 'type="submit"' y no necesita @onclick *@
-                    <button type="submit" class="btn btn-outline-dark w-100 text-white border-white">Aplicar filtros</button>
-                </div>
+        <div class="row g-3">
+            <!-- Buscar por nombre de cliente -->
+            <div class="col-md-3">
+                <input type="text"
+                       class="form-control bg-dark text-white border-warning"
+                       placeholder="Buscar por cliente..."
+                       @bind="FiltroCliente"
+                       @bind:event="oninput" />
             </div>
-        </EditForm>
-    </div>
 
+            <!-- Filtrar por rubro -->
+            <div class="col-md-3">
+                <select class="form-select bg-dark text-white border-warning"
+                        @bind="FiltroRubro">
+                    <option value="">Todos los rubros</option>
+                    @foreach (var rubro in RubrosDisponibles)
+                    {
+                        <option value="@rubro">@rubro</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Filtrar por estado -->
+            <div class="col-md-2">
+                <select class="form-select bg-dark text-white border-warning"
+                        @bind="FiltroEstado">
+                    <option value="">Todos los estados</option>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="Aceptado">Aceptado</option>
+                    <option value="En Obra">En Obra</option>
+                    <option value="Vencido">Vencido</option>
+                </select>
+            </div>
+
+            <!-- Filtrar por opción de pago -->
+            <div class="col-md-2">
+                <select class="form-select bg-dark text-white border-warning"
+                        @bind="FiltroPago">
+                    <option value="">Todas las opciones de pago</option>
+                    <option value="MercadoPago">MercadoPago</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Cuenta Link">Cuenta Link</option>
+                    <option value="Contado">Contado</option>
+                </select>
+            </div>
+
+            <!-- Botón limpiar + contador -->
+            <div class="col-md-4 d-flex align-items-end">
+                <button class="btn btn-outline-dark w-100 text-white border-white"
+                    @onclick="LimpiarFiltros">
+                     Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
 
     @if (Cargando)
     {
@@ -75,10 +90,10 @@
     }
     else
     {
-        <table class="table align-middle">
+        <table class="table table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th class="visually-hidden">ID</th>@* ID oculto visualmente pero presente en DOM para desarrolladores *@
+                    <th class="visually-hidden">ID</th>
                     <th>Cliente</th>
                     <th>Rubro</th>
                     <th>Opción de Pago</th>
@@ -105,8 +120,7 @@
                 {
                     @foreach (var p in Presupuestos)
                     {
-                        @* añadimos data-presupuesto-id para inspección rápida y dejamos la celda ID invisible *@
-                        <tr data-presupuesto-id="@p.Id">
+                        <tr>
                             <td class="visually-hidden">@p.Id</td>
                             <td>@p.NombreCliente</td>
                             <td>@p.RubroNombre</td>
@@ -151,20 +165,55 @@
 
 @code {
     private List<GET_PresupuestoDTO> Presupuestos { get; set; } = new();
+    private List<GET_PresupuestoDTO> PresupuestosOriginales { get; set; } = new();
     private List<GET_ObraDTO> Obras { get; set; } = new();
     private bool Cargando = true;
 
-    // 4. Clase interna para el modelo del EditForm
-    private class FiltroPresupuestosModel
+    // 🔍 Filtros (con setters que disparan el filtrado automático)
+    private string _filtroCliente = string.Empty;
+    private string _filtroRubro = string.Empty;
+    private string _filtroEstado = string.Empty;
+    private string _filtroPago = string.Empty;
+
+    private string FiltroCliente
     {
-        public string Cliente { get; set; } = string.Empty;
-        public string Rubro { get; set; } = string.Empty;
-        public string Estado { get; set; } = string.Empty;
-        public string Pago { get; set; } = string.Empty;
+        get => _filtroCliente;
+        set
+        {
+            _filtroCliente = value ?? string.Empty;
+            AplicarFiltros();
+        }
     }
 
-    // 5. Instancia del modelo de filtros
-    private FiltroPresupuestosModel filtros = new();
+    private string FiltroRubro
+    {
+        get => _filtroRubro;
+        set
+        {
+            _filtroRubro = value ?? string.Empty;
+            AplicarFiltros();
+        }
+    }
+
+    private string FiltroEstado
+    {
+        get => _filtroEstado;
+        set
+        {
+            _filtroEstado = value ?? string.Empty;
+            AplicarFiltros();
+        }
+    }
+
+    private string FiltroPago
+    {
+        get => _filtroPago;
+        set
+        {
+            _filtroPago = value ?? string.Empty;
+            AplicarFiltros();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -176,12 +225,17 @@
         try
         {
             Cargando = true;
+
             var presupuestosTask = PresupuestoService.GetAll() ?? Task.FromResult(new List<GET_PresupuestoDTO>());
             var obrasTask = ObraService.GetAllAsync() ?? Task.FromResult(new List<GET_ObraDTO>());
 
             await Task.WhenAll(presupuestosTask, obrasTask);
-            Presupuestos = await presupuestosTask;
-            Obras = await obrasTask;
+
+            PresupuestosOriginales = await presupuestosTask ?? new List<GET_PresupuestoDTO>();
+            Obras = await obrasTask ?? new List<GET_ObraDTO>();
+
+            // Inicialmente mostramos todos
+            Presupuestos = PresupuestosOriginales.ToList();
         }
         catch (Exception ex)
         {
@@ -225,12 +279,14 @@
             await JSRuntime.InvokeVoidAsync("alert", "❌ No se puede eliminar un presupuesto que ya está asociado a una obra.");
             return;
         }
+
         bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este presupuesto?");
         if (!confirmar) return;
 
         try
         {
             await PresupuestoService.Delete(id);
+            PresupuestosOriginales.RemoveAll(p => p.Id == id);
             Presupuestos.RemoveAll(p => p.Id == id);
             await JSRuntime.InvokeVoidAsync("alert", "✅ Presupuesto eliminado correctamente.");
         }
@@ -281,43 +337,58 @@
         }
     }
 
-    private List<string> RubrosDisponibles => Presupuestos
+    // Rubros únicos disponibles (para el combo)
+    private List<string> RubrosDisponibles => PresupuestosOriginales
         .Select(p => p.RubroNombre)
+        .Where(r => !string.IsNullOrWhiteSpace(r))
         .Distinct()
         .OrderBy(p => p)
         .ToList();
 
-    // 6. Método 'AplicarFiltros' actualizado para usar el modelo 'filtros'
-    private async Task AplicarFiltros()
+    // Aplica todos los filtros sobre la lista original en memoria
+    private void AplicarFiltros()
     {
-        Cargando = true;
-        var presupuestosFiltrados = await PresupuestoService.GetAll();
-
-        if (presupuestosFiltrados == null)
+        if (PresupuestosOriginales == null)
         {
             Presupuestos = new List<GET_PresupuestoDTO>();
-            Cargando = false;
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(filtros.Cliente))
-            presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => p.NombreCliente != null && p.NombreCliente.Contains(filtros.Cliente, StringComparison.OrdinalIgnoreCase)).ToList();
+        IEnumerable<GET_PresupuestoDTO> query = PresupuestosOriginales;
 
-        if (!string.IsNullOrWhiteSpace(filtros.Rubro))
-            presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => p.RubroNombre == filtros.Rubro).ToList();
+        if (!string.IsNullOrWhiteSpace(FiltroCliente))
+        {
+            var s = FiltroCliente.Trim();
+            query = query.Where(p =>
+                !string.IsNullOrEmpty(p.NombreCliente) &&
+                p.NombreCliente.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
 
-        if (!string.IsNullOrWhiteSpace(filtros.Estado))
-            presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => GetEstadoPresupuesto(p).Status == filtros.Estado).ToList();
+        if (!string.IsNullOrWhiteSpace(FiltroRubro))
+        {
+            query = query.Where(p => p.RubroNombre == FiltroRubro);
+        }
 
-        if (!string.IsNullOrWhiteSpace(filtros.Pago))
-            presupuestosFiltrados = presupuestosFiltrados
-                .Where(p => p.OpcionDePago.ToString() == filtros.Pago).ToList(); // Convertir Enum a string para comparar
+        if (!string.IsNullOrWhiteSpace(FiltroEstado))
+        {
+            query = query.Where(p => GetEstadoPresupuesto(p).Status == FiltroEstado);
+        }
 
-        Presupuestos = presupuestosFiltrados;
-        Cargando = false;
+        if (!string.IsNullOrWhiteSpace(FiltroPago))
+        {
+            query = query.Where(p => p.OpcionDePago.ToString() == FiltroPago);
+        }
+
+        Presupuestos = query.ToList();
+    }
+
+    private void LimpiarFiltros()
+    {
+        FiltroCliente = string.Empty;
+        FiltroRubro = string.Empty;
+        FiltroEstado = string.Empty;
+        FiltroPago = string.Empty;
+        // Los setters ya llaman a AplicarFiltros, así que con esto vuelve a la lista completa
     }
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
