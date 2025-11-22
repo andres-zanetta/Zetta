@@ -1,4 +1,6 @@
 ﻿@page "/obras"
+@page "/obras/{ObraId:int}"
+@using Microsoft.AspNetCore.Components
 @using Zetta.Shared.DTOS.Obra
 @using Zetta.Shared.DTOS.Presupuesto
 @using Zetta.Shared.DTOS.Cliente
@@ -17,12 +19,6 @@
         <h1>Gestión de Obras</h1>
         <p class="subtitle">Ver, crear y administrar las obras relacionadas a presupuestos y clientes.</p>
     </header>
-
-
-
-
-
-
 
     @if (Cargando)
     {
@@ -55,7 +51,7 @@
                     {
                         @foreach (var o in Obras)
                         {
-                            <tr>
+                            <tr data-obra-id="@o.Id">
                                 <td class="visually-hidden">@o.Id</td>
                                 <td>
                                     @{
@@ -71,14 +67,14 @@
                                     }
                                     @nombreCliente
                                 </td>
-                                <td>@o.PresupuestoId</td>
+                                <td title="@(pres != null ? GetInfoPresupuesto(pres) : string.Empty)">
+                                    @($"nro {o.PresupuestoId}")
+                                </td>
                                 <td>@o.EstadoObra</td>
                                 <td>@o.FechaInicio.ToShortDateString()</td>
                                 <td>
                                     @{
-                                        var presupuesto = Clientes
-                                        .SelectMany(c => c.Presupuestos ?? new List<GET_PresupuestoDTO>())
-                                        .FirstOrDefault(p => p.Id == o.PresupuestoId);
+                                        var presupuesto = pres; // ya está calculado arriba
                                         var tiempoAproxObra = presupuesto?.TiempoAproxObra ?? "—";
                                     }
                                     @tiempoAproxObra
@@ -129,8 +125,10 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">1. Seleccione un Cliente *</label>
-                                @* Se usa @bind-Value a la propiedad intermediaria *@
-                                <InputSelect class="form-select" @bind-Value="SelectedClientId" disabled="@Editando">
+                                @* Bind al property SelectedClientId que maneja la carga de presupuestos *@
+                                <InputSelect class="form-select"
+                                             @bind-Value="SelectedClientId"
+                                             disabled="@Editando">
                                     <option value="0">Seleccione un cliente</option>
                                     @foreach (var c in Clientes)
                                     {
@@ -141,8 +139,10 @@
 
                             <div class="col-md-6">
                                 <label class="form-label">2. Seleccione un Presupuesto *</label>
-                                @* Se usa @bind-Value a la propiedad intermediaria *@
-                                <InputSelect class="form-select" @bind-Value="SelectedPresupuestoId" disabled="@(ObraModel.ClienteId == 0 || Editando)">
+                                @* Bind al property SelectedPresupuestoId *@
+                                <InputSelect class="form-select"
+                                             @bind-Value="SelectedPresupuestoId"
+                                             disabled="@(SelectedClientId == 0 || Editando)">
                                     <option value="0">... (Seleccione un cliente primero) ...</option>
                                     @foreach (var p in PresupuestosDelCliente)
                                     {
@@ -207,6 +207,8 @@
 }
 
 @code {
+    [Parameter] public int? ObraId { get; set; }
+
     private List<GET_ObraDTO> Obras { get; set; } = new();
     private List<GET_ClienteDTO> Clientes { get; set; } = new();
     private bool Cargando = true;
@@ -217,45 +219,75 @@
     private string ComentariosTexto = string.Empty;
     private int ObraEditarId = 0;
 
+    // indicador temporal para evitar lógica que resetea selects mientras se cargan datos de edición
+    private bool _cargandoEdicion = false;
+
     private List<GET_PresupuestoDTO> PresupuestosDelCliente { get; set; } = new();
 
-    // --- PROPIEDAD INTERMEDIARIA PARA EL CLIENTE ---
+    // Propiedad con lógica para cargar presupuestos al seleccionar cliente
+    private int _selectedClientId;
     private int SelectedClientId
     {
-        get => ObraModel.ClienteId;
+        get => _selectedClientId;
         set
         {
+            _selectedClientId = value;
+            // asignar también al modelo para que esté sincronizado
             ObraModel.ClienteId = value;
 
-            // Esta lógica solo debe ejecutarse si NO estamos editando
-            if (!Editando)
+            // Si estamos en flujo de edición inicial no ejecutar la recarga
+            if (Editando || _cargandoEdicion) return;
+
+            PresupuestosDelCliente.Clear();
+            SelectedPresupuestoId = 0;
+            if (value > 0)
             {
-                PresupuestosDelCliente.Clear();
-                ObraModel.PresupuestoId = 0; // Resetear presupuesto
-                if (value > 0)
+                // Si el cliente ya trae presupuestos cargadas en memoria, úsalas.
+                var cliente = Clientes.FirstOrDefault(c => c.Id == value);
+                if (cliente != null && cliente.Presupuestos != null && cliente.Presupuestos.Any())
                 {
-                    var cliente = Clientes.FirstOrDefault(c => c.Id == value);
-                    if (cliente != null && cliente.Presupuestos != null)
-                    {
-                        PresupuestosDelCliente = cliente.Presupuestos
+                    PresupuestosDelCliente = cliente.Presupuestos
                                                     .OrderByDescending(p => p.FechaCreacion)
                                                     .ToList();
-                    }
+                }
+                else
+                {
+                    // Si no vienen incluidas, pedir al servicio el cliente con detalles.
+                    // Invocar async desde setter mediante InvokeAsync.
+                    _ = InvokeAsync(async () =>
+                      {
+                          try
+                          {
+                              var clienteConDetalle = await ClienteService.GetById(value);
+                              if (clienteConDetalle?.Presupuestos != null)
+                              {
+                                  PresupuestosDelCliente = clienteConDetalle.Presupuestos
+                                                                             .OrderByDescending(p => p.FechaCreacion)
+                                                                             .ToList();
+                                  StateHasChanged();
+                              }
+                          }
+                          catch (Exception ex)
+                          {
+                              Console.WriteLine($"Error cargando presupuestos del cliente {value}: {ex.Message}");
+                          }
+                      });
                 }
             }
-            // StateHasChanged() no es necesario aquí porque el @bind-Value lo maneja
         }
     }
 
-    // --- PROPIEDAD INTERMEDIARIA PARA EL PRESUPUESTO ---
+    // Propiedad para presupuesto seleccionado (con verificación)
+    private int _selectedPresupuestoId;
     private int SelectedPresupuestoId
     {
-        get => ObraModel.PresupuestoId;
+        get => _selectedPresupuestoId;
         set
         {
+            _selectedPresupuestoId = value;
             ObraModel.PresupuestoId = value;
 
-            // La lógica de la alerta solo se aplica al crear (Editando = false)
+            // Si es creación (no editando) validar aceptación / vencimiento
             if (value > 0 && !Editando)
             {
                 var presupuesto = PresupuestosDelCliente.FirstOrDefault(p => p.Id == value);
@@ -268,28 +300,66 @@
                         if (DateTime.Today > fechaVencimiento) estaVencido = true;
                     }
                     string tipoEstado = estaVencido ? "VENCIDO" : "PENDIENTE";
-
-                    InvokeAsync(() => VerificarAceptacionPresupuesto(tipoEstado));
+                    _ = InvokeAsync(() => VerificarAceptacionPresupuesto(tipoEstado));
                 }
             }
-        }
-    }
-
-    private async Task VerificarAceptacionPresupuesto(string tipoEstado)
-    {
-        string mensaje = $"El presupuesto seleccionado está '{tipoEstado}' y no ha sido aceptado formalmente.\n\n" +
-                         "¿Desea continuar y crear la obra de todos modos?";
-        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", mensaje);
-        if (!confirmar)
-        {
-            ObraModel.PresupuestoId = 0;
-            StateHasChanged(); // Forzar actualización de la UI
         }
     }
 
     protected override async Task OnInitializedAsync()
     {
         await CargarDatosIniciales();
+
+        if (ObraId.HasValue)
+        {
+            _cargandoEdicion = true;
+            try
+            {
+                var dto = await ObraService.GetByIdAsync(ObraId.Value);
+                if (dto != null)
+                {
+                    ObraModel = new PUT_ObraDTO
+                    {
+                        ClienteId = dto.ClienteId,
+                        PresupuestoId = dto.PresupuestoId,
+                        FechaInicio = dto.FechaInicio,
+                        EstadoObra = dto.EstadoObra,
+                        Comentarios = dto.Comentarios,
+                        MaterialesCompradosPorUsuario = dto.MaterialesCompradosPorUsuario,
+                        MaterialesEntregados = dto.MaterialesEntregados
+                    };
+
+                    // establecer selects sin disparar recarga
+                    _selectedClientId = ObraModel.ClienteId;
+                    var cliente = Clientes.FirstOrDefault(c => c.Id == ObraModel.ClienteId);
+                    if (cliente != null && cliente.Presupuestos != null)
+                    {
+                        PresupuestosDelCliente = cliente.Presupuestos.OrderByDescending(p => p.FechaCreacion).ToList();
+                    }
+                    else
+                    {
+                        var clienteConDetalle = await ClienteService.GetById(ObraModel.ClienteId);
+                        if (clienteConDetalle?.Presupuestos != null)
+                            PresupuestosDelCliente = clienteConDetalle.Presupuestos.OrderByDescending(p => p.FechaCreacion).ToList();
+                    }
+
+                    _selectedPresupuestoId = ObraModel.PresupuestoId;
+
+                    Editando = true;
+                    ObraEditarId = dto.Id;
+                    MostrarModal = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cargando obra para edición: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar la obra: {ex.Message}");
+            }
+            finally
+            {
+                _cargandoEdicion = false;
+            }
+        }
     }
 
     private async Task CargarDatosIniciales()
@@ -311,15 +381,21 @@
 
     private void AbrirModalNuevo()
     {
-        Editando = false; // Asegurarse de que Editando sea false
+        Editando = false;
+
         ObraModel = new PUT_ObraDTO
         {
             FechaInicio = DateTime.Today,
             EstadoObra = EstadoObra.Iniciada.ToString(),
             ClienteId = 0,
+            PresupuestoId = 0,
             MaterialesCompradosPorUsuario = null,
             MaterialesEntregados = null
         };
+
+        SelectedClientId = 0;
+        SelectedPresupuestoId = 0;
+
         ComentariosTexto = string.Empty;
         PresupuestosDelCliente.Clear();
         MostrarModal = true;
@@ -327,17 +403,24 @@
 
     private void AbrirModalEditar(GET_ObraDTO dto)
     {
-        Editando = true; // Establecer Editando en true
+        Editando = true;
         ObraEditarId = dto.Id;
         ComentariosTexto = dto.Comentarios != null ? string.Join("\n", dto.Comentarios) : string.Empty;
 
-        // Poblar la lista de presupuestos ANTES de asignar el modelo
         var cliente = Clientes.FirstOrDefault(c => c.Id == dto.ClienteId);
         if (cliente != null && cliente.Presupuestos != null)
         {
-            PresupuestosDelCliente = cliente.Presupuestos
-                                        .OrderByDescending(p => p.FechaCreacion)
-                                        .ToList();
+            PresupuestosDelCliente = cliente.Presupuestos.OrderByDescending(p => p.FechaCreacion).ToList();
+        }
+        else
+        {
+            _ = InvokeAsync(async () =>
+              {
+                  var clienteDetalle = await ClienteService.GetById(dto.ClienteId);
+                  if (clienteDetalle?.Presupuestos != null)
+                      PresupuestosDelCliente = clienteDetalle.Presupuestos.OrderByDescending(p => p.FechaCreacion).ToList();
+                  StateHasChanged();
+              });
         }
 
         ObraModel = new PUT_ObraDTO
@@ -351,17 +434,29 @@
             MaterialesEntregados = dto.MaterialesEntregados
         };
 
+        // establecer selects sin disparar la recarga innecesaria
+        _selectedClientId = dto.ClienteId;
+        _selectedPresupuestoId = dto.PresupuestoId;
+
         MostrarModal = true;
     }
 
-    // --- ESTOS MÉTODOS @onchange FUERON ELIMINADOS ---
-    // private async Task OnClienteChanged(ChangeEventArgs e) { ... }
-    // private async Task OnPresupuestoChanged(ChangeEventArgs e) { ... }
-    // La lógica ahora está en las propiedades 'set'
-
+    private async Task VerificarAceptacionPresupuesto(string tipoEstado)
+    {
+        string mensaje = $"El presupuesto seleccionado está '{tipoEstado}' y no ha sido aceptado formalmente.\n\n" +
+                         "¿Desea continuar y crear la obra de todos modos?";
+        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", mensaje);
+        if (!confirmar)
+        {
+            ObraModel.PresupuestoId = 0;
+            SelectedPresupuestoId = 0;
+            StateHasChanged();
+        }
+    }
 
     private string GetInfoPresupuesto(GET_PresupuestoDTO p)
     {
+        if (p == null) return string.Empty;
         if (p.FechaCreacion.Year < 1900)
         {
             return $"ID: {p.Id} (Fecha inválida) - {(p.Aceptado ? "Aceptado" : "Pendiente")}";
@@ -383,6 +478,7 @@
     {
         try
         {
+                            // ya sincronizado en los setters
             if (ObraModel.ClienteId == 0)
             {
                 await JSRuntime.InvokeVoidAsync("alert", "⚠️ Debe seleccionar un cliente.");
