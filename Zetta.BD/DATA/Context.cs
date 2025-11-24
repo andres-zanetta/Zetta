@@ -18,6 +18,7 @@ namespace Zetta.BD.DATA
         public DbSet<Obra> Obras { get; set; }
         public DbSet<Comentario> Comentarios { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<VisitaTecnica> VisitasTecnicas { get; set; }
 
         public Context(DbContextOptions<Context> options) : base(options)
         {
@@ -74,6 +75,23 @@ namespace Zetta.BD.DATA
                       .WithMany()
                       .HasForeignKey(d => d.ItemPresupuestoId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configuración de VisitaTecnica
+            modelBuilder.Entity<VisitaTecnica>(entity =>
+            {
+                entity.Property(v => v.CostoEstimado)
+                      .HasPrecision(18, 2);
+
+                entity.HasOne(v => v.Cliente)
+                      .WithMany() // Un cliente tiene muchas visitas
+                      .HasForeignKey(v => v.ClienteId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(v => v.Obra)
+                      .WithMany()
+                      .HasForeignKey(v => v.ObraId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
         }
 

@@ -21,6 +21,8 @@ builder.Services.AddScoped<ObraService>();
 builder.Services.AddScoped<IObraService, ObraService>();
 builder.Services.AddScoped<EstadisticaService>();
 builder.Services.AddScoped<IEstadisticaService, EstadisticaService>();
+builder.Services.AddScoped<VisitaTecnicaService>();
+builder.Services.AddScoped<IVisitaTecnicaService, VisitaTecnicaService>();
 
 
 await builder.Build().RunAsync();

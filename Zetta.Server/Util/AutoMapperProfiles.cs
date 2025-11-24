@@ -5,6 +5,7 @@ using Zetta.Shared.DTOS.ItemPresupuesto;
 using Zetta.Shared.DTOS.Obra;
 using Zetta.Shared.DTOS.PresItemDetalle;
 using Zetta.Shared.DTOS.Presupuesto;
+using Zetta.Shared.DTOS.VisitaTecnica;
 
 namespace Zetta.Server.Util // O tu namespace correcto
 {
@@ -108,6 +109,24 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId))
                 .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
                 .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
+
+            // --- VISITAS TÉCNICAS ---
+
+            CreateMap<VisitaTecnica, GET_VisitaTecnicaDTO>()
+                .ForMember(dest => dest.NombreCliente, opt => opt.MapFrom(src => src.Cliente != null ? $"{src.Cliente.Nombre} {src.Cliente.Apellido}" : "Sin Cliente"))
+                .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => src.Estado.ToString()))
+                .ForMember(dest => dest.Tipo, opt => opt.MapFrom(src => src.Tipo.ToString()));
+
+            CreateMap<POST_VisitaTecnicaDTO, VisitaTecnica>()
+                .ForMember(dest => dest.Cliente, opt => opt.Ignore())
+                .ForMember(dest => dest.Obra, opt => opt.Ignore())
+                .ForMember(dest => dest.Tipo, opt => opt.MapFrom(src => (TipoVisitaTecnica)src.Tipo));
+
+            CreateMap<PUT_VisitaTecnicaDTO, VisitaTecnica>()
+                .ForMember(dest => dest.Cliente, opt => opt.Ignore())
+                .ForMember(dest => dest.Obra, opt => opt.Ignore())
+                .ForMember(dest => dest.Tipo, opt => opt.MapFrom(src => (TipoVisitaTecnica)src.Tipo))
+                .ForMember(dest => dest.Estado, opt => opt.MapFrom(src => (EstadoVisita)src.Estado));
         }
     }
 }

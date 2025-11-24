@@ -1,0 +1,494 @@
+﻿@page "/visitas"
+@inject Zetta.Client.Servicios.IVisitaTecnicaService VisitaService
+@inject Zetta.Client.Servicios.IClienteService ClienteService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
+    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nueva Visita</button>
+</div>
+
+<div class="clientes-container">
+    <header class="clientes-header text-center mb-4">
+        <h1>Gestión de Visitas Técnicas</h1>
+        <p class="subtitle">Agenda y seguimiento de mantenimientos y reparaciones.</p>
+    </header>
+
+    <div class="filtros-container mb-4 p-3 bg-black rounded shadow-sm">
+        <h5 class="mb-3">🔍 Filtrar visitas</h5>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <input type="text"
+                       class="form-control bg-dark text-white border-warning"
+                       placeholder="Buscar por cliente..."
+                       @bind="FiltroCliente"
+                       @bind:event="oninput" />
+            </div>
+
+            <div class="col-md-3">
+                <select class="form-select bg-dark text-white border-warning" @bind="FiltroEstado">
+                    <option value="">Todos los estados</option>
+                    @foreach (var estado in Enum.GetValues<EstadoVisitaDTO>())
+                    {
+                        <option value="@estado.ToString()">@estado.ToString()</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select class="form-select bg-dark text-white border-warning" @bind="FiltroTipo">
+                    <option value="">Todos los tipos</option>
+                    @foreach (var tipo in Enum.GetValues<TipoVisitaDTO>())
+                    {
+                        <option value="@tipo.ToString()">@tipo.ToString()</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="LimpiarFiltros">
+                    Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (Cargando)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-3">Cargando visitas...</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Dirección</th>
+                        <th>Equipo</th>
+                        <th>Tipo</th>
+                        <th>Costo Est.</th>
+                        <th>Estado</th>
+                        <th>Observaciones</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (VisitasFiltradas == null || !VisitasFiltradas.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted">No hay visitas registradas con estos filtros.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var v in VisitasFiltradas)
+                        {
+                            <tr>
+                                <td>@v.FechaVisita.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@v.NombreCliente</td>
+                                <td>
+                                    @v.Direccion
+                                </td>
+                                <td>
+                                    @v.Equipo
+                                </td>
+                                <td>
+                                    <span class="badge bg-dark border border-secondary">@v.Tipo</span>
+                                </td>
+                                <td>
+                                    @(v.CostoEstimado.HasValue? v.CostoEstimado.Value.ToString("C", new CultureInfo("es-AR")) : "-")
+                                </td>
+                                <td>
+                                    @{
+                                        var badgeClass = GetBadgeClass(v.Estado);
+                                    }
+                                    <span class="badge @badgeClass">@v.Estado</span>
+                                </td>
+                                <td class="text-truncate" style="max-width: 150px;" title="@v.Observaciones">
+                                    @(string.IsNullOrWhiteSpace(v.Observaciones) ? "-" : v.Observaciones)
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-outline-primary me-1"
+                                            title="Editar Visita"
+                                            @onclick="() => AbrirModalEditar(v)">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            title="Eliminar Visita"
+                                            @onclick="() => EliminarVisita(v.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@* --- MODAL DE CREACIÓN / EDICIÓN --- *@
+@if (MostrarModal)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <EditForm Model="@VisitaModel" OnValidSubmit="GuardarVisita">
+                    <DataAnnotationsValidator />
+
+                    <div class="modal-header">
+                        <h5 class="modal-title text-naranja">@(Editando ? "Editar Visita" : "Nueva Visita Técnica")</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
+                    </div>
+
+                    <div class="modal-body bg-dark text-white">
+                        <ValidationSummary />
+
+                        <div class="row g-3">
+                            @* Cliente *@
+                            <div class="col-md-6">
+                                <label class="form-label">Cliente *</label>
+                                <InputSelect class="form-select bg-black text-white border-secondary"
+                                             @bind-Value="VisitaModel.ClienteId"
+                                             disabled="@Editando">
+                                    <option value="0">Seleccione un cliente...</option>
+                                    @foreach (var c in Clientes)
+                                    {
+                                        <option value="@c.Id">@c.Nombre @c.Apellido</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => VisitaModel.ClienteId)" />
+                            </div>
+
+                            @* Fecha *@
+                            <div class="col-md-6">
+                                <label class="form-label">Fecha y Hora *</label>
+                                <InputDate Type="InputDateType.DateTimeLocal"
+                                           class="form-control bg-black text-white border-secondary"
+                                           @bind-Value="VisitaModel.FechaVisita" />
+                                <ValidationMessage For="@(() => VisitaModel.FechaVisita)" />
+                            </div>
+
+                            @* Dirección *@
+                            <div class="col-md-12">
+                                <label class="form-label">Dirección *</label>
+                                <InputText class="form-control bg-black text-white border-secondary"
+                                           @bind-Value="VisitaModel.Direccion"
+                                           placeholder="Ej: Av. Colón 5000 - Piso 3" />
+                                <ValidationMessage For="@(() => VisitaModel.Direccion)" />
+                            </div>
+
+                            @* Equipo / Motivo *@
+                            <div class="col-md-8">
+                                <label class="form-label">Equipo a revisar / Motivo *</label>
+                                <InputText class="form-control bg-black text-white border-secondary"
+                                           @bind-Value="VisitaModel.Equipo"
+                                           placeholder="Ej: Split Samsung 3000F (Error E4)" />
+                                <ValidationMessage For="@(() => VisitaModel.Equipo)" />
+                            </div>
+
+                            @* Tipo de Visita *@
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo</label>
+                                <InputSelect class="form-select bg-black text-white border-secondary" @bind-Value="VisitaModel.Tipo">
+                                    @foreach (var tipo in Enum.GetValues<TipoVisitaDTO>())
+                                    {
+                                        <option value="@((int)tipo)">@tipo.ToString()</option>
+                                    }
+                                </InputSelect>
+                            </div>
+
+                            @* Costo Estimado *@
+                            <div class="col-md-4">
+                                <label class="form-label">Costo Estimado ($)</label>
+                                <InputNumber class="form-control bg-black text-white border-secondary"
+                                             @bind-Value="VisitaModel.CostoEstimado" />
+                            </div>
+
+                            @* Estado (Solo visible al editar) *@
+                            @if (Editando)
+                            {
+                                <div class="col-md-4">
+                                    <label class="form-label">Estado</label>
+                                    <InputSelect class="form-select bg-black text-white border-secondary" @bind-Value="VisitaModel.Estado">
+                                        @foreach (var est in Enum.GetValues<EstadoVisitaDTO>())
+                                        {
+                                            <option value="@((int)est)">@est.ToString()</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            }
+
+                            @* Observaciones *@
+                            <div class="col-12">
+                                <label class="form-label">Observaciones / Diagnóstico</label>
+                                <InputTextArea class="form-control bg-black text-white border-secondary"
+                                               rows="3"
+                                               @bind-Value="VisitaModel.Observaciones" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer bg-dark border-top border-secondary">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-naranja" disabled="@Guardando">
+                            @(Guardando ? "Guardando..." : (Editando ? "Guardar Cambios" : "Agendar Visita"))
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Listas de datos
+    private List<GET_VisitaTecnicaDTO> VisitasOriginales = new();
+    private List<GET_VisitaTecnicaDTO> VisitasFiltradas = new();
+    private List<GET_ClienteDTO> Clientes = new();
+
+    // Estados de UI
+    private bool Cargando = true;
+    private bool MostrarModal = false;
+    private bool Editando = false;
+    private bool Guardando = false;
+
+    private VisitaFormModel VisitaModel = new();
+
+    // Filtros
+    private string _filtroCliente = string.Empty;
+    private string _filtroEstado = string.Empty;
+    private string _filtroTipo = string.Empty;
+
+    public string FiltroCliente
+    {
+        get => _filtroCliente;
+        set { _filtroCliente = value; AplicarFiltros(); }
+    }
+    public string FiltroEstado
+    {
+        get => _filtroEstado;
+        set { _filtroEstado = value; AplicarFiltros(); }
+    }
+    public string FiltroTipo
+    {
+        get => _filtroTipo;
+        set { _filtroTipo = value; AplicarFiltros(); }
+    }
+
+    // Clase auxiliar para el formulario (combina propiedades de POST y PUT)
+    public class VisitaFormModel
+    {
+        public int Id { get; set; }
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Seleccione un cliente")]
+        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Seleccione un cliente")]
+        public int ClienteId { get; set; }
+        public DateTime FechaVisita { get; set; } = DateTime.Now;
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Direccion { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Equipo { get; set; } = "";
+        public int Tipo { get; set; } // Enum int
+        public int Estado { get; set; } // Enum int
+        public string? Observaciones { get; set; }
+        public decimal? CostoEstimado { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        Cargando = true;
+        try
+        {
+            var visitasTask = VisitaService.GetAll();
+            var clientesTask = ClienteService.GetAll();
+
+            await Task.WhenAll(visitasTask, clientesTask);
+
+            VisitasOriginales = (await visitasTask) ?? new List<GET_VisitaTecnicaDTO>();
+            Clientes = (await clientesTask) ?? new List<GET_ClienteDTO>();
+
+            AplicarFiltros();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "Error al cargar datos.");
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+
+    private void AplicarFiltros()
+    {
+        IEnumerable<GET_VisitaTecnicaDTO> query = VisitasOriginales;
+
+        if (!string.IsNullOrWhiteSpace(FiltroCliente))
+        {
+            query = query.Where(v => !string.IsNullOrEmpty(v.NombreCliente) &&
+                                     v.NombreCliente.Contains(FiltroCliente, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(FiltroEstado))
+        {
+            query = query.Where(v => v.Estado == FiltroEstado);
+        }
+
+        if (!string.IsNullOrWhiteSpace(FiltroTipo))
+        {
+            query = query.Where(v => v.Tipo == FiltroTipo);
+        }
+
+        VisitasFiltradas = query.ToList();
+    }
+
+    private void LimpiarFiltros()
+    {
+        _filtroCliente = string.Empty;
+        _filtroEstado = string.Empty;
+        _filtroTipo = string.Empty;
+        AplicarFiltros();
+    }
+
+    private void AbrirModalNuevo()
+    {
+        Editando = false;
+        VisitaModel = new VisitaFormModel
+        {
+            FechaVisita = DateTime.Now.AddDays(1).Date.AddHours(9), // Mañana a las 9am por defecto
+            ClienteId = 0,
+            Estado = (int)EstadoVisitaDTO.Pendiente
+        };
+        MostrarModal = true;
+    }
+
+    private void AbrirModalEditar(GET_VisitaTecnicaDTO dto)
+    {
+        Editando = true;
+        VisitaModel = new VisitaFormModel
+        {
+            Id = dto.Id,
+            ClienteId = dto.ClienteId,
+            FechaVisita = dto.FechaVisita,
+            Direccion = dto.Direccion,
+            Equipo = dto.Equipo,
+            Tipo = dto.TipoValue, 
+            Estado = dto.EstadoValue,
+            Observaciones = dto.Observaciones,
+            CostoEstimado = dto.CostoEstimado
+        };
+        MostrarModal = true;
+    }
+
+    private async Task GuardarVisita()
+    {
+        Guardando = true;
+        try
+        {
+            // Logica si es nuevo y selecciono cliente, autocompletar direccion si esta vacia
+            if (!Editando && string.IsNullOrWhiteSpace(VisitaModel.Direccion))
+            {
+                var cliente = Clientes.FirstOrDefault(c => c.Id == VisitaModel.ClienteId);
+                if (cliente != null && !string.IsNullOrWhiteSpace(cliente.Direccion))
+                {
+                    VisitaModel.Direccion = cliente.Direccion;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(VisitaModel.Direccion))
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "⚠️ La dirección es obligatoria.");
+                Guardando = false;
+                return;
+            }
+
+            if (Editando)
+            {
+                var putDto = new PUT_VisitaTecnicaDTO
+                {
+                    Id = VisitaModel.Id,
+                    ClienteId = VisitaModel.ClienteId,
+                    FechaVisita = VisitaModel.FechaVisita,
+                    Direccion = VisitaModel.Direccion,
+                    Equipo = VisitaModel.Equipo,
+                    Tipo = VisitaModel.Tipo,
+                    Estado = VisitaModel.Estado,
+                    Observaciones = VisitaModel.Observaciones,
+                    CostoEstimado = VisitaModel.CostoEstimado
+                };
+                await VisitaService.Update(VisitaModel.Id, putDto);
+            }
+            else
+            {
+                var postDto = new POST_VisitaTecnicaDTO
+                {
+                    ClienteId = VisitaModel.ClienteId,
+                    FechaVisita = VisitaModel.FechaVisita,
+                    Direccion = VisitaModel.Direccion,
+                    Equipo = VisitaModel.Equipo,
+                    Tipo = VisitaModel.Tipo,
+                    Observaciones = VisitaModel.Observaciones,
+                    CostoEstimado = VisitaModel.CostoEstimado
+                };
+                await VisitaService.Create(postDto);
+            }
+
+            CerrarModal();
+            await CargarDatos(); // Recargar lista
+            await JSRuntime.InvokeVoidAsync("alert", "✅ Operación exitosa.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", "❌ Ocurrió un error al guardar.");
+        }
+        finally
+        {
+            Guardando = false;
+        }
+    }
+
+    private async Task EliminarVisita(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta visita?"))
+        {
+            try
+            {
+                await VisitaService.Delete(id);
+                VisitasOriginales.RemoveAll(v => v.Id == id);
+                AplicarFiltros();
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al eliminar: {ex.Message}");
+            }
+        }
+    }
+
+    private void CerrarModal() => MostrarModal = false;
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
+
+    // Helper para colores de las badges
+    private string GetBadgeClass(string estado) => estado switch
+    {
+        "Pendiente" => "bg-warning text-dark",
+        "Completada" => "bg-success",
+        "Cancelada" => "bg-danger",
+        "Reprogramada" => "bg-info text-dark",
+        _ => "bg-secondary"
+    };
+}

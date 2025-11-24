@@ -35,6 +35,7 @@ builder.Services.AddScoped<IItemPresupuestoRepositorio, ItemPresupuestoRepositor
 builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
 builder.Services.AddScoped<IObraRepositorio, ObraRepositorio>();
 builder.Services.AddScoped<IItemPresupuestoRepositorio, ItemPresupuestoRepositorio>();
+builder.Services.AddScoped<IVisitaTecnicaRepositorio, VisitaTecnicaRepositorio>();
 
 
 var app = builder.Build();

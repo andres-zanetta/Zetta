@@ -286,6 +286,56 @@ namespace Zetta.BD.Migrations
                     b.ToTable("Usuarios");
                 });
 
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.VisitaTecnica", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("CostoEstimado")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Equipo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaVisita")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ObraId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Tipo")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId");
+
+                    b.HasIndex("ObraId");
+
+                    b.ToTable("VisitasTecnicas");
+                });
+
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Comentario", b =>
                 {
                     b.HasOne("Zetta.BD.DATA.ENTITY.Obra", "Obra")
@@ -344,6 +394,24 @@ namespace Zetta.BD.Migrations
                         .IsRequired();
 
                     b.Navigation("Cliente");
+                });
+
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.VisitaTecnica", b =>
+                {
+                    b.HasOne("Zetta.BD.DATA.ENTITY.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zetta.BD.DATA.ENTITY.Obra", "Obra")
+                        .WithMany()
+                        .HasForeignKey("ObraId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cliente");
+
+                    b.Navigation("Obra");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Cliente", b =>
