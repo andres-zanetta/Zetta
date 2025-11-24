@@ -138,7 +138,7 @@
 @* --- MODAL DE CREACIÓN / EDICIÓN --- *@
 @if (MostrarModal)
 {
-    <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal d-block" tabindex="-1" role="dialog" style="background: rgba(0,0,0,0.4);">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <EditForm Model="@VisitaModel" OnValidSubmit="GuardarVisita">
@@ -149,14 +149,14 @@
                         <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                     </div>
 
-                    <div class="modal-body bg-dark text-white">
+                    <div class="modal-body">
                         <ValidationSummary />
 
                         <div class="row g-3">
                             @* Cliente *@
                             <div class="col-md-6">
                                 <label class="form-label">Cliente *</label>
-                                <InputSelect class="form-select bg-black text-white border-secondary"
+                                <InputSelect class="form-select border-secondary"
                                              @bind-Value="VisitaModel.ClienteId"
                                              disabled="@Editando">
                                     <option value="0">Seleccione un cliente...</option>
@@ -172,7 +172,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Fecha y Hora *</label>
                                 <InputDate Type="InputDateType.DateTimeLocal"
-                                           class="form-control bg-black text-white border-secondary"
+                                           class="form-control border-secondary"
                                            @bind-Value="VisitaModel.FechaVisita" />
                                 <ValidationMessage For="@(() => VisitaModel.FechaVisita)" />
                             </div>
@@ -180,7 +180,7 @@
                             @* Dirección *@
                             <div class="col-md-12">
                                 <label class="form-label">Dirección *</label>
-                                <InputText class="form-control bg-black text-white border-secondary"
+                                <InputText class="form-control border-secondary"
                                            @bind-Value="VisitaModel.Direccion"
                                            placeholder="Ej: Av. Colón 5000 - Piso 3" />
                                 <ValidationMessage For="@(() => VisitaModel.Direccion)" />
@@ -189,7 +189,7 @@
                             @* Equipo / Motivo *@
                             <div class="col-md-8">
                                 <label class="form-label">Equipo a revisar / Motivo *</label>
-                                <InputText class="form-control bg-black text-white border-secondary"
+                                <InputText class="form-control border-secondary"
                                            @bind-Value="VisitaModel.Equipo"
                                            placeholder="Ej: Split Samsung 3000F (Error E4)" />
                                 <ValidationMessage For="@(() => VisitaModel.Equipo)" />
@@ -198,7 +198,7 @@
                             @* Tipo de Visita *@
                             <div class="col-md-4">
                                 <label class="form-label">Tipo</label>
-                                <InputSelect class="form-select bg-black text-white border-secondary" @bind-Value="VisitaModel.Tipo">
+                                <InputSelect class="form-select border-secondary" @bind-Value="VisitaModel.Tipo">
                                     @foreach (var tipo in Enum.GetValues<TipoVisitaDTO>())
                                     {
                                         <option value="@((int)tipo)">@tipo.ToString()</option>
@@ -209,7 +209,7 @@
                             @* Costo Estimado *@
                             <div class="col-md-4">
                                 <label class="form-label">Costo Estimado ($)</label>
-                                <InputNumber class="form-control bg-black text-white border-secondary"
+                                <InputNumber class="form-control border-secondary"
                                              @bind-Value="VisitaModel.CostoEstimado" />
                             </div>
 
@@ -218,7 +218,7 @@
                             {
                                 <div class="col-md-4">
                                     <label class="form-label">Estado</label>
-                                    <InputSelect class="form-select bg-black text-white border-secondary" @bind-Value="VisitaModel.Estado">
+                                    <InputSelect class="form-select border-secondary" @bind-Value="VisitaModel.Estado">
                                         @foreach (var est in Enum.GetValues<EstadoVisitaDTO>())
                                         {
                                             <option value="@((int)est)">@est.ToString()</option>
@@ -230,7 +230,7 @@
                             @* Observaciones *@
                             <div class="col-12">
                                 <label class="form-label">Observaciones / Diagnóstico</label>
-                                <InputTextArea class="form-control bg-black text-white border-secondary"
+                                <InputTextArea class="form-control border-secondary"
                                                rows="3"
                                                @bind-Value="VisitaModel.Observaciones" />
                             </div>
