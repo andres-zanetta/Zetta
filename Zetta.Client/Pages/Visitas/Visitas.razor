@@ -1,4 +1,5 @@
 ﻿@page "/visitas"
+@using System.ComponentModel.DataAnnotations
 @inject Zetta.Client.Servicios.IVisitaTecnicaService VisitaService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject IJSRuntime JSRuntime
@@ -288,13 +289,12 @@
     public class VisitaFormModel
     {
         public int Id { get; set; }
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Seleccione un cliente")]
-        [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "Seleccione un cliente")]
+        [Required(ErrorMessage = "El Cliente es obligatorio.")]
         public int ClienteId { get; set; }
         public DateTime FechaVisita { get; set; } = DateTime.Now;
-        [System.ComponentModel.DataAnnotations.Required]
+        [Required(ErrorMessage = "La direccion de la visita es obligatoria.")]
         public string Direccion { get; set; } = "";
-        [System.ComponentModel.DataAnnotations.Required]
+        [Required(ErrorMessage = "El equipo es obligatorio.")]
         public string Equipo { get; set; } = "";
         public int Tipo { get; set; } // Enum int
         public int Estado { get; set; } // Enum int

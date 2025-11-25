@@ -40,7 +40,8 @@ namespace Zetta.BD.DATA.ENTITY
     {
         Pendiente = 0,
         Completada = 1,
-        Cancelada = 2
+        Cancelada = 2,
+        Reprogramada = 3
     }
 
     public enum TipoVisitaTecnica
