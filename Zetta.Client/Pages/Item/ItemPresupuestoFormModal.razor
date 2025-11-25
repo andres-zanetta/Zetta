@@ -3,13 +3,13 @@
 
 <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
     <div class="modal-dialog">
-        <div class="modal-content">
+        <div class="modal-content bg-dark text-white border-secondary">
             <EditForm Model="@item" OnValidSubmit="Guardar">
                 <DataAnnotationsValidator />
 
-                <div class="modal-header">
-                    <h5 class="modal-title">@(EsEdicion ? "Editar ítem de presupuesto" : "Nuevo ítem de presupuesto")</h5>
-                    <button type="button" class="btn-close" @onclick="Cerrar"></button>
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-naranja">@(EsEdicion ? "Editar Ítem" : "Nuevo Ítem")</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="Cerrar"></button>
                 </div>
 
                 <div class="modal-body">
@@ -25,52 +25,72 @@
                     <ValidationSummary />
 
                     <div class="mb-3">
-                        <label class="form-label">Nombre</label>
-                        <InputText @bind-Value="item.Nombre" class="form-control" />
+                        <label class="form-label">Nombre (Producto + Espesor/Tecnología)</label>
+                        <InputText @bind-Value="item.Nombre"
+                                   class="form-control border-secondary"
+                                   placeholder="Ej: Cable Unipolar 2.5mm / Codo 90°" />
                         <ValidationMessage For="@(() => item.Nombre)" class="text-danger" />
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Precio</label>
-                        <InputNumber @bind-Value="item.Precio" class="form-control" />
-                        <ValidationMessage For="@(() => item.Precio)" class="text-danger" />
-                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Precio ($) <br /> .</label>
+                            <InputNumber @bind-Value="item.Precio"
+                                         class="form-control border-secondary"
+                                         placeholder="0.00" />
+                            <ValidationMessage For="@(() => item.Precio)" class="text-danger" />
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Medida</label>
-                        <InputText @bind-Value="item.Medida" class="form-control" />
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Presentación / Unidad de Venta</label>
+                            <InputText @bind-Value="item.Medida"
+                                       class="form-control border-secondary"
+                                       placeholder="Ej: 100m/Unidad/Caja x 50"/>
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Material</label>
-                        <InputText @bind-Value="item.Material" class="form-control" />
+                        <InputText @bind-Value="item.Material"
+                                   class="form-control border-secondary"
+                                   placeholder="Ej: Cobre / PVC / Polipropileno" />
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <InputTextArea @bind-Value="item.Descripcion" class="form-control" />
+                        <label class="form-label">Descripción / Detalles Técnicos</label>
+                        <InputTextArea @bind-Value="item.Descripcion"
+                                       class="form-control border-secondary"
+                                       rows="2"
+                                       placeholder="Ej: Ignífugo, Normalizado IRAM, Color Rojo..." />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Marca</label>
+                            <InputText @bind-Value="item.Marca"
+                                       class="form-control border-secondary"
+                                       placeholder="Ej: Prysmian / Tigre" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fabricante</label>
+                            <InputText @bind-Value="item.Fabricante"
+                                       class="form-control border-secondary"
+                                       placeholder="Ej: Industrias S.A." />
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Fabricante</label>
-                        <InputText @bind-Value="item.Fabricante" class="form-control" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Marca</label>
-                        <InputText @bind-Value="item.Marca" class="form-control" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Fecha actualización precio</label>
-                        <InputDate @bind-Value="item.FechActuPrecio" class="form-control" />
+                        <label class="form-label">Fecha act. precio</label>
+                        <InputDate @bind-Value="item.FechActuPrecio"
+                                   class="form-control border-secondary" />
                     </div>
 
                 </div>
 
-                <div class="modal-footer">
+                <div class="modal-footer border-secondary">
                     <button type="button" class="btn btn-secondary" @onclick="Cerrar">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-naranja">
                         @(EsEdicion ? "Guardar cambios" : "Crear ítem")
                     </button>
                 </div>
@@ -81,14 +101,12 @@
 </div>
 <div class="modal-backdrop fade show"></div>
 
-
 @code {
     [Parameter] public int? ItemId { get; set; }
     [Parameter] public EventCallback OnCerrar { get; set; }
-    [Parameter] public EventCallback<int> OnGuardado { get; set; } // Devuelve el Id del item (0 si es nuevo)
+    [Parameter] public EventCallback<int> OnGuardado { get; set; }
 
     private POST_ItemPresupuestoDTO item = new() { FechActuPrecio = DateTime.Today };
-
     private bool EsEdicion => ItemId.HasValue;
     private bool Cargando = true;
     private string? Error;
@@ -102,7 +120,6 @@
                 var existente = await ItemPresupuestoService.GetById(ItemId.Value);
                 if (existente != null)
                 {
-                    // Mapeamos del DTO de lectura (GET) al DTO de formulario (POST)
                     item = new POST_ItemPresupuestoDTO
                     {
                         Nombre = existente.Nombre,
@@ -136,10 +153,8 @@
         try
         {
             int guardadoId = 0;
-
             if (EsEdicion)
             {
-                // Mapeamos al DTO de actualización (PUT)
                 var dto = new PUT_ItemPresupuestoDTO
                 {
                     Nombre = item.Nombre,
@@ -148,7 +163,7 @@
                     Material = item.Material,
                     Descripcion = item.Descripcion,
                     Fabricante = item.Fabricante,
-                    Marca = item.Marca, // Corregido: era itemDetect.Marca
+                    Marca = item.Marca,
                     FechActuPrecio = item.FechActuPrecio
                 };
                 await ItemPresupuestoService.Update(ItemId!.Value, dto);
@@ -156,19 +171,15 @@
             }
             else
             {
-                // Usamos el DTO de creación (POST)
                 await ItemPresupuestoService.Create(item);
-                // Si tu servicio .Create() devuelve el DTO con el Id, podrías capturarlo aquí
-                // guardadoId = response.Id;
             }
 
             await OnGuardado.InvokeAsync(guardadoId);
-            await Cerrar(); // Cierra el modal después de guardar
+            await Cerrar();
         }
         catch (Exception ex)
         {
             Error = $"Error al guardar: {ex.Message}";
-            // Mantenemos el modal abierto para mostrar el error
         }
     }
 
