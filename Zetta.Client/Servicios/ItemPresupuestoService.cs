@@ -47,5 +47,22 @@ namespace Zetta.Client.Servicios
             // DELETE
             await _httpClient.DeleteAsync($"{BaseUrl}/{id}");
         }
+
+        public async Task AplicarAumento(POST_AumentoMasivoDTO dto)
+        {
+            var resp = await _httpClient.PostAsJsonAsync($"{BaseUrl}/aumento-masivo", dto);
+            resp.EnsureSuccessStatusCode();
+        }
+
+        public async Task<List<GET_ItemPresupuestoDTO>?> GetInactivos()
+        {
+            return await _httpClient.GetFromJsonAsync<List<GET_ItemPresupuestoDTO>>($"{BaseUrl}/papelera");
+        }
+
+        public async Task Restaurar(int id)
+        {
+            var resp = await _httpClient.PutAsync($"{BaseUrl}/restaurar/{id}", null);
+            resp.EnsureSuccessStatusCode();
+        }
     }
 }

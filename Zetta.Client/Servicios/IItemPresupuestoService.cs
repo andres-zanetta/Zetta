@@ -9,5 +9,8 @@ namespace Zetta.Client.Servicios
         Task<List<GET_ItemPresupuestoDTO>?> GetAll();
         Task<GET_ItemPresupuestoDTO?> GetById(int id);
         Task Update(int id, PUT_ItemPresupuestoDTO item);
+        Task AplicarAumento(POST_AumentoMasivoDTO dto);
+        Task<List<GET_ItemPresupuestoDTO>?> GetInactivos();
+        Task Restaurar(int id);
     }
 }

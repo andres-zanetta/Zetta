@@ -1,29 +1,51 @@
 ﻿@page "/items"
-@inject ItemPresupuestoService ItemService
+@using Zetta.Shared.DTOS.ItemPresupuesto
+@inject Zetta.Client.Servicios.ItemPresupuestoService ItemService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-    <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Ítem</button>
-</div>
+    <div>
+        <button class="btn btn-secondary me-2" @onclick="VolverAlInicio">← Volver al Menú</button>
+    </div>
+    <div>
+        <button class="btn @(ModoPapelera ? "btn-warning" : "btn-outline-secondary") me-2"
+                @onclick="ToggleModoPapelera">
+            @if (ModoPapelera)
+            {
+                <span>📂 Ver Activos</span>
+            }
+            else
+            {
+                <span>♻️ Papelera</span>
+            }
+        </button>
 
+        @if (!ModoPapelera)
+        {
+            <button class="btn btn-outline-warning me-2" @onclick="AbrirModalAumento">
+                📈 Actualizar Precios
+            </button>
+            <button class="btn btn-naranja" @onclick="AbrirFormularioNuevo">➕ Nuevo Ítem</button>
+        }
+    </div>
+</div>
 
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">
-        <h1>Gestión de Ítems de Presupuesto</h1>
-        <p class="subtitle">Configurá y administrá los ítems base de tus presupuestos.</p>
+        <h1>@(ModoPapelera ? "Papelera de Reciclaje" : "Gestión de Ítems de Presupuesto")</h1>
+        <p class="subtitle">
+            @(ModoPapelera ? "Recuperá ítems eliminados anteriormente." : "Configurá y administrá los ítems base de tus presupuestos.")
+        </p>
     </header>
 
     @* FILTROS *@
-    <div class="filtros-container mb-4 p-3 rounded shadow-sm">
+    <div class="filtros-container mb-5 p-3 rounded shadow-sm">
         <h5 class="mb-3">
             <i class="bi bi-funnel"></i> 🔍 Filtrar ítems
         </h5>
 
         <div class="row g-3 align-items-end">
-
-            <!-- Buscar por nombre / descripción -->
             <div class="col-md-3">
                 <input type="text"
                        class="form-control bg-dark text-white border-warning"
@@ -32,7 +54,6 @@
                        @bind:event="oninput" />
             </div>
 
-            <!-- Filtrar por Fabricante -->
             <div class="col-md-3">
                 <select class="form-select bg-dark text-white border-warning"
                         @bind="SelectedFabricante"
@@ -45,7 +66,6 @@
                 </select>
             </div>
 
-            <!-- Filtrar por Marca -->
             <div class="col-md-3">
                 <select class="form-select bg-dark text-white border-warning"
                         @bind="SelectedMarca"
@@ -58,12 +78,10 @@
                 </select>
             </div>
 
-            <!-- Botón limpiar -->
-            <div class="col-md-3 d-flex align-items-end">
+            <div class="col-md-2 d-flex align-items-end">
                 <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="ResetFilters">Limpiar</button>
             </div>
 
-            <!-- Contador -->
             <div class="col-md-1 text-muted">
                 @($"{PresupuestoItems.Count} ítems")
             </div>
@@ -95,7 +113,7 @@
                     {
                         @foreach (var item in PresupuestoItems)
                         {
-                            <tr>
+                            <tr class="@(ModoPapelera ? "table-secondary text-muted" : "")">
                                 <td>@item.Nombre</td>
                                 <td>@item.Precio.ToString("C", new System.Globalization.CultureInfo("es-AR"))</td>
                                 <td>@item.Medida</td>
@@ -104,13 +122,24 @@
                                 <td>@item.Marca</td>
                                 <td>@(item.FechActuPrecio.HasValue? item.FechActuPrecio.Value.ToString("dd/MM/yyyy") : "-")</td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary me-1"
-                                            title="Editar Item" @onclick="() => AbrirFormularioEdicion(item.Id)">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger" title="Eliminar Item" @onclick="() => EliminarItem(item.Id)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    @if (ModoPapelera)
+                                    {
+                                        // ACCIÓN RESTAURAR (Solo en papelera)
+                                        <button class="btn btn-sm btn-success" title="Restaurar Ítem" @onclick="() => RestaurarItem(item.Id)">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        // ACCIONES NORMALES (Editar / Eliminar)
+                                        <button class="btn btn-sm btn-outline-primary me-1"
+                                                title="Editar Item" @onclick="() => AbrirFormularioEdicion(item.Id)">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" title="Eliminar Item" @onclick="() => EliminarItem(item.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -118,7 +147,9 @@
                     else
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted">No se encontraron ítems.</td>
+                            <td colspan="9" class="text-center text-muted">
+                                @(ModoPapelera ? "La papelera está vacía." : "No se encontraron ítems.")
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -134,12 +165,60 @@
                                   OnGuardado="ItemGuardado" />
     }
 
+    @* --- MODAL DE AUMENTO MASIVO --- *@
+    @if (MostrarModalAumento)
+    {
+        <div class="modal d-block" style="background: rgba(0,0,0,0.8)">
+            <div class="modal-dialog">
+                <div class="modal-content border-warning">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title text-naranja">Actualización Masiva de Precios</h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="() => MostrarModalAumento = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-warning d-flex align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <div>
+                                <strong>Atención:</strong> Esta acción modificará el precio de múltiples ítems permanentemente.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Filtrar por Marca (Dejar vacío para todos)</label>
+                            <select class="form-select bg-dark text-white border-secondary" @bind="AumentoDto.Marca">
+                                <option value="">-- Todas las Marcas --</option>
+                                @foreach (var m in MarcasDisponibles)
+                                {
+                                    <option value="@m">@m</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Porcentaje de Ajuste (%)</label>
+                            <input type="number" class="form-control bg-dark text-white border-secondary"
+                                   @bind="AumentoDto.Porcentaje"
+                                   placeholder="Ej: 15 para aumento, -10 para descuento" />
+                            <small class="text-muted mt-1 d-block">
+                                <i class="bi bi-info-circle"></i> Use números <b>negativos</b> para bajar precios (ej: -10).
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button class="btn btn-secondary" @onclick="() => MostrarModalAumento = false">Cancelar</button>
+                        <button class="btn btn-warning" @onclick="ConfirmarAumento">Aplicar Ajuste</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
 </div>
 
 @code {
     private List<GET_ItemPresupuestoDTO> AllItems { get; set; } = new();
     private List<GET_ItemPresupuestoDTO> PresupuestoItems { get; set; } = new();
     private bool Cargando = true;
+    private bool ModoPapelera = false; // Controla si vemos activos o eliminados
 
     // --- Filtros ---
     private string _searchTerm = string.Empty;
@@ -191,8 +270,22 @@
     private bool MostrarItemModal = false;
     private int? ItemIdParaEditar = null;
 
+    // Estado para modal de Aumento Masivo
+    private bool MostrarModalAumento = false;
+    private POST_AumentoMasivoDTO AumentoDto = new();
+
     protected override async Task OnInitializedAsync()
     {
+        await CargarItems();
+    }
+
+    private async Task ToggleModoPapelera()
+    {
+        ModoPapelera = !ModoPapelera;
+        // Limpiamos filtros al cambiar de modo para evitar confusión
+        SearchTerm = "";
+        SelectedFabricante = "";
+        SelectedMarca = "";
         await CargarItems();
     }
 
@@ -201,24 +294,21 @@
         Cargando = true;
         try
         {
-            AllItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+            if (ModoPapelera)
+            {
+                // Cargar ítems eliminados
+                AllItems = await ItemService.GetInactivos() ?? new List<GET_ItemPresupuestoDTO>();
+            }
+            else
+            {
+                // Cargar ítems activos (comportamiento normal)
+                AllItems = await ItemService.GetAll() ?? new List<GET_ItemPresupuestoDTO>();
+            }
 
-            // Poblar listas para los combos de filtro
-            FabricantesDisponibles = AllItems
-                .Where(i => !string.IsNullOrWhiteSpace(i.Fabricante))
-                .Select(i => i.Fabricante!)
-                .Distinct()
-                .OrderBy(x => x)
-                .ToList();
+            // Actualizar listas de filtros según lo que se cargó (activos o inactivos)
+            ActualizarListasFiltros();
 
-            MarcasDisponibles = AllItems
-                .Where(i => !string.IsNullOrWhiteSpace(i.Marca))
-                .Select(i => i.Marca!)
-                .Distinct()
-                .OrderBy(x => x)
-                .ToList();
-
-            FilterItems(); // Aplica filtros iniciales (ninguno)
+            FilterItems(); // Aplica filtros iniciales
         }
         catch (Exception ex)
         {
@@ -231,11 +321,27 @@
         Cargando = false;
     }
 
+    private void ActualizarListasFiltros()
+    {
+        FabricantesDisponibles = AllItems
+            .Where(i => !string.IsNullOrWhiteSpace(i.Fabricante))
+            .Select(i => i.Fabricante!)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+
+        MarcasDisponibles = AllItems
+            .Where(i => !string.IsNullOrWhiteSpace(i.Marca))
+            .Select(i => i.Marca!)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToList();
+    }
+
     private void FilterItems()
     {
         IEnumerable<GET_ItemPresupuestoDTO> query = AllItems;
 
-        // Buscar por nombre o descripción
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
             var s = SearchTerm.Trim().ToLowerInvariant();
@@ -245,7 +351,6 @@
             );
         }
 
-        // Filtro por fabricante
         if (!string.IsNullOrWhiteSpace(SelectedFabricante))
         {
             query = query.Where(i =>
@@ -253,7 +358,6 @@
                 i.Fabricante.Equals(SelectedFabricante, StringComparison.OrdinalIgnoreCase));
         }
 
-        // Filtro por marca
         if (!string.IsNullOrWhiteSpace(SelectedMarca))
         {
             query = query.Where(i =>
@@ -270,7 +374,6 @@
         SearchTerm = string.Empty;
         SelectedFabricante = string.Empty;
         SelectedMarca = string.Empty;
-
         PresupuestoItems = AllItems.ToList();
         StateHasChanged();
     }
@@ -281,7 +384,8 @@
         {
             try
             {
-                await ItemService.Delete(id);
+                await ItemService.Delete(id); // Esto ahora hace Soft Delete en el server
+                // Lo sacamos de la lista visual actual
                 AllItems.RemoveAll(i => i.Id == id);
                 PresupuestoItems.RemoveAll(i => i.Id == id);
                 StateHasChanged();
@@ -289,6 +393,27 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error al eliminar ítem {id}: {ex.Message}");
+                await JSRuntime.InvokeVoidAsync("alert", "No se pudo eliminar el ítem.");
+            }
+        }
+    }
+
+    private async Task RestaurarItem(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Desea restaurar este ítem al catálogo activo?"))
+        {
+            try
+            {
+                await ItemService.Restaurar(id);
+                // Al restaurar, desaparece de la lista de "Papelera"
+                AllItems.RemoveAll(i => i.Id == id);
+                PresupuestoItems.RemoveAll(i => i.Id == id);
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("alert", "✅ Ítem recuperado exitosamente.");
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al restaurar: {ex.Message}");
             }
         }
     }
@@ -315,7 +440,35 @@
     private async Task ItemGuardado(int itemId)
     {
         CerrarItemModal();
-        await CargarItems(); // Recarga toda la lista
+        await CargarItems(); // Recarga toda la lista para ver cambios/nuevos
+    }
+
+    // --- Modal Aumento Masivo ---
+    private void AbrirModalAumento()
+    {
+        AumentoDto = new POST_AumentoMasivoDTO();
+        MostrarModalAumento = true;
+    }
+
+    private async Task ConfirmarAumento()
+    {
+        string target = string.IsNullOrEmpty(AumentoDto.Marca) ? "TODOS los ítems" : $"los ítems de marca '{AumentoDto.Marca}'";
+        string accion = AumentoDto.Porcentaje >= 0 ? "AUMENTAR" : "DESCONTAR";
+
+        if (await JSRuntime.InvokeAsync<bool>("confirm", $"¿Estás seguro de que querés {accion} un {Math.Abs(AumentoDto.Porcentaje)}% a {target}?"))
+        {
+            try
+            {
+                await ItemService.AplicarAumento(AumentoDto);
+                MostrarModalAumento = false;
+                await CargarItems(); // Recargar la tabla para ver los precios nuevos
+                await JSRuntime.InvokeVoidAsync("alert", "✅ Precios actualizados correctamente.");
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"❌ Error al actualizar precios: {ex.Message}");
+            }
+        }
     }
 
     private void VolverAlInicio() => Navigation.NavigateTo("/");
