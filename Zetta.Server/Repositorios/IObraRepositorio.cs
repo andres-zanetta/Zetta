@@ -1,13 +1,12 @@
 ﻿using Zetta.BD.DATA.ENTITY;
-using Zetta.Server.Repositorios;
 
-namespace SERVER.Repositorio
+namespace Zetta.Server.Repositorios
 {
     public interface IObraRepositorio : IRepositorio<Obra>
     {
-        Task<IEnumerable<Obra>> ObtenerObrasConDetallesAsync();
         Task<Obra?> ObtenerObraPorIdConDetallesAsync(int id);
-        Task<IEnumerable<Obra>> ObtenerObrasPorEstadoAsync(EstadoObra estado);
+        Task<IEnumerable<Obra>> ObtenerObrasConDetallesAsync();
         Task<IEnumerable<Obra>> ObtenerObrasPorClienteAsync(int clienteId);
+        Task<IEnumerable<Obra>> ObtenerObrasPorEstadoAsync(EstadoObra estado);
     }
 }

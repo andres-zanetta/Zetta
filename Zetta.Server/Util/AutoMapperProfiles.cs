@@ -84,11 +84,11 @@ namespace Zetta.Server.Util // O tu namespace correcto
             CreateMap<POST_ItemPresupuestoDTO, ItemPresupuesto>();
             CreateMap<PUT_ItemPresupuestoDTO, ItemPresupuesto>();
 
-            // --- Mapeos de Obra (Sin cambios) ---
+            // --- Mapeos de Obra ---
             CreateMap<Obra, GET_ObraDTO>()
                .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => src.EstadoObra.ToString()))
-               .ForMember(dest => dest.ClienteId, opt => opt.MapFrom(src => src.Cliente.Id))
-               .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente.Nombre))
+               .ForMember(dest => dest.ClienteId, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Id : 0))
+               .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente != null ? $"{src.Cliente.Nombre} {src.Cliente.Apellido}" : "Sin Cliente Asignado"))
                .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
 

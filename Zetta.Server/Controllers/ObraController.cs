@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SERVER.Repositorio;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.ENTITY;
+using Zetta.Server.Repositorios;
 using Zetta.Shared.DTOS.Obra;
 
 namespace Zetta.Server.Controllers
@@ -27,12 +27,25 @@ namespace Zetta.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<List<GET_ObraDTO>>> Get()
         {
-            var obras = await _obraRepositorio.ObtenerObrasConDetallesAsync();
-            var obrasDTO = _mapper.Map<List<GET_ObraDTO>>(obras);
-            return Ok(obrasDTO);
+            try
+            {
+                var obras = await _obraRepositorio.ObtenerObrasConDetallesAsync();
+
+                // Si la lista es null (raro pero posible), devolvemos lista vacía
+                if (obras == null) return Ok(new List<GET_ObraDTO>());
+
+                var obrasDTO = _mapper.Map<List<GET_ObraDTO>>(obras);
+                return Ok(obrasDTO);
+            }
+            catch (Exception ex)
+            {
+                // Esto te mostrará el error en la consola del servidor (la pantalla negra de logs)
+                Console.WriteLine($"ERROR CRÍTICO EN GET OBRA: {ex.Message}");
+                return StatusCode(500, "Error interno al obtener obras: " + ex.Message);
+            }
         }
 
-        // GET: api/Obra/5
+        // GET: api/Obra/id
         [HttpGet("GetById/{id}")]
         public async Task<ActionResult<GET_ObraDTO>> GetById(int id)
         {

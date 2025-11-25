@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SERVER.Repositorio;
 using System.Text.Json.Serialization;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.REPOSITORY;

@@ -1,8 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SERVER.Repositorio;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.ENTITY;
 
@@ -17,13 +13,12 @@ namespace Zetta.Server.Repositorios
             this.context = context;
         }
 
-        // Obtener todas las obras con cliente, presupuesto y comentarios
+        // Obtener todas las obras con cliente y presupuesto
         public async Task<IEnumerable<Obra>> ObtenerObrasConDetallesAsync()
         {
             return await _context.Obras
-
+                .Include(o => o.Cliente)
                 .Include(o => o.Presupuesto)
-                
                 .ToListAsync();
         }
 
@@ -31,9 +26,8 @@ namespace Zetta.Server.Repositorios
         public async Task<Obra?> ObtenerObraPorIdConDetallesAsync(int id)
         {
             return await _context.Obras
-
+                .Include(o => o.Cliente)
                 .Include(o => o.Presupuesto)
-                
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
@@ -42,7 +36,8 @@ namespace Zetta.Server.Repositorios
         {
             return await _context.Obras
                 .Where(o => o.EstadoObra == estado)
-
+                .Include(o => o.Cliente)
+                .Include(o => o.Presupuesto)
                 .ToListAsync();
         }
 
@@ -50,10 +45,10 @@ namespace Zetta.Server.Repositorios
         public async Task<IEnumerable<Obra>> ObtenerObrasPorClienteAsync(int clienteId)
         {
             return await _context.Obras
-
+                .Where(o => o.ClienteId == clienteId)
+                .Include(o => o.Cliente)
                 .Include(o => o.Presupuesto)
                 .ToListAsync();
         }
-
     }
 }
