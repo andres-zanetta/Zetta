@@ -3,9 +3,15 @@ using Zetta.Server.Repositorios;
 
 namespace Zetta.BD.DATA.REPOSITORY
 {
-    public interface IClienteRepositorio : IRepositorio<Cliente>
+    public interface IClienteRepositorio  : IRepositorio<Cliente>
     {
-        Task<Cliente> SearchByNameAsync(string name);
-        Task<Cliente> SelectByEmailAsync(string email);
+        Task DeleteAsync(int id);
+        Task EliminarDefinitivamenteAsync(int id);
+        Task<List<Cliente>> GetAllAsync();
+        Task<Cliente?> GetByIdAsync(int id);
+        Task<List<Cliente>> GetInactivosAsync();
+        Task RestaurarAsync(int id);
+        Task<Cliente?> SearchByNameAsync(string nombre);
+        Task<Cliente?> SelectByEmailAsync(string email);
     }
 }

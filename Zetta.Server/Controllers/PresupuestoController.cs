@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Zetta.BD.DATA; // Namespace del Context
-using Zetta.BD.DATA.ENTITY; // Namespace de Entidades
-using Zetta.Server.Repositorios; // Namespace de Repositorios
-using Zetta.Shared.DTOS.Presupuesto; // Namespace de DTOs
+using Zetta.BD.DATA;
+using Zetta.BD.DATA.ENTITY;
+using Zetta.Server.Repositorios;
+using Zetta.Shared.DTOS.Presupuesto;
 
-namespace SERVER.Controllers // O el namespace correcto de tu controlador
+namespace SERVER.Controllers
 {
     [ApiController]
     [Route("api/presupuestos")]
@@ -14,14 +14,13 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
     {
         private readonly IPresupuestoRepositorio _presupuestoRepo;
         private readonly IMapper _mapper;
-        private readonly Context _context; // Necesitamos el DbContext para SaveChangesAsync
+        private readonly Context _context;
 
-        // Inyectar DbContext junto con el repositorio y mapper
         public PresupuestoController(Context context, IPresupuestoRepositorio presupuestoRepositorio, IMapper mapper)
         {
             _presupuestoRepo = presupuestoRepositorio;
             _mapper = mapper;
-            _context = context; // Guardar la instancia del DbContext
+            _context = context;
         }
 
         // GET: api/presupuestos
@@ -31,6 +30,15 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
             var presupuestos = await _presupuestoRepo.GetPresupuestosConDetallesAsync();
             var presupuestosDTO = _mapper.Map<IEnumerable<GET_PresupuestoDTO>>(presupuestos);
             return Ok(presupuestosDTO);
+        }
+
+        // GET: api/presupuestos/papelera
+        [HttpGet("papelera")]
+        public async Task<ActionResult<IEnumerable<GET_PresupuestoDTO>>> GetPapelera()
+        {
+            var presupuestos = await _presupuestoRepo.GetInactivosAsync();
+            var dtos = _mapper.Map<IEnumerable<GET_PresupuestoDTO>>(presupuestos);
+            return Ok(dtos);
         }
 
         // GET: api/presupuestos/{id}
@@ -53,16 +61,10 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
             try
             {
                 Presupuesto entidad = _mapper.Map<Presupuesto>(dto);
-
                 entidad.FechaCreacion = DateTime.Now;
-
-                // El repositorio agrega la entidad al DbContext (en memoria)
+                entidad.Activo = true;
                 await _presupuestoRepo.AddAsync(entidad);
-
-                // El DbContext guarda los cambios en la BD
-                await _context.SaveChangesAsync(); // <-- CORRECCIÓN: Usar _context
-
-                return Ok(entidad.Id); // Devolver el ID generado
+                return Ok(entidad.Id);
             }
             catch (Exception ex)
             {
@@ -73,14 +75,13 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
 
         // PUT: api/presupuestos/{id}
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(int id, [FromBody] PUT_PresupuestoDTO dto) // Usar DTO para PUT
+        public async Task<IActionResult> Update(int id, [FromBody] PUT_PresupuestoDTO dto)
         {
             if (id != dto.Id)
             {
                 return BadRequest("El ID de la ruta no coincide con el ID del cuerpo.");
             }
 
-            // Traer la entidad existente CON sus detalles
             var presupuestoExistente = await _presupuestoRepo.GetPresupuestoConDetallesPorIdAsync(id);
             if (presupuestoExistente == null)
             {
@@ -89,17 +90,9 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
 
             try
             {
-                // Mapear DTO a la entidad existente
                 _mapper.Map(dto, presupuestoExistente);
-
-                // El repositorio marca la entidad como modificada (si UpdateAsync lo hace)
-                // Opcionalmente, podrías simplemente confiar en el seguimiento de cambios de EF Core
-                // await _presupuestoRepo.UpdateAsync(presupuestoExistente); // Podría no ser necesario si Map actualiza el objeto trackeado
-
-                // El DbContext guarda los cambios en la BD
-                await _context.SaveChangesAsync(); // <-- CORRECCIÓN: Usar _context
-
-                return NoContent(); // Respuesta estándar para PUT exitoso
+                await _presupuestoRepo.UpdateAsync(presupuestoExistente);
+                return NoContent();
             }
             catch (Exception ex)
             {
@@ -108,7 +101,15 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
             }
         }
 
-        // DELETE: api/presupuestos/{id}
+        // PUT: api/presupuestos/restaurar/5
+        [HttpPut("restaurar/{id:int}")]
+        public async Task<ActionResult> Restaurar(int id)
+        {
+            await _presupuestoRepo.RestaurarAsync(id);
+            return NoContent();
+        }
+
+        // DELETE: api/presupuestos/{id} (Soft Delete)
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
         {
@@ -120,18 +121,28 @@ namespace SERVER.Controllers // O el namespace correcto de tu controlador
 
             try
             {
-                // El repositorio marca la entidad para eliminación
                 await _presupuestoRepo.DeleteAsync(id);
-
-                // El DbContext guarda los cambios en la BD
-                await _context.SaveChangesAsync(); // <-- CORRECCIÓN: Usar _context
-
-                return NoContent(); // Respuesta estándar para DELETE exitoso
+                return NoContent();
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Error en DELETE api/presupuestos/{id}: {ex}");
                 return BadRequest($"Error al eliminar el presupuesto: {ex.Message}");
+            }
+        }
+
+        // DELETE: api/presupuestos/definitivo/5
+        [HttpDelete("definitivo/{id:int}")]
+        public async Task<ActionResult> DeleteDefinitivo(int id)
+        {
+            try
+            {
+                await _presupuestoRepo.EliminarDefinitivamenteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Error al eliminar definitivamente: {ex.Message}");
             }
         }
     }

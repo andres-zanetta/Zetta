@@ -1,48 +1,63 @@
-﻿<nav class="sidebar bg-dark text-white shadow-sm">
-    <div class="sidebar-header text-center py-3 border-bottom border-warning">
-        <h4 class="text-naranja m-0 fw-bold"></h4>
+﻿@inject NavigationManager Navigation
+
+<div class="sidebar @(Collapsed ? "collapsed" : "") d-flex flex-column">
+
+    <div class="sidebar-header p-3 d-flex align-items-center justify-content-between border-bottom border-warning">
+        @if (!Collapsed)
+        {
+            <h4 class="text-white m-0 fw-bold">Zettium</h4>
+        }
+
+        <button class="sidebar-toggler" @onclick="ToggleSidebar" title="Contraer/Expandir menú">
+            <i class="bi bi-list text-white fs-4"></i>
+        </button>
     </div>
 
     <ul class="nav flex-column px-2 mt-3">
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/">
-                🏠 <span class="ms-2">Home</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="" Match="NavLinkMatch.All">
+                <i class="bi bi-house-door-fill fs-5"></i>
+                <span class="nav-link-text ms-2">Home</span>
+            </NavLink>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/presupuestos">
-                📄 <span class="ms-2">Presupuestos</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="presupuestos">
+                <i class="bi bi-file-text-fill fs-5"></i>
+                <span class="nav-link-text ms-2">Presupuestos</span>
+            </NavLink>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/clientes">
-                👤 <span class="ms-2">Clientes</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="clientes">
+                <i class="bi bi-people-fill fs-5"></i>
+                <span class="nav-link-text ms-2">Clientes</span>
+            </NavLink>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/obras">
-                🔨 <span class="ms-2">Obras</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="obras">
+                <i class="bi bi-bricks fs-5"></i>
+                <span class="nav-link-text ms-2">Obras</span>
+            </NavLink>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/items">
-                📋 <span class="ms-2">Ítems</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="items">
+                <i class="bi bi-box-seam-fill fs-5"></i>
+                <span class="nav-link-text ms-2">Ítems</span>
+            </NavLink>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link d-flex align-items-center nav-link-custom" href="/visitas">
-                📍 <span class="ms-2">Visitas</span>
-            </a>
+            <NavLink class="nav-link d-flex align-items-center nav-link-custom" href="visitas">
+                <i class="bi bi-tools fs-5"></i>
+                <span class="nav-link-text ms-2">Visitas</span>
+            </NavLink>
         </li>
     </ul>
-</nav>
+</div>
 
 @code {
-    private bool collapseNavMenu = true;
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private bool Collapsed = false;
 
-    private void ToggleNavMenu()
+    private void ToggleSidebar()
     {
-        collapseNavMenu = !collapseNavMenu;
+        Collapsed = !Collapsed;
     }
 }

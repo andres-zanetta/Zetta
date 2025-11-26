@@ -1,40 +1,50 @@
 ﻿@page "/clientes"
-@using System.ComponentModel.DataAnnotations
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JSRuntime
 
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>
-    <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
-</div>
+    <div>
+        <button class="btn btn-secondary me-2" @onclick="VolverAlInicio">← Volver al Menú</button>
+    </div>
+    <div>
+        <button class="btn @(ModoPapelera ? "btn-warning" : "btn-outline-secondary") me-2"
+                @onclick="ToggleModoPapelera">
+            @if (ModoPapelera)
+            {
+                <span>📂 Ver Activos</span>
+            }
+            else
+            {
 
+                <span>♻️ Papelera</span>
+            }
+        </button>
+
+        @if (!ModoPapelera)
+        {
+            <button class="btn btn-naranja" @onclick="AbrirModalNuevo">➕ Nuevo Cliente</button>
+        }
+    </div>
+</div>
 
 <div class="clientes-container">
     <header class="clientes-header text-center">
-        <h1>Gestión de Clientes</h1>
-        <p class="subtitle">Administrá la información de tus clientes</p>
+        <h1>@(ModoPapelera ? "Papelera de Clientes" : "Gestión de Clientes")</h1>
+        <p class="subtitle">@(ModoPapelera ? "Recuperá clientes eliminados o borralos definitivamente." : "Administrá la información de tus clientes")</p>
     </header>
 
-    <!-- 🔍 FILTROS DE CLIENTES -->
     <div class="filtros-container mb-4 p-3 rounded shadow-sm">
         <h5 class="mb-3">🔍 Filtrar clientes</h5>
-
         <div class="row g-3 align-items-end">
-            <!-- Buscar por nombre o apellido -->
             <div class="col-md-4">
-                <input type="text"
-                       class="form-control shadow-sm"
+                <input type="text" class="form-control shadow-sm bg-dark text-white border-secondary"
                        placeholder="Buscar por nombre o apellido..."
-                       @bind="SearchTerm"
-                       @oninput="OnSearchInput" />
+                       @bind="SearchTerm" @oninput="OnSearchInput" />
             </div>
-
-            <!-- Filtrar por localidad -->
             <div class="col-md-4">
-                <select class="form-select shadow-sm"
-                        value="@SelectedLocalidad"
-                        @onchange="OnLocalidadChanged">
+                <select class="form-select shadow-sm bg-dark text-white border-secondary"
+                        value="@SelectedLocalidad" @onchange="OnLocalidadChanged">
                     <option value="">Todas las localidades</option>
                     @foreach (var loc in LocalidadesDisponibles)
                     {
@@ -42,25 +52,24 @@
                     }
                 </select>
             </div>
-
-            <!-- Botones de acción -->
             <div class="col-md-4 d-flex align-items-end">
-                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="ResetFilters">
-                    Limpiar
-                </button>
+                <button class="btn btn-outline-dark w-100 text-white border-white" @onclick="ResetFilters">Limpiar</button>
             </div>
         </div>
     </div>
 
     @if (Cargando)
     {
-        <p>Cargando clientes...</p>
+        <div class="text-center my-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-3">Cargando clientes...</p>
+        </div>
     }
     else
     {
         <div class="table-responsive shadow-sm">
             <table class="table align-middle">
-                <thead>
+                <thead class="table-dark">
                     <tr>
                         <th>Nombre</th>
                         <th>Apellido</th>
@@ -72,23 +81,42 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var cliente in ClientesFiltrados)
-
+                    @if (ClientesFiltrados.Any())
+                    {
+                        @foreach (var cliente in ClientesFiltrados)
+                        {
+                            <tr class="@(ModoPapelera ? "table-secondary text-muted" : "")">
+                                <td>@cliente.Nombre</td>
+                                <td>@cliente.Apellido</td>
+                                <td>@cliente.Telefono</td>
+                                <td>@cliente.Email</td>
+                                <td>@cliente.Localidad</td>
+                                <td>@cliente.Direccion</td>
+                                <td>
+                                    @if (ModoPapelera)
+                                    {
+                                        <button class="btn btn-sm btn-success me-1" title="Restaurar" @onclick="() => RestaurarCliente(cliente.Id)">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" title="Eliminar Definitivamente" @onclick="() => EliminarDefinitivo(cliente.Id)">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" title="Mover a Papelera" @onclick="() => EliminarCliente(cliente.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
                     {
                         <tr>
-                            <td>@cliente.Nombre</td>
-                            <td>@cliente.Apellido</td>
-                            <td>@cliente.Telefono</td>
-                            <td>@cliente.Email</td>
-                            <td>@cliente.Localidad</td>
-                            <td>@cliente.Direccion</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => AbrirModalEditar(cliente)"><i class="bi bi-pencil-square"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" title="Eliminar Cliente"
-                                        @onclick="() => EliminarCliente(cliente.Id)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
+                            <td colspan="7" class="text-center text-muted">@(ModoPapelera ? "La papelera está vacía." : "No se encontraron clientes.")</td>
                         </tr>
                     }
                 </tbody>
@@ -96,58 +124,30 @@
         </div>
     }
 
-    @* Modal de Creación/Edición *@
+    @* Modal (Solo se muestra si NO estamos en modo papelera) *@
     @if (MostrarModal)
     {
         <div class="modal d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
             <div class="modal-dialog">
-                <div class="modal-content">
+                <div class="modal-content bg-dark text-white border-warning">
                     <EditForm Model="@ClienteActual" OnValidSubmit="@GuardarCliente">
-                        @* Usamos ClienteActual como Model *@
                         <DataAnnotationsValidator />
-                        <div class="modal-header">
-                            <h5 class="modal-title">@(Editando ? "Editar Cliente" : "Nuevo Cliente")</h5>
-                            <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title text-naranja">@(Editando ? "Editar Cliente" : "Nuevo Cliente")</h5>
+                            <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                         </div>
                         <div class="modal-body">
-                            <ValidationSummary />
-
-                            <div class="mb-3">
-                                <label class="form-label">Nombre</label>
-                                <InputText @bind-Value="ClienteActual.Nombre" class="form-control" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Apellido</label>
-                                <InputText @bind-Value="ClienteActual.Apellido" class="form-control" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Teléfono</label>
-                                <InputText @bind-Value="ClienteActual.Telefono"
-                                           class="form-control"
-                                           inputmode="numeric"
-                                           pattern="^[0-9]*$"
-                                           maxlength="10" />
-                                <ValidationMessage For="@(() => ClienteActual.Telefono)" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Email</label>
-                                <InputText @bind-Value="ClienteActual.Email" class="form-control" />
-                           
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Localidad</label>
-                                <InputText @bind-Value="ClienteActual.Localidad" class="form-control" />
-                            </div>
-                            @* Agregamos Direccion, ya que está en los DTOs *@
-                            <div class="mb-3">
-                                <label class="form-label">Dirección</label>
-                                <InputText @bind-Value="ClienteActual.Direccion" class="form-control" />
-                            </div>
-
+                            <ValidationSummary class="text-danger" />
+                            <div class="mb-3"> <label class="form-label">Nombre</label> <InputText @bind-Value="ClienteActual.Nombre" class="form-control bg-black text-white border-secondary" /> </div>
+                            <div class="mb-3"> <label class="form-label">Apellido</label> <InputText @bind-Value="ClienteActual.Apellido" class="form-control bg-black text-white border-secondary" /> </div>
+                            <div class="mb-3"> <label class="form-label">Teléfono</label> <InputText @bind-Value="ClienteActual.Telefono" class="form-control bg-black text-white border-secondary" maxlength="10" /> <ValidationMessage For="@(() => ClienteActual.Telefono)" /> </div>
+                            <div class="mb-3"> <label class="form-label">Email</label> <InputText @bind-Value="ClienteActual.Email" class="form-control bg-black text-white border-secondary" /> </div>
+                            <div class="mb-3"> <label class="form-label">Localidad</label> <InputText @bind-Value="ClienteActual.Localidad" class="form-control bg-black text-white border-secondary" /> </div>
+                            <div class="mb-3"> <label class="form-label">Dirección</label> <InputText @bind-Value="ClienteActual.Direccion" class="form-control bg-black text-white border-secondary" /> </div>
                         </div>
-                        <div class="modal-footer">
+                        <div class="modal-footer border-secondary">
                             <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Guardar</button>
+                            <button type="submit" class="btn btn-naranja">Guardar</button>
                         </div>
                     </EditForm>
                 </div>
@@ -157,56 +157,34 @@
     }
 </div>
 
-
 @code {
-    // La lista ahora usa el DTO de lectura
     private List<GET_ClienteDTO> Clientes = new List<GET_ClienteDTO>();
     private List<GET_ClienteDTO> ClientesFiltrados = new();
     private List<string> LocalidadesDisponibles = new();
-
-    // modelo intermedio para el formulario, incluyendo el Id para edición.
     private ClienteFormModel ClienteActual = new ClienteFormModel();
     private bool MostrarModal = false;
     private bool Editando = false;
     private bool Cargando = true;
 
+    // --- Control de Papelera ---
+    private bool ModoPapelera = false;
+
     // Filtros
     private string _searchTerm = string.Empty;
-    private string SearchTerm
-    {
-        get => _searchTerm;
-        set
-        {
-            _searchTerm = value ?? string.Empty;
-            FiltrarClientes();
-        }
-    }
-
+    private string SearchTerm { get => _searchTerm; set { _searchTerm = value ?? string.Empty; FiltrarClientes(); } }
     private string _selectedLocalidad = string.Empty;
-    private string SelectedLocalidad
-    {
-        get => _selectedLocalidad;
-        set
-        {
-            _selectedLocalidad = value ?? string.Empty;
-            FiltrarClientes();
-        }
-    }
+    private string SelectedLocalidad { get => _selectedLocalidad; set { _selectedLocalidad = value ?? string.Empty; FiltrarClientes(); } }
 
- 
-    // Modelo intermedio para el formulario de cliente
     public class ClienteFormModel
     {
-        public int Id { get; set; } // Id es necesario solo para identificar en edición
+        public int Id { get; set; }
         public string Nombre { get; set; } = "";
         public string Apellido { get; set; } = "";
         [Required(ErrorMessage = "El teléfono es obligatorio.")]
-        [RegularExpression(@"^351\d{7}$",
-        ErrorMessage = "El teléfono debe comenzar con 351 y tener 10 dígitos (ej: 3515909859).")]
+        [RegularExpression(@"^351\d{7}$", ErrorMessage = "El teléfono debe comenzar con 351 y tener 10 dígitos.")]
         public string Telefono { get; set; } = "";
         [Required(ErrorMessage = "El email es obligatorio.")]
-        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$",
-        ErrorMessage = "Debe ingresar un correo válido (ejemplo: usuario@dominio.com)")]
+        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$", ErrorMessage = "Debe ingresar un correo válido")]
         public string? Email { get; set; }
         public string? Localidad { get; set; }
         public string? Direccion { get; set; }
@@ -215,105 +193,63 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarClientes();
-        InicializarFiltros();
     }
 
-    #region METODOS
+    private async Task ToggleModoPapelera()
+    {
+        ModoPapelera = !ModoPapelera;
+        SearchTerm = "";
+        SelectedLocalidad = "";
+        await CargarClientes();
+    }
+
     private async Task CargarClientes()
     {
         Cargando = true;
         try
         {
-            // Llama al servicio para obtener los datos de la API
-            Clientes = await ClienteService.GetAll() ?? new List<GET_ClienteDTO>();
-            ClientesFiltrados = Clientes;
+            if (ModoPapelera)
+            {
+                var serviceConcreto = (Zetta.Client.Servicios.ClienteService)ClienteService;
+                Clientes = await serviceConcreto.GetInactivos() ?? new List<GET_ClienteDTO>();
+            }
+            else
+            {
+                Clientes = await ClienteService.GetAll() ?? new List<GET_ClienteDTO>();
+            }
+
+            // Actualizar localidades para filtros según la lista cargada
+            LocalidadesDisponibles = Clientes.Where(c => !string.IsNullOrWhiteSpace(c.Localidad)).Select(c => c.Localidad!).Distinct().OrderBy(x => x).ToList();
+            FiltrarClientes();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar clientes: {ex.Message}");
+            Console.WriteLine($"Error: {ex.Message}");
             Clientes = new List<GET_ClienteDTO>();
             ClientesFiltrados = new();
         }
         Cargando = false;
     }
 
-    private void InicializarFiltros()
-    {
-        LocalidadesDisponibles = Clientes
-            .Where(c => !string.IsNullOrWhiteSpace(c.Localidad))
-            .Select(c => c.Localidad!)
-            .Distinct()
-            .OrderBy(x => x)
-            .ToList();
+    private void OnSearchInput(ChangeEventArgs e) { SearchTerm = e.Value?.ToString() ?? string.Empty; FiltrarClientes(); }
+    private void OnLocalidadChanged(ChangeEventArgs e) { SelectedLocalidad = e.Value?.ToString() ?? string.Empty; FiltrarClientes(); }
 
-        // Al iniciar, mostramos todo aplicado a los filtros vacíos
-        FiltrarClientes();
-    }
-
-    private void OnSearchInput(ChangeEventArgs e)
-    {
-        SearchTerm = e.Value?.ToString() ?? string.Empty;
-        FiltrarClientes();
-    }
-
-    private void OnLocalidadChanged(ChangeEventArgs e)
-    {
-        SelectedLocalidad = e.Value?.ToString() ?? string.Empty;
-        FiltrarClientes();
-    }
- 
     private void FiltrarClientes()
     {
         var termino = SearchTerm?.Trim() ?? string.Empty;
-
         ClientesFiltrados = Clientes
-            .Where(c =>
-                (string.IsNullOrEmpty(termino) ||
-                 (!string.IsNullOrEmpty(c.Nombre) &&
-                  c.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase)) ||
-                 (!string.IsNullOrEmpty(c.Apellido) &&
-                  c.Apellido.Contains(termino, StringComparison.OrdinalIgnoreCase))) &&
-                (string.IsNullOrEmpty(SelectedLocalidad) ||
-                 c.Localidad == SelectedLocalidad))
+            .Where(c => (string.IsNullOrEmpty(termino) || (!string.IsNullOrEmpty(c.Nombre) && c.Nombre.Contains(termino, StringComparison.OrdinalIgnoreCase)) || (!string.IsNullOrEmpty(c.Apellido) && c.Apellido.Contains(termino, StringComparison.OrdinalIgnoreCase))) &&
+                        (string.IsNullOrEmpty(SelectedLocalidad) || c.Localidad == SelectedLocalidad))
             .ToList();
     }
 
-    private void ResetFilters()
-    {
-        SearchTerm = string.Empty;
-        SelectedLocalidad = string.Empty;
-        ClientesFiltrados = Clientes.ToList();
-    }
+    private void ResetFilters() { SearchTerm = string.Empty; SelectedLocalidad = string.Empty; ClientesFiltrados = Clientes.ToList(); }
 
-    private void ValidarEmail(ChangeEventArgs e)
-    {
-        ClienteActual.Email = e.Value?.ToString();
-    }
-
-
-    private void AbrirModalNuevo()
-    {
-        // Inicializa un nuevo modelo
-        ClienteActual = new ClienteFormModel();
-        Editando = false;
-        MostrarModal = true;
-    }
-
+    private void AbrirModalNuevo() { ClienteActual = new ClienteFormModel(); Editando = false; MostrarModal = true; }
     private void AbrirModalEditar(GET_ClienteDTO cliente)
     {
-        // Mapea el DTO de la tabla al modelo del formulario
-        ClienteActual = new ClienteFormModel
-        {
-            Id = cliente.Id,
-            Nombre = cliente.Nombre,
-            Apellido = cliente.Apellido,
-            Telefono = cliente.Telefono,
-            Email = cliente.Email,
-            Localidad = cliente.Localidad,
-            Direccion = cliente.Direccion
-        };
-        Editando = true;
-        MostrarModal = true;
+        ClienteActual = new ClienteFormModel { Id = cliente.Id, Nombre = cliente.Nombre, Apellido = cliente.Apellido, Telefono = cliente.Telefono, Email = cliente.Email, Localidad = cliente.Localidad, Direccion = cliente.Direccion };
+        Editando = true; MostrarModal = true;
     }
 
     private async Task GuardarCliente()
@@ -322,68 +258,56 @@
         {
             if (Editando)
             {
-                // Mapea el modelo del formulario al DTO de edición
-                var putDto = new PUT_ClienteDTO
-                {
-                    Id = ClienteActual.Id, // El ID es obligatorio en PUT_ClienteDTO
-                    Nombre = ClienteActual.Nombre,
-                    Apellido = ClienteActual.Apellido,
-                    Telefono = ClienteActual.Telefono,
-                    Email = ClienteActual.Email,
-                    Localidad = ClienteActual.Localidad,
-                    Direccion = ClienteActual.Direccion
-                };
+                var putDto = new PUT_ClienteDTO { Id = ClienteActual.Id, Nombre = ClienteActual.Nombre, Apellido = ClienteActual.Apellido, Telefono = ClienteActual.Telefono, Email = ClienteActual.Email, Localidad = ClienteActual.Localidad, Direccion = ClienteActual.Direccion };
                 await ClienteService.Update(ClienteActual.Id, putDto);
             }
             else
             {
-                // Mapea el modelo del formulario al DTO de creación
-                var postDto = new POST_ClienteDTO
-                {
-                    Nombre = ClienteActual.Nombre,
-                    Apellido = ClienteActual.Apellido,
-                    Telefono = ClienteActual.Telefono,
-                    Email = ClienteActual.Email,
-                    Localidad = ClienteActual.Localidad,
-                    Direccion = ClienteActual.Direccion
-                };
+                var postDto = new POST_ClienteDTO { Nombre = ClienteActual.Nombre, Apellido = ClienteActual.Apellido, Telefono = ClienteActual.Telefono, Email = ClienteActual.Email, Localidad = ClienteActual.Localidad, Direccion = ClienteActual.Direccion };
                 await ClienteService.Create(postDto);
             }
-
             CerrarModal();
-            await CargarClientes(); // Recarga la lista para mostrar el cambio
-            FiltrarClientes(); // Actualiza la vista con los filtros activos
+            await CargarClientes();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al guardar cliente: {ex.Message}");
-        }
+        catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
     }
 
     private async Task EliminarCliente(int id)
     {
-        // Pide confirmación antes de eliminar
-        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Estás seguro de que quieres eliminar este cliente?"))
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Mover a la papelera?"))
+        {
+            try { await ClienteService.Delete(id); await CargarClientes(); } catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
+        }
+    }
+
+    private async Task RestaurarCliente(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Restaurar este cliente?"))
         {
             try
             {
-                await ClienteService.Delete(id);
-                // Si la eliminación fue exitosa, eliminamos de la lista local
-                Clientes.RemoveAll(c => c.Id == id);
-                FiltrarClientes();
+                var serviceConcreto = (Zetta.Client.Servicios.ClienteService)ClienteService;
+                await serviceConcreto.Restaurar(id);
+                await CargarClientes();
             }
-            catch (Exception ex)
+            catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
+        }
+    }
+
+    private async Task EliminarDefinitivo(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "⚠️ ¿Eliminar DEFINITIVAMENTE? Esta acción no se puede deshacer."))
+        {
+            try
             {
-                Console.WriteLine($"Error al eliminar cliente {id}: {ex.Message}");
+                var serviceConcreto = (Zetta.Client.Servicios.ClienteService)ClienteService;
+                await serviceConcreto.EliminarDefinitivamente(id);
+                await CargarClientes();
             }
+            catch (Exception ex) { Console.WriteLine($"Error: {ex.Message}"); }
         }
     }
 
     private void CerrarModal() => MostrarModal = false;
-
-    private void VolverAlInicio()
-    {
-        Navigation.NavigateTo("/");
-    }
-    #endregion
+    private void VolverAlInicio() => Navigation.NavigateTo("/");
 }

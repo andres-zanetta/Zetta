@@ -513,3 +513,64 @@ article {
     border-color: transparent !important;
     background-image: none !important;
 }
+
+/* =========================================================
+   13) SIDEBAR COLAPSABLE 
+   ========================================================= */
+
+/* Sobrescribir ancho base (Importante: define el ancho normal aquí si no lo tienes) */
+.sidebar {
+    width: 250px;
+    min-height: 100vh; 
+    background: linear-gradient(180deg, #000000 0%, #111111 50%, var(--orange) 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.3s ease-in-out;
+    overflow-x: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+    /* Estilo cuando está contraído */
+    .sidebar.collapsed {
+        width: 70px !important;
+    }
+
+        /* Ocultar textos del menú */
+        .sidebar.collapsed .nav-link-text,
+        .sidebar.collapsed .sidebar-header h4 {
+            display: none;
+        }
+
+        /* Centrar iconos y botón */
+        .sidebar.collapsed .nav-item .nav-link {
+            justify-content: center !important;
+            padding: 10px 0;
+        }
+
+        .sidebar.collapsed .bi {
+            margin-right: 0 !important;
+            font-size: 1.5rem !important;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center !important;
+            padding: 15px 0;
+        }
+
+/* Botón de toggle */
+.sidebar-toggler {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: transform 0.3s;
+}
+
+/* Rotar botón al contraer */
+.sidebar.collapsed .sidebar-toggler {
+    transform: rotate(180deg);
+    margin: 0 auto;
+}

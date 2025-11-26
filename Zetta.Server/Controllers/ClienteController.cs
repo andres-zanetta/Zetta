@@ -27,21 +27,25 @@ namespace Zetta.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<List<GET_ClienteDTO>>> Get()
         {
-            var clientes = await _context.Clientes
-                                         .Include(c => c.Presupuestos)
-                                         .ToListAsync();
-
+            var clientes = await _clienteRepositorio.GetAllAsync();
             var clientesDTO = _mapper.Map<List<GET_ClienteDTO>>(clientes);
             return Ok(clientesDTO);
         }
 
-        // GET: api/clientes/5
+        // GET: api/Cliente/papelera
+        [HttpGet("papelera")]
+        public async Task<ActionResult<List<GET_ClienteDTO>>> GetPapelera()
+        {
+            var clientes = await _clienteRepositorio.GetInactivosAsync();
+            var dtos = _mapper.Map<List<GET_ClienteDTO>>(clientes);
+            return Ok(dtos);
+        }
+
+        // GET: api/clientes/id
         [HttpGet("{id:int}")]
         public async Task<ActionResult<GET_ClienteDTO>> GetById(int id)
         {
-            var cliente = await _context.Clientes
-                                        .Include(c => c.Presupuestos)
-                                        .FirstOrDefaultAsync(c => c.Id == id);
+            var cliente = await _clienteRepositorio.GetByIdAsync(id);
 
             if (cliente == null)
                 return NotFound("Cliente no encontrado.");
@@ -57,8 +61,8 @@ namespace Zetta.Server.Controllers
             try
             {
                 var cliente = _mapper.Map<Cliente>(dto);
-                _context.Clientes.Add(cliente);
-                await _context.SaveChangesAsync();
+                cliente.Activo = true; 
+                await _clienteRepositorio.AddAsync(cliente);
                 return Ok(cliente.Id);
             }
             catch (Exception ex)
@@ -71,7 +75,7 @@ namespace Zetta.Server.Controllers
         [HttpPut("{id:int}")]
         public async Task<ActionResult> Put(int id, [FromBody] PUT_ClienteDTO dto)
         {
-            var dbCliente = await _context.Clientes.FindAsync(id);
+            var dbCliente = await _clienteRepositorio.GetByIdAsync(id);
             if (dbCliente == null)
                 return NotFound("Cliente no encontrado.");
 
@@ -79,9 +83,8 @@ namespace Zetta.Server.Controllers
 
             try
             {
-                _context.Clientes.Update(dbCliente);
-                await _context.SaveChangesAsync();
-                return NoContent(); // Corregido: Retorna 204 No Content
+                await _clienteRepositorio.UpdateAsync(dbCliente);
+                return NoContent();
             }
             catch (Exception ex)
             {
@@ -89,19 +92,48 @@ namespace Zetta.Server.Controllers
             }
         }
 
-        // DELETE: api/clientes/5
+        // PUT: api/Cliente/restaurar/5
+        [HttpPut("restaurar/{id:int}")]
+        public async Task<ActionResult> Restaurar(int id)
+        {
+            try
+            {
+                await _clienteRepositorio.RestaurarAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // DELETE: api/clientes/5 (Soft Delete)
         [HttpDelete("{id:int}")]
         public async Task<ActionResult> Delete(int id)
         {
-            var cliente = await _context.Clientes.FindAsync(id);
+            var cliente = await _clienteRepositorio.GetByIdAsync(id);
             if (cliente == null)
                 return NotFound("Cliente no encontrado.");
 
             try
             {
-                _context.Clientes.Remove(cliente);
-                await _context.SaveChangesAsync();
-                return NoContent(); // Corregido: Retorna 204 No Content
+                await _clienteRepositorio.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        // DELETE: api/Cliente/definitivo/5
+        [HttpDelete("definitivo/{id:int}")]
+        public async Task<ActionResult> DeleteDefinitivo(int id)
+        {
+            try
+            {
+                await _clienteRepositorio.EliminarDefinitivamenteAsync(id);
+                return NoContent();
             }
             catch (Exception ex)
             {
@@ -110,35 +142,3 @@ namespace Zetta.Server.Controllers
         }
     }
 }
-
-#region Diccionario
-/* 
-//=========================================================================
-// Nombre       | Tipo                       | Descripción
-//==============|============================|==============================================
-// Id           | int                        | Identificador único del cliente.
-// Nombre       | string?                    | Nombre del cliente. Opcional.
-// Apellido     | string?                    | Apellido del cliente. Opcional.
-// Direccion    | string?                    | Dirección del cliente. Opcional.
-// Localidad    | string?                    | Localidad del cliente (ciudad o zona). Opcional.
-// Telefono     | string                     | Teléfono de contacto del cliente. Obligatorio.
-// Email        | string?                    | Correo electrónico del cliente. Opcional.
-// Presupuestos | ICollection<Presupuesto>   | Lista de presupuestos asociados a este cliente.
-//=========================================================================
-
-/*
-//========================================================================================================== 
-// Nombre de la Función     | Tipo HTTP | Ruta                           | Descripción
-//==========================|===========|================================|==========================================================
-// Get()                    | GET       | api/Cliente                    | Obtiene la lista completa de clientes registrados.
-// Post(Cliente entidad)    | POST      | api/Cliente                    | Crea un nuevo cliente en la base de datos.
-// Put(int id, Cliente entidad)
-//                          | PUT       | api/Cliente/{id}               | Modifica un cliente existente según su Id.
-// Delete(int id)           | DELETE    | api/Cliente/{id}               | Elimina un cliente del sistema a partir de su Id.
-//==========================================================================================================
-*/
-
-
-
-#endregion
-

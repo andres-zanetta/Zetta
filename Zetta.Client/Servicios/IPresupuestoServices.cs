@@ -1,6 +1,5 @@
 ﻿using Zetta.Shared.DTOS.Presupuesto;
 
-
 namespace Zetta.Client.Servicios
 {
     public interface IPresupuestoServices
@@ -10,5 +9,8 @@ namespace Zetta.Client.Servicios
         Task<GET_PresupuestoDTO?> GetById(int id);
         Task Update(int id, PUT_PresupuestoDTO presupuesto);
         Task Delete(int id);
+        Task<List<GET_PresupuestoDTO>?> GetInactivos();
+        Task Restaurar(int id);
+        Task EliminarDefinitivamente(int id);
     }
 }

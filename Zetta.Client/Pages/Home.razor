@@ -1,10 +1,4 @@
 ﻿@page "/"
-@using Zetta.Client.Servicios
-@using Zetta.Shared.DTOS.Obra
-@using Zetta.Shared.DTOS.Presupuesto
-@using Zetta.Shared.DTOS.Cliente
-@using Zetta.Shared.DTOS
-@using System.Globalization
 @inject IEstadisticaService EstadisticaService
 @inject IJSRuntime JSRuntime
 @inject IObraService ObraService
@@ -85,35 +79,23 @@
                                                 <span class="badge bg-light text-dark ms-2">@obraInfo.Obra.EstadoObra</span>
                                             </h6>
 
-                                            <button class="btn btn-dark w-100"
-                                                    @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO")'>
+                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO")'>
                                                 Presupuesto
                                             </button>
-
                                             <br />
-
-                                            <button class="btn btn-dark w-100"
-                                                    @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "DIRECCION")'>
+                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "DIRECCION")'>
                                                 Dirección Obra
                                             </button>
-
-                                            <button class="btn btn-dark w-100"
-                                                    @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "MATERIALES")'>
+                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "MATERIALES")'>
                                                 Materiales
                                             </button>
-
                                             <br />
-
-                                            <button class="btn btn-dark w-100"
-                                                    @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "CLIENTE")'>
+                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "CLIENTE")'>
                                                 Datos Cliente
                                             </button>
-
                                             <br />
-
                                             <div class="col-12">
-                                                <button class="btn btn-dark w-100"
-                                                        @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "COMENTARIOS")'>
+                                                <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "COMENTARIOS")'>
                                                     Actualizaciones/Comentarios (@(obraInfo.Obra.Comentarios?.Count ?? 0))
                                                 </button>
                                             </div>
@@ -229,28 +211,19 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <h5 class="mb-3">Obras por estado</h5>
-                            <ul class="list-unstyled mb-0">
-                                <li>Iniciadas: <strong>@dashboardStats.ObrasIniciadas</strong></li>
-                                <li>En proceso: <strong>@dashboardStats.ObrasProceso</strong></li>
-                                <li>Finalizadas: <strong>@dashboardStats.ObrasFinalizadas</strong></li>
-                            </ul>
-                        </div>
-
-                        <div class="card bg-dark text-white p-3 shadow-sm mt-3" style="border:1px solid orange;">
-                            <h5 class="mb-2">Presupuestos por estado</h5>
-                            <ul class="list-unstyled mb-0">
-                                <li>Aceptados: <strong>@dashboardStats.PresupuestosAceptados</strong></li>
-                                <li>Pendientes: <strong>@dashboardStats.PresupuestosPendientes</strong></li>
-                                <li>Vencidos: <strong>@dashboardStats.PresupuestosVencidos</strong></li>
-                            </ul>
+                            <h5 class="mb-3 text-center text-warning">Estados de Presupuestos</h5>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="presupuestosChart"></canvas>
+                            </div>
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <h5 class="mb-3">Gráfico de presupuestos por estado</h5>
-                            <canvas id="presupuestosChart" height="200"></canvas>
+                            <h5 class="mb-3 text-center text-info">Estados de Obras</h5>
+                            <div style="height: 250px; position: relative;">
+                                <canvas id="obrasChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -264,9 +237,9 @@
 
     // --- Variables para Sección Clima ---
     private List<WeatherDay>? weatherForecast;
-    private const string ApiKey = "403747cd7730269d7c72d434130a461a"; // Tu API Key
+    private const string ApiKey = "403747cd7730269d7c72d434130a461a";
     private const string Ciudad = "Cordoba,AR";
-            
+       
     // --- Variables para Sección Calendario ---
     private List<DiaDeTrabajo> DiasDeTrabajo = new List<DiaDeTrabajo>();
     private List<GET_PresupuestoDTO> TodosLosPresupuestos = new();
@@ -278,21 +251,17 @@
     private DashboardStatsDTO? dashboardStats;
     private bool _chartNeedsRender = false;
 
-        // NUEVO: helper para armar la clave única
     private string BuildDetalleKey(DateTime fecha, int obraId, string tipo)
         => $"{obraId}-{fecha:yyyyMMdd}-{tipo}";
 
-           // NUEVO: helper para consultar
     private bool IsDetalleAbierto(DateTime fecha, int obraId, string tipo)
         => DetallesAbiertos.Contains(BuildDetalleKey(fecha, obraId, tipo));
 
-    // --- Carga de Datos Principal ---
     protected override async Task OnInitializedAsync()
     {
         Cargando = true;
         try
         {
-            // Ejecutar todas las cargas de datos en paralelo
             await Task.WhenAll(
                 CargarClimaAsync(),
                 CargarDatosDashboard(),
@@ -302,7 +271,6 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Error al cargar el Home: {ex.Message}");
-            // Manejar error general si es necesario
         }
         finally
         {
@@ -315,10 +283,12 @@
         // Si hay stats y está pendiente dibujar el gráfico
         if (dashboardStats != null && _chartNeedsRender)
         {
-            _chartNeedsRender = false; // evitamos redibujar en cada render
+            _chartNeedsRender = false;
             try
             {
+                // Inicializar ambos gráficos
                 await JSRuntime.InvokeVoidAsync("zettiumDashboard.initPresupuestosChart", dashboardStats);
+                await JSRuntime.InvokeVoidAsync("zettiumDashboard.initObrasChart", dashboardStats);
             }
             catch (Exception ex)
             {
@@ -368,7 +338,7 @@
         "Snow" => "bi bi-snow",
         _ => "bi bi-cloud"
     };
-    
+
     private class WeatherApiResponse { public List<WeatherItem> List { get; set; } = new(); }
     private class WeatherItem { public WeatherMain Main { get; set; } = new(); public List<WeatherDescription> Weather { get; set; } = new(); public string Dt_txt { get; set; } = string.Empty; }
     private class WeatherMain { public double Temp_min { get; set; } public double Temp_max { get; set; } }
@@ -396,12 +366,10 @@
 
             DiasDeTrabajo.Clear();
             var hoy = DateTime.Today;
-
             for (int i = 0; i < 7; i++)
             {
                 var diaActual = hoy.AddDays(i);
                 var diaVM = new DiaDeTrabajo { Fecha = diaActual };
-
                 foreach (var obra in TodasLasObras.Where(o => o.EstadoObra != "Finalizada"))
                 {
                     var presupuesto = TodosLosPresupuestos.FirstOrDefault(p => p.Id == obra.PresupuestoId);
@@ -440,15 +408,11 @@
         return new ObraConDetalles { Obra = obra, Presupuesto = presupuesto, Cliente = cliente };
     }
 
-  
-    // MODIFICADO: ahora recibe fecha + obraId + tipo
     private void ToggleDetalle(DateTime fecha, int obraId, string tipo)
     {
         var key = BuildDetalleKey(fecha, obraId, tipo);
-
         if (!DetallesAbiertos.Add(key))
         {
-            // Si ya estaba, lo quitamos (toggle)
             DetallesAbiertos.Remove(key);
         }
     }
@@ -465,7 +429,7 @@
         try
         {
             dashboardStats = await EstadisticaService.GetDashboardStats();
-            _chartNeedsRender = true; // Marcar que el gráfico necesita dibujarse
+            _chartNeedsRender = true; 
         }
         catch (Exception ex)
         {

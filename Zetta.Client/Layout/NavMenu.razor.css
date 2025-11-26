@@ -1,4 +1,4 @@
-.navbar-toggler {
+/*.navbar-toggler {
     background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -70,26 +70,26 @@
         display: none;
     }
 
-    .collapse {
+    .collapse {*/
         /* Never collapse the sidebar for wide screens */
-        display: block;
+        /*display: block;
     }
     
-    .nav-scrollable {
+    .nav-scrollable {*/
         /* Allow sidebar to scroll for tall menus */
-        height: calc(100vh - 3.5rem);
+        /*height: calc(100vh - 3.5rem);
         overflow-y: auto;
     }
-}
+}*/
 
 /* Nuevo estilo para el contenedor que tiene el título y el logo */
-.top-row .container-fluid {
-    display: flex; /* Habilita Flexbox */
-    justify-content: space-between; /* Distribuye el espacio entre los elementos */
-    align-items: center; /* Alinea verticalmente al centro */
-}
+/*.top-row .container-fluid {
+    display: flex;*/ /* Habilita Flexbox */
+    /*justify-content: space-between;*/ /* Distribuye el espacio entre los elementos */
+    /*align-items: center;*/ /* Alinea verticalmente al centro */
+/*}*/
 
 /* Estilo opcional para asegurar que el logo ocupe el espacio */
-.zetta-logo {
-    margin-left: auto; /* Empuja el logo a la derecha si es necesario, útil en Flexbox */
-}
+/*.zetta-logo {
+    margin-left: auto;*/ /* Empuja el logo a la derecha si es necesario, útil en Flexbox */
+/*}*/

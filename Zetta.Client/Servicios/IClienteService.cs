@@ -9,5 +9,8 @@ namespace Zetta.Client.Servicios
         Task<List<GET_ClienteDTO>?> GetAll();
         Task<GET_ClienteDTO?> GetById(int id);
         Task Update(int id, PUT_ClienteDTO cliente);
+        Task<List<GET_ClienteDTO>?> GetInactivos();
+        Task Restaurar(int id);
+        Task EliminarDefinitivamente(int id);
     }
 }
