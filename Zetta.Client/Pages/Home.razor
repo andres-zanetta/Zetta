@@ -1,4 +1,11 @@
 ﻿@page "/"
+@using Zetta.Client.Servicios
+@using Zetta.Shared.DTOS.Obra
+@using Zetta.Shared.DTOS.Presupuesto
+@using Zetta.Shared.DTOS.Cliente
+@using Zetta.Shared.DTOS.PresItemDetalle
+@using Zetta.Shared.DTOS
+@using System.Globalization
 @inject IEstadisticaService EstadisticaService
 @inject IJSRuntime JSRuntime
 @inject IObraService ObraService
@@ -22,24 +29,17 @@
     else
     {
         <section class="weather-section mt-5">
-            <h2 class="text-center text-naranja mb-3">
-                <i class="bi bi-cloud-sun"></i> Verifique el tiempo antes de presupuestar
-            </h2>
-
-            @if (weatherForecast == null)
-            {
-                <p class="text-center text-muted">No se pudo cargar el pronóstico del clima.</p>
-            }
-            else
+            <h2 class="text-center text-naranja mb-3"><i class="bi bi-cloud-sun"></i> Clima</h2>
+            @if (weatherForecast != null)
             {
                 <div class="d-flex flex-wrap justify-content-center gap-3">
                     @foreach (var day in weatherForecast)
                     {
-                        <div class="card shadow-sm text-center p-3 bg-dark text-white" style="width: 150px; border: 1px solid orange;">
-                            <h5>@day.Date.ToString("ddd")</h5>
-                            <i class="@day.Icon" style="font-size: 2rem; color: orange;"></i>
-                            <p class="mb-0">@day.TempMax°C / @day.TempMin°C</p>
-                            <small class="text-muted">@day.Description</small>
+                        <div class="card shadow-sm text-center p-2 bg-dark text-white border-warning" style="width: 140px;">
+                            <h6 class="mb-1 text-naranja">@day.Date.ToString("ddd dd")</h6>
+                            <i class="@day.Icon my-2" style="font-size: 1.8rem;"></i>
+                            <p class="mb-0 fw-bold">@day.TempMax° / @day.TempMin°</p>
+                            <small class="text-muted" style="font-size:0.75rem">@day.Description</small>
                         </div>
                     }
                 </div>
@@ -47,116 +47,215 @@
         </section>
 
         <section class="mt-5">
-            <h2 class="text-center text-naranja mb-3">
-                <i class="bi bi-calendar-week"></i> Obras Activas (Próximos 7 Días)
-            </h2>
+            <h2 class="text-center text-naranja mb-4"><i class="bi bi-calendar-week"></i> Agenda Semanal</h2>
 
             @if (!DiasDeTrabajo.Any() || !DiasDeTrabajo.Any(d => d.ObrasDelDia.Any()))
             {
-                <p class="text-center text-muted">No hay obras programadas para los próximos 7 días.</p>
+                <div class="alert alert-dark text-center border-secondary text-muted">
+                    No hay obras programadas para los próximos 7 días.
+                </div>
             }
             else
             {
-                <div class="row g-3">
+                <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 align-items-start">
                     @foreach (var dia in DiasDeTrabajo)
                     {
-                        <div class="col-12 col-lg-6">
-                            <div class="card bg-dark text-white mb-3" style="border: 1px solid orange;">
-                                <div class="card-header bg-black text-warning">
-                                    <h5 class="mb-0">@dia.Fecha.ToString("dddd dd 'de' MMMM", new CultureInfo("es-ES"))</h5>
+                        <div class="col">
+                            <div class="card bg-black text-white shadow h-100 border-secondary">
+                                <div class="card-header border-bottom border-secondary py-2 bg-dark">
+                                    <h5 class="mb-0 text-warning text-center">
+                                        @dia.Fecha.ToString("dddd dd", new CultureInfo("es-ES")).ToUpper()
+                                    </h5>
                                 </div>
-                                <div class="card-body">
+
+                                <div class="card-body p-2">
                                     @if (!dia.ObrasDelDia.Any())
                                     {
-                                        <p class="text-muted fst-italic">No hay obras programadas para este día.</p>
+                                        <p class="text-muted text-center my-4 small fst-italic">Sin actividad.</p>
                                     }
 
+                                    @{
+                                        int indexColor = 0;
+                                    }
                                     @foreach (var obraInfo in dia.ObrasDelDia)
                                     {
-                                        <div class="p-3 rounded mb-2" style="background-color: @(obraInfo.Presupuesto?.Aceptado == true ? "#D95B00" : "#6c757d");">
-                                            <h6 class="text-white mb-3">
-                                                Obra #@obraInfo.Obra.Id - @(obraInfo.Presupuesto?.RubroNombre ?? "N/A")
-                                                <span class="badge bg-light text-dark ms-2">@obraInfo.Obra.EstadoObra</span>
-                                            </h6>
+                                        string colorBorde = GetColorAlternado(indexColor++);
 
-                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO")'>
-                                                Presupuesto
-                                            </button>
-                                            <br />
-                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "DIRECCION")'>
-                                                Dirección Obra
-                                            </button>
-                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "MATERIALES")'>
-                                                Materiales
-                                            </button>
-                                            <br />
-                                            <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "CLIENTE")'>
-                                                Datos Cliente
-                                            </button>
-                                            <br />
-                                            <div class="col-12">
-                                                <button class="btn btn-dark w-100" @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "COMENTARIOS")'>
-                                                    Actualizaciones/Comentarios (@(obraInfo.Obra.Comentarios?.Count ?? 0))
-                                                </button>
+                                        <div class="card bg-dark mb-3 shadow-sm border-0"
+                                             style="border-left: 5px solid @colorBorde !important;">
+
+                                            <div class="p-2 d-flex justify-content-between align-items-center border-bottom border-secondary"
+                                                 style="background: rgba(255,255,255,0.05);">
+                                                <div>
+                                                    <strong class="text-white d-block">Obra #@obraInfo.Obra.Id</strong>
+                                                    <small class="text-muted">@obraInfo.Presupuesto?.RubroNombre</small>
+                                                </div>
+                                                <span class="badge @GetBadgeColor(obraInfo.Obra.EstadoObra)">
+                                                    @obraInfo.Obra.EstadoObra
+                                                </span>
                                             </div>
 
-                                            @if (IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO"))
-                                            {
-                                                <div class="card bg-dark text-white mt-2 p-2">
-                                                    <strong>Total:</strong> @(obraInfo.Presupuesto?.Total.ToString("C") ?? "N/A")<br />
-                                                    <strong>Validez:</strong> @(obraInfo.Presupuesto?.ValidacionDias ?? "N/A") días<br />
-                                                    <strong>Estado:</strong> @(obraInfo.Presupuesto?.Aceptado == true ? "Aceptado" : "Pendiente")
-                                                </div>
-                                            }
+                                            <div class="card-body p-0">
+                                                <div class="list-group list-group-flush">
 
-                                            @if (IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "DIRECCION"))
-                                            {
-                                                <div class="card bg-dark text-white mt-2 p-2">
-                                                    <strong>Dirección:</strong> @(obraInfo.Presupuesto?.DireccionObra ?? "N/A")
-                                                </div>
-                                            }
+                                                    @{
+                                                        var openP = IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO");
+                                                    }
+                                                    <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center @(openP ? "active-btn" : "")"
+                                                            @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "PRESUPUESTO")'>
+                                                        <span><i class="bi bi-cash-stack me-2"></i> Presupuesto</span>
+                                                        <i class="bi @(openP ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                                    </button>
+                                                    @if (openP)
+                                                    {
+                                                        <div class="p-3 bg-black border-bottom border-secondary text-light animate-fade">
+                                                            <div class="row g-2 small">
+                                                                <div class="col-6 text-muted">Mano de Obra:</div>
+                                                                <div class="col-6 text-end">@(obraInfo.Presupuesto?.ManodeObra?.ToString("C") ?? "-")</div>
+                                                                <div class="col-6 text-muted">Total Final:</div>
+                                                                <div class="col-6 text-end text-success fw-bold">@(obraInfo.Presupuesto?.Total.ToString("C") ?? "-")</div>
+                                                                <div class="col-6 text-muted">Pago:</div>
+                                                                <div class="col-6 text-end">@obraInfo.Presupuesto?.OpcionDePago</div>
+                                                                <div class="col-6 text-muted">Estado:</div>
+                                                                <div class="col-6 text-end">@(obraInfo.Presupuesto?.Aceptado == true ? "Aceptado" : "Pendiente")</div>
+                                                            </div>
+                                                        </div>
+                                                    }
 
-                                            @if (IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "MATERIALES"))
-                                            {
-                                                <div class="card bg-dark text-white mt-2 p-2">
-                                                    <strong>Quién compra:</strong> @(obraInfo.Presupuesto?.Materiales == true ? "Usuario (Zetta)" : "Cliente")<br />
-                                                    @if (obraInfo.Presupuesto?.Materiales == true)
-                                                    {
-                                                        <strong>Comprados:</strong> @GetEstadoMaterial(obraInfo.Obra.MaterialesCompradosPorUsuario) <br />
-                                                        <strong>Entregados:</strong> @GetEstadoMaterial(obraInfo.Obra.MaterialesEntregados)
+                                                    @{
+                                                        var openC = IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "CLIENTE");
                                                     }
-                                                    else
+                                                    <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center @(openC ? "active-btn" : "")"
+                                                            @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "CLIENTE")'>
+                                                        <span><i class="bi bi-geo-alt-fill me-2"></i> Cliente y Sitio</span>
+                                                        <i class="bi @(openC ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                                    </button>
+                                                    @if (openC)
                                                     {
-                                                        <strong class="text-warning">Recordatorio:</strong> <text>Preguntar al cliente si ya compró los materiales.</text>
+                                                        <div class="p-3 bg-black border-bottom border-secondary text-light animate-fade">
+                                                            <h6 class="text-naranja mb-1">@(obraInfo.Cliente?.Nombre) @(obraInfo.Cliente?.Apellido)</h6>
+                                                            <div class="mb-2">
+                                                                <a href="tel:@(obraInfo.Cliente?.Telefono)" class="text-decoration-none text-info small">
+                                                                    <i class="bi bi-telephone"></i> @(obraInfo.Cliente?.Telefono)
+                                                                </a>
+                                                            </div>
+                                                            <div class="small text-muted border-top border-secondary pt-2">
+                                                                <div><i class="bi bi-house"></i> @(obraInfo.Cliente?.Direccion ?? "-")</div>
+                                                                <div><i class="bi bi-geo"></i> @(obraInfo.Cliente?.Localidad ?? "-")</div>
+                                                            </div>
+                                                            @if (!string.IsNullOrWhiteSpace(obraInfo.Presupuesto?.DireccionObra) && obraInfo.Presupuesto.DireccionObra != obraInfo.Cliente?.Direccion)
+                                                            {
+                                                                <div class="mt-2 p-2 border border-warning rounded bg-dark small">
+                                                                    <strong class="text-warning d-block">Obra en otra dirección:</strong>
+                                                                    @obraInfo.Presupuesto.DireccionObra
+                                                                </div>
+                                                            }
+                                                        </div>
                                                     }
-                                                </div>
-                                            }
 
-                                            @if (IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "CLIENTE"))
-                                            {
-                                                <div class="card bg-dark text-white mt-2 p-2">
-                                                    <strong>Nombre:</strong> @(obraInfo.Cliente?.Nombre ?? "N/A") @(obraInfo.Cliente?.Apellido ?? "")<br />
-                                                    <strong>Teléfono:</strong> @(obraInfo.Cliente?.Telefono ?? "N/A")<br />
-                                                    <strong>Email:</strong> @(obraInfo.Cliente?.Email ?? "N/A")
-                                                </div>
-                                            }
+                                                    @{
+                                                        var openM = IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "MATERIALES");
+                                                    }
+                                                    <button class="list-group-item list-group-item-action bg-dark text-white border-secondary d-flex justify-content-between align-items-center @(openM ? "active-btn" : "")"
+                                                            @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "MATERIALES")'>
+                                                        <span><i class="bi bi-tools me-2"></i> Materiales</span>
+                                                        <i class="bi @(openM ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                                    </button>
+                                                    @if (openM)
+                                                    {
+                                                        <div class="p-3 bg-black border-bottom border-secondary text-light animate-fade">
+                                                            <div class="mb-2 p-2 rounded border border-secondary bg-dark">
+                                                                <div class="d-flex justify-content-between mb-1">
+                                                                    <span class="small text-muted">Responsable Compra:</span>
+                                                                    @if (obraInfo.Obra.MaterialesCompradosPorUsuario == true)
+                                                                    {
+                                                                        <span class="badge bg-success">CLIENTE</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-info text-dark">ZETTIUM (USUARIO)</span>
+                                                                    }
+                                                                </div>
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <span class="small text-muted">Materiales Entregados:</span>
+                                                                    @if (obraInfo.Obra.MaterialesEntregados == true)
+                                                                    {
+                                                                        <span class="badge bg-success">ENTREGADOS</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="badge bg-danger">NO ENTREGADOS</span>
+                                                                    }
+                                                                </div>
+                                                            </div>
 
-                                            @if (IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "COMENTARIOS"))
-                                            {
-                                                <div class="card bg-dark text-white mt-2 p-2">
-                                                    @if (obraInfo.Obra.Comentarios == null || !obraInfo.Obra.Comentarios.Any())
-                                                    {
-                                                        <small class="text-muted">No hay comentarios.</small>
+                                                            @if (obraInfo.Presupuesto?.ItemsDetalle != null && obraInfo.Presupuesto.ItemsDetalle.Any())
+                                                            {
+                                                                <h6 class="text-naranja small border-bottom border-secondary pb-1 mb-2">Ítems a Instalar:</h6>
+                                                                <ul class="list-unstyled mb-0 small">
+                                                                    @foreach (var item in obraInfo.Presupuesto.ItemsDetalle)
+                                                                    {
+                                                                        <li class="mb-1 d-inline-block text-light">
+                                                                            <i class="bi bi-dot text-secondary me-1"></i>
+                                                                            <a>@item.Cantidad x  |</a>
+                                                                            <a>@item.NombreItem  |</a>
+                                                                            <a>@item.DescripcionItem  |</a>
+                                                                            <a>@item.MedidaItem  |</a>
+                                                                            <a>@item.MarcaItem  |</a>
+                                                                        </li>
+                                                                    }
+                                                                </ul>
+                                                            }
+                                                            else
+                                                            {
+                                                                <small class="text-muted d-block text-center">No hay ítems detallados.</small>
+                                                            }
+                                                        </div>
                                                     }
-                                                    else
-                                                    {
-                                                        @foreach (var com in obraInfo.Obra.Comentarios)
-                                                        {
-                                                            <small class="d-block border-bottom border-secondary pb-1 mb-1">@com</small>
-                                                        }
+
+                                                    @{
+                                                        var openN = IsDetalleAbierto(dia.Fecha, obraInfo.Obra.Id, "NOTAS");
                                                     }
+                                                    <button class="list-group-item list-group-item-action bg-dark text-white border-0 d-flex justify-content-between align-items-center @(openN ? "active-btn" : "")"
+                                                            @onclick='() => ToggleDetalle(dia.Fecha, obraInfo.Obra.Id, "NOTAS")'>
+                                                        <span><i class="bi bi-journal-text me-2"></i> Notas (@(obraInfo.Obra.Comentarios?.Count ?? 0))</span>
+                                                        <i class="bi @(openN ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                                    </button>
+                                                    @if (openN)
+                                                    {
+                                                        <div class="p-3 bg-black text-light animate-fade">
+                                                            <div class="mb-3" style="max-height: 150px; overflow-y: auto;">
+                                                                @if (obraInfo.Obra.Comentarios != null && obraInfo.Obra.Comentarios.Any())
+                                                                {
+                                                                    <ul class="list-unstyled mb-0">
+                                                                        @foreach (var com in obraInfo.Obra.Comentarios)
+                                                                        {
+                                                                            <li class="mb-2 p-2 bg-dark rounded border border-secondary small">
+                                                                                @com
+                                                                            </li>
+                                                                        }
+                                                                    </ul>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <small class="text-muted d-block text-center mb-2">Sin notas.</small>
+                                                                }
+                                                            </div>
+
+                                                            <div class="input-group input-group-sm">
+                                                                <input type="text" class="form-control bg-dark text-white border-secondary"
+                                                                       placeholder="Nueva nota..."
+                                                                       @bind="NuevoComentario" />
+                                                                <button class="btn btn-warning" type="button"
+                                                                        @onclick="() => GuardarComentario(obraInfo.Obra)">
+                                                                    <i class="bi bi-send-fill"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    }
+
                                                 </div>
-                                            }
+                                            </div>
                                         </div>
                                     }
                                 </div>
@@ -167,62 +266,24 @@
             }
         </section>
 
-        <section class="mt-5">
-            <h2 class="text-center text-naranja mb-3">
-                <i class="bi bi-graph-up"></i> Resumen de tu actividad
-            </h2>
-
-            @if (dashboardStats == null)
+        <section class="mt-5 mb-5">
+            <h2 class="text-center text-naranja mb-4"><i class="bi bi-bar-chart-line"></i> Estadísticas</h2>
+            @if (dashboardStats != null)
             {
-                <p class="text-center text-muted">Cargando estadísticas...</p>
-            }
-            else
-            {
-                <div class="row g-3 mb-4 justify-content-center">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <span class="text-muted small">Clientes</span>
-                            <h2 class="mb-0">@dashboardStats.TotalClientes</h2>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <span class="text-muted small">Presupuestos</span>
-                            <h2 class="mb-0">@dashboardStats.TotalPresupuestos</h2>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <span class="text-muted small">Obras</span>
-                            <h2 class="mb-0">@dashboardStats.TotalObras</h2>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <span class="text-muted small">Ítems de catálogo</span>
-                            <h2 class="mb-0">@dashboardStats.TotalItems</h2>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <h5 class="mb-3 text-center text-warning">Estados de Presupuestos</h5>
-                            <div style="height: 250px; position: relative;">
-                                <canvas id="presupuestosChart"></canvas>
+                <div class="row g-4">
+                    <div class="col-12 col-md-6">
+                        <div class="card bg-dark text-white shadow-sm h-100 border-warning">
+                            <div class="card-body">
+                                <h6 class="text-center text-warning mb-3">Presupuestos</h6>
+                                <div style="height: 250px; position: relative;"><canvas id="presupuestosChart"></canvas></div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="col-md-6">
-                        <div class="card bg-dark text-white p-3 shadow-sm" style="border:1px solid orange;">
-                            <h5 class="mb-3 text-center text-info">Estados de Obras</h5>
-                            <div style="height: 250px; position: relative;">
-                                <canvas id="obrasChart"></canvas>
+                    <div class="col-12 col-md-6">
+                        <div class="card bg-dark text-white shadow-sm h-100 border-info">
+                            <div class="card-body">
+                                <h6 class="text-center text-info mb-3">Obras</h6>
+                                <div style="height: 250px; position: relative;"><canvas id="obrasChart"></canvas></div>
                             </div>
                         </div>
                     </div>
@@ -232,208 +293,183 @@
     }
 </div>
 
+<style>
+    .active-btn {
+        background-color: #ff8c00 !important;
+        color: #000 !important;
+        font-weight: bold;
+        border-color: #ff8c00 !important;
+    }
+
+        .active-btn i {
+            color: #000 !important;
+        }
+
+    .animate-fade {
+        animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
 @code {
     private bool Cargando = true;
-
-    // --- Variables para Sección Clima ---
     private List<WeatherDay>? weatherForecast;
     private const string ApiKey = "403747cd7730269d7c72d434130a461a";
     private const string Ciudad = "Cordoba,AR";
-       
-    // --- Variables para Sección Calendario ---
-    private List<DiaDeTrabajo> DiasDeTrabajo = new List<DiaDeTrabajo>();
+
+    private List<DiaDeTrabajo> DiasDeTrabajo = new();
     private List<GET_PresupuestoDTO> TodosLosPresupuestos = new();
     private List<GET_ClienteDTO> TodosLosClientes = new();
     private List<GET_ObraDTO> TodasLasObras = new();
-    private HashSet<string> DetallesAbiertos = new();
 
-    // --- Variables para Sección Estadísticas ---
+    // Usamos un diccionario para controlar qué acordeón está abierto por día
+    // Clave: "yyyyMMdd-ObraId", Valor: "TIPO_ABIERTO" (ej: "MATERIALES")
+    private Dictionary<string, string> AcordeonesAbiertos = new();
+
     private DashboardStatsDTO? dashboardStats;
     private bool _chartNeedsRender = false;
-
-    private string BuildDetalleKey(DateTime fecha, int obraId, string tipo)
-        => $"{obraId}-{fecha:yyyyMMdd}-{tipo}";
-
-    private bool IsDetalleAbierto(DateTime fecha, int obraId, string tipo)
-        => DetallesAbiertos.Contains(BuildDetalleKey(fecha, obraId, tipo));
+    private string NuevoComentario { get; set; } = "";
 
     protected override async Task OnInitializedAsync()
     {
         Cargando = true;
-        try
-        {
-            await Task.WhenAll(
-                CargarClimaAsync(),
-                CargarDatosDashboard(),
-                CargarEstadisticasAsync()
-            );
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al cargar el Home: {ex.Message}");
-        }
-        finally
-        {
-            Cargando = false;
-        }
+        try { await Task.WhenAll(CargarClimaAsync(), CargarDatosDashboard(), CargarEstadisticasAsync()); }
+        catch { }
+        finally { Cargando = false; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Si hay stats y está pendiente dibujar el gráfico
         if (dashboardStats != null && _chartNeedsRender)
         {
             _chartNeedsRender = false;
             try
             {
-                // Inicializar ambos gráficos
                 await JSRuntime.InvokeVoidAsync("zettiumDashboard.initPresupuestosChart", dashboardStats);
                 await JSRuntime.InvokeVoidAsync("zettiumDashboard.initObrasChart", dashboardStats);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error invocando JS del gráfico: {ex.Message}");
-            }
+            catch { }
         }
     }
 
-
-    // --- Lógica de Sección Clima ---
+    // --- Clima ---
     private async Task CargarClimaAsync()
     {
         try
         {
-            string url = $"https://api.openweathermap.org/data/2.5/forecast?q={Ciudad}&appid={ApiKey}&units=metric&lang=es";
-            var response = await Http.GetFromJsonAsync<WeatherApiResponse>(url);
-
-            if (response?.List != null)
-            {
-                weatherForecast = response.List
-                    .GroupBy(f => DateTime.Parse(f.Dt_txt).Date)
-                    .Take(5)
-                    .Select(g => new WeatherDay
-                    {
-                        Date = g.Key,
-                        TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)),
-                        TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)),
-                        Description = g.First().Weather.First().Description,
-                        Icon = GetIcon(g.First().Weather.First().Main)
-                    })
-                    .ToList();
-            }
+            var r = await Http.GetFromJsonAsync<WeatherApiResponse>($"https://api.openweathermap.org/data/2.5/forecast?q={Ciudad}&appid={ApiKey}&units=metric&lang=es");
+            if (r?.List != null) weatherForecast = r.List.GroupBy(f => DateTime.Parse(f.Dt_txt).Date).Take(5).Select(g => new WeatherDay { Date = g.Key, TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)), TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)), Description = g.First().Weather.First().Description, Icon = GetIcon(g.First().Weather.First().Main) }).ToList();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error obteniendo clima: {ex.Message}");
-        }
+        catch { }
     }
 
-    private string GetIcon(string main) => main switch
-    {
-        "Clear" => "bi bi-brightness-high",
-        "Clouds" => "bi bi-cloudy",
-        "Rain" => "bi bi-cloud-rain",
-        "Drizzle" => "bi bi-cloud-drizzle",
-        "Thunderstorm" => "bi bi-cloud-lightning",
-        "Snow" => "bi bi-snow",
-        _ => "bi bi-cloud"
-    };
-
-    private class WeatherApiResponse { public List<WeatherItem> List { get; set; } = new(); }
-    private class WeatherItem { public WeatherMain Main { get; set; } = new(); public List<WeatherDescription> Weather { get; set; } = new(); public string Dt_txt { get; set; } = string.Empty; }
-    private class WeatherMain { public double Temp_min { get; set; } public double Temp_max { get; set; } }
-    private class WeatherDescription { public string Main { get; set; } = string.Empty; public string Description { get; set; } = string.Empty; }
-    private class WeatherDay { public DateTime Date { get; set; } public int TempMax { get; set; } public int TempMin { get; set; } public string Description { get; set; } = string.Empty; public string Icon { get; set; } = "bi bi-cloud"; }
-
-
-    // --- Lógica de Sección Calendario ---
-    private class DiaDeTrabajo { public DateTime Fecha { get; set; } public List<ObraConDetalles> ObrasDelDia { get; set; } = new List<ObraConDetalles>(); }
-    private class ObraConDetalles { public GET_ObraDTO Obra { get; set; } public GET_PresupuestoDTO? Presupuesto { get; set; } public GET_ClienteDTO? Cliente { get; set; } }
-
+    // --- Dashboard ---
     private async Task CargarDatosDashboard()
     {
-        try
+        var tO = ObraService.GetAllAsync(); var tP = PresupuestoService.GetAll(); var tC = ClienteService.GetAll();
+        await Task.WhenAll(tO, tP, tC);
+        TodasLasObras = await tO ?? new(); TodosLosPresupuestos = await tP ?? new(); TodosLosClientes = await tC ?? new();
+
+        DiasDeTrabajo.Clear();
+        var hoy = DateTime.Today;
+        for (int i = 0; i < 7; i++)
         {
-            var obrasTask = ObraService.GetAllAsync();
-            var presupuestosTask = PresupuestoService.GetAll();
-            var clientesTask = ClienteService.GetAll();
-            
-            await Task.WhenAll(obrasTask, presupuestosTask, clientesTask);
-
-            TodasLasObras = (await obrasTask) ?? new List<GET_ObraDTO>();
-            TodosLosPresupuestos = (await presupuestosTask) ?? new List<GET_PresupuestoDTO>();
-            TodosLosClientes = (await clientesTask) ?? new List<GET_ClienteDTO>();
-
-            DiasDeTrabajo.Clear();
-            var hoy = DateTime.Today;
-            for (int i = 0; i < 7; i++)
+            var dia = hoy.AddDays(i);
+            var diaVM = new DiaDeTrabajo { Fecha = dia };
+            foreach (var obra in TodasLasObras.Where(o => o.EstadoObra != "Finalizada"))
             {
-                var diaActual = hoy.AddDays(i);
-                var diaVM = new DiaDeTrabajo { Fecha = diaActual };
-                foreach (var obra in TodasLasObras.Where(o => o.EstadoObra != "Finalizada"))
+                var pres = TodosLosPresupuestos.FirstOrDefault(p => p.Id == obra.PresupuestoId);
+                int dur = 1;
+                if (pres != null && int.TryParse(pres.TiempoAproxObra, out int d) && d > 0) dur = d;
+                var fin = obra.FechaInicio.Date.AddDays(dur - 1);
+                if (dia.Date >= obra.FechaInicio.Date && dia.Date <= fin)
                 {
-                    var presupuesto = TodosLosPresupuestos.FirstOrDefault(p => p.Id == obra.PresupuestoId);
-                    if (presupuesto == null || !int.TryParse(presupuesto.TiempoAproxObra, out int diasDuracion) || diasDuracion <= 0)
-                    {
-                        if (obra.FechaInicio.Date == diaActual.Date)
-                        {
-                            diaVM.ObrasDelDia.Add(await MapearObraConDetalles(obra, presupuesto));
-                        }
-                    }
-                    else
-                    {
-                        var fechaFin = obra.FechaInicio.Date.AddDays(diasDuracion - 1);
-                        if (diaActual.Date >= obra.FechaInicio.Date && diaActual.Date <= fechaFin)
-                        {
-                            diaVM.ObrasDelDia.Add(await MapearObraConDetalles(obra, presupuesto));
-                        }
-                    }
+                    diaVM.ObrasDelDia.Add(await MapearObra(obra, pres));
                 }
-
-                DiasDeTrabajo.Add(diaVM);
             }
+            DiasDeTrabajo.Add(diaVM);
         }
-        catch (Exception ex) { Console.WriteLine($"Error cargando calendario: {ex.Message}"); }
-    }
-    
-    private async Task<ObraConDetalles> MapearObraConDetalles(GET_ObraDTO obra, GET_PresupuestoDTO? presupuesto)
-    {
-        if (presupuesto == null)
-        {
-            try { presupuesto = await PresupuestoService.GetById(obra.PresupuestoId); }
-            catch(Exception ex) { Console.WriteLine($"Error al buscar presupuesto ID {obra.PresupuestoId}: {ex.Message}"); presupuesto = null; }
-        }
-        GET_ClienteDTO? cliente = null;
-        if (presupuesto != null) { cliente = TodosLosClientes.FirstOrDefault(c => c.Id == presupuesto.ClienteId); }
-        return new ObraConDetalles { Obra = obra, Presupuesto = presupuesto, Cliente = cliente };
     }
 
+    private async Task<ObraConDetalles> MapearObra(GET_ObraDTO obra, GET_PresupuestoDTO? pres)
+    {
+        if (pres == null) try { pres = await PresupuestoService.GetById(obra.PresupuestoId); } catch { }
+        if (pres != null && (pres.ItemsDetalle == null || !pres.ItemsDetalle.Any()))
+        {
+            try { var full = await PresupuestoService.GetById(pres.Id); if (full != null) pres = full; } catch { }
+        }
+        var cli = TodosLosClientes.FirstOrDefault(c => c.Id == (pres?.ClienteId ?? obra.ClienteId));
+        return new ObraConDetalles { Obra = obra, Presupuesto = pres, Cliente = cli };
+    }
+
+    // LÓGICA DE ACORDEÓN ÚNICO POR OBRA/DÍA
+    // Clave única: "Fecha - ObraID"
+    // Valor: "TIPO" (ej: MATERIALES). Si es el mismo, se cierra.
     private void ToggleDetalle(DateTime fecha, int obraId, string tipo)
     {
-        var key = BuildDetalleKey(fecha, obraId, tipo);
-        if (!DetallesAbiertos.Add(key))
+        string key = $"{fecha:yyyyMMdd}-{obraId}";
+        if (AcordeonesAbiertos.ContainsKey(key) && AcordeonesAbiertos[key] == tipo)
         {
-            DetallesAbiertos.Remove(key);
+            AcordeonesAbiertos.Remove(key); // Cerrar si es el mismo
+        }
+        else
+        {
+            AcordeonesAbiertos[key] = tipo; // Abrir nuevo y cerrar anterior de esa obra
         }
     }
-
-    private string GetEstadoMaterial(bool? estado)
+    private bool IsDetalleAbierto(DateTime fecha, int obraId, string tipo)
     {
-        if (!estado.HasValue) return "Pendiente";
-        return estado.Value ? "Sí" : "No";
+        string key = $"{fecha:yyyyMMdd}-{obraId}";
+        return AcordeonesAbiertos.ContainsKey(key) && AcordeonesAbiertos[key] == tipo;
     }
 
-    // --- Lógica de Sección Estadísticas ---
-    private async Task CargarEstadisticasAsync()
+    private async Task GuardarComentario(GET_ObraDTO obra)
     {
+        if (string.IsNullOrWhiteSpace(NuevoComentario)) return;
+        if (obra.Comentarios == null) obra.Comentarios = new List<string>();
+        obra.Comentarios.Add($"{DateTime.Now:dd/MM}: {NuevoComentario}");
         try
         {
-            dashboardStats = await EstadisticaService.GetDashboardStats();
-            _chartNeedsRender = true; 
+            await ObraService.UpdateAsync(obra.Id, new PUT_ObraDTO
+            {
+                EstadoObra = obra.EstadoObra,
+                FechaInicio = obra.FechaInicio,
+                ClienteId = obra.ClienteId,
+                PresupuestoId = obra.PresupuestoId,
+                Comentarios = obra.Comentarios,
+                MaterialesCompradosPorUsuario = obra.MaterialesCompradosPorUsuario,
+                MaterialesEntregados = obra.MaterialesEntregados
+            });
+            NuevoComentario = "";
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error cargando estadísticas: {ex.Message}");
-        }
+        catch { }
     }
+
+    private async Task CargarEstadisticasAsync() { try { dashboardStats = await EstadisticaService.GetDashboardStats(); _chartNeedsRender = true; } catch { } }
+
+    private string GetColorAlternado(int index)
+    {
+        string[] cols = { "#ff8c00", "#0dcaf0", "#20c997", "#d63384", "#6610f2" }; // Naranja, Cyan, Verde, Rosa, Violeta
+        return cols[index % cols.Length];
+    }
+    private string GetBadgeColor(string s) => s switch { "Iniciada" => "bg-info text-dark", "EnProceso" => "bg-warning text-dark", "Finalizada" => "bg-success", _ => "bg-secondary" };
+    private string GetIcon(string m) => m switch { "Clear" => "bi bi-brightness-high", "Clouds" => "bi bi-cloudy", "Rain" => "bi bi-cloud-rain", _ => "bi bi-cloud" };
+
+    // Clases internas
+    private class WeatherApiResponse { public List<WeatherItem> List { get; set; } = new(); }
+    private class WeatherItem { public WeatherMain Main { get; set; } = new(); public List<WeatherDescription> Weather { get; set; } = new(); public string Dt_txt { get; set; } = ""; }
+    private class WeatherMain { public double Temp_min { get; set; } public double Temp_max { get; set; } }
+    private class WeatherDescription { public string Description { get; set; } = ""; public string Main { get; set; } = ""; }
+    private class WeatherDay { public DateTime Date { get; set; } public int TempMax { get; set; } public int TempMin { get; set; } public string Description { get; set; } = ""; public string Icon { get; set; } = ""; }
+    private class DiaDeTrabajo { public DateTime Fecha { get; set; } public List<ObraConDetalles> ObrasDelDia { get; set; } = new(); }
+    private class ObraConDetalles { public GET_ObraDTO Obra { get; set; } = new(); public GET_PresupuestoDTO? Presupuesto { get; set; } public GET_ClienteDTO? Cliente { get; set; } }
 }

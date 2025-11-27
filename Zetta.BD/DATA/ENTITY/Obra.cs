@@ -19,6 +19,7 @@ namespace Zetta.BD.DATA.ENTITY
         public Cliente Cliente { get; set; }
         public bool? MaterialesCompradosPorUsuario { get; set; } // true=comprado, false=no, null=pendiente
         public bool? MaterialesEntregados { get; set; } // true=entregado, false=no, null=pendiente
+        public ICollection<Comentario> Comentarios { get; set; } = new List<Comentario>();
 
     }
 

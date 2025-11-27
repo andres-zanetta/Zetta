@@ -13,21 +13,21 @@ namespace Zetta.Server.Repositorios
             this.context = context;
         }
 
-        // Obtener todas las obras con cliente y presupuesto
         public async Task<IEnumerable<Obra>> ObtenerObrasConDetallesAsync()
         {
             return await _context.Obras
-                .Include(o => o.Cliente)
                 .Include(o => o.Presupuesto)
+                .Include(o => o.Cliente)
+                .Include(o => o.Comentarios)
                 .ToListAsync();
         }
 
-        // Obtener una obra por ID con todos sus datos relacionados
         public async Task<Obra?> ObtenerObraPorIdConDetallesAsync(int id)
         {
             return await _context.Obras
-                .Include(o => o.Cliente)
                 .Include(o => o.Presupuesto)
+                .Include(o => o.Cliente)
+                .Include(o => o.Comentarios)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 

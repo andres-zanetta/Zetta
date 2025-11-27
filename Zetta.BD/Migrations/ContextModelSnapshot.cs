@@ -34,7 +34,6 @@ namespace Zetta.BD.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Apellido")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Direccion")
@@ -339,7 +338,7 @@ namespace Zetta.BD.Migrations
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Comentario", b =>
                 {
                     b.HasOne("Zetta.BD.DATA.ENTITY.Obra", "Obra")
-                        .WithMany()
+                        .WithMany("Comentarios")
                         .HasForeignKey("ObraId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -419,6 +418,11 @@ namespace Zetta.BD.Migrations
                     b.Navigation("Obras");
 
                     b.Navigation("Presupuestos");
+                });
+
+            modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Obra", b =>
+                {
+                    b.Navigation("Comentarios");
                 });
 
             modelBuilder.Entity("Zetta.BD.DATA.ENTITY.Presupuesto", b =>

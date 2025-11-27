@@ -74,22 +74,40 @@ namespace Zetta.Server.Controllers
             }
         }
 
-        // PUT: api/Obra/5
+        // PUT: api/Obra/id
         [HttpPut("{id:int}")]
         public async Task<ActionResult> Put(int id, [FromBody] PUT_ObraDTO obraDTO)
         {
-            var obraExistente = await _obraRepositorio.ObtenerObraPorIdConDetallesAsync(id);
+            var obraExistente = await _context.Obras
+                .Include(o => o.Comentarios)
+                .FirstOrDefaultAsync(o => o.Id == id);
 
-            if (obraExistente == null)
+            if (obraExistente == null) return NotFound("Obra no encontrada.");
+
+            _mapper.Map(obraDTO, obraExistente);
+
+            if (obraDTO.Comentarios != null && obraDTO.Comentarios.Any())
             {
-                return NotFound("Obra no encontrada.");
-            }
+                if (obraExistente.Comentarios == null) obraExistente.Comentarios = new List<Comentario>();
 
-            var obra = _mapper.Map(obraDTO, obraExistente);
+                var textosExistentes = obraExistente.Comentarios.Select(c => c.Texto).ToHashSet();
+
+                foreach (var textoDto in obraDTO.Comentarios)
+                {
+                    if (!textosExistentes.Contains(textoDto))
+                    {
+                        obraExistente.Comentarios.Add(new Comentario
+                        {
+                            Texto = textoDto,
+                            Fecha = DateTime.Now,
+                            ObraId = id
+                        });
+                    }
+                }
+            }
 
             try
             {
-                await _obraRepositorio.UpdateAsync(obra);
                 await _context.SaveChangesAsync();
                 return Ok("Obra actualizada correctamente.");
             }

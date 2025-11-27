@@ -15,7 +15,7 @@ namespace Zetta.Shared.DTOS.Cliente
 
         [Required(ErrorMessage = "El apellido es obligatorio.")]
         [MaxLength(50, ErrorMessage = "Máximo número de caracteres {1}.")]
-        public string Apellido { get; set; }
+        public string? Apellido { get; set; }
 
         [MaxLength(100, ErrorMessage = "Máximo número de caracteres {1}.")]
         public string? Direccion { get; set; }

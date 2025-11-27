@@ -9,7 +9,7 @@ namespace Zetta.BD.DATA.ENTITY
     public class Cliente : EntityBase
     {
         public string Nombre { get; set; }
-        public string Apellido { get; set; }
+        public string? Apellido { get; set; }
         public string? Direccion { get; set; }
         public string? Localidad { get; set; }
         public string Telefono { get; set; }

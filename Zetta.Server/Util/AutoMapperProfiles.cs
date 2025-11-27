@@ -90,6 +90,7 @@ namespace Zetta.Server.Util // O tu namespace correcto
                .ForMember(dest => dest.ClienteId, opt => opt.MapFrom(src => src.Cliente != null ? src.Cliente.Id : 0))
                .ForMember(dest => dest.ClienteNombre, opt => opt.MapFrom(src => src.Cliente != null ? $"{src.Cliente.Nombre} {src.Cliente.Apellido}" : "Sin Cliente Asignado"))
                .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
+               .ForMember(dest => dest.Comentarios, opt => opt.MapFrom(src => src.Comentarios.Select(c => c.Texto).ToList()))
                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
 
             CreateMap<POST_ObraDTO, Obra>()
@@ -99,12 +100,14 @@ namespace Zetta.Server.Util // O tu namespace correcto
                 .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId))
                 .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio))
                 .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
-                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados));
+                .ForMember(dest => dest.MaterialesEntregados, opt => opt.MapFrom(src => src.MaterialesEntregados))
+            .ForMember(dest => dest.Comentarios, opt => opt.Ignore());
 
             CreateMap<PUT_ObraDTO, Obra>()
                 .ForMember(dest => dest.EstadoObra, opt => opt.MapFrom(src => Enum.Parse<EstadoObra>(src.EstadoObra)))
                 .ForMember(dest => dest.Cliente, opt => opt.Ignore())
                 .ForMember(dest => dest.Presupuesto, opt => opt.Ignore())
+                .ForMember(dest => dest.Comentarios, opt => opt.Ignore())
                 .ForMember(dest => dest.FechaInicio, opt => opt.MapFrom(src => src.FechaInicio))
                 .ForMember(dest => dest.PresupuestoId, opt => opt.MapFrom(src => src.PresupuestoId))
                 .ForMember(dest => dest.MaterialesCompradosPorUsuario, opt => opt.MapFrom(src => src.MaterialesCompradosPorUsuario))
