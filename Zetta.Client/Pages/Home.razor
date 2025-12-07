@@ -402,7 +402,6 @@
     private DateTime FechaAgenda = DateTime.Today; // Fecha para el calendario
 
     private List<WeatherDay>? weatherForecast;
-    private const string ApiKey = "403747cd7730269d7c72d434130a461a";
     private const string Ciudad = "Cordoba,AR";
 
     private List<DiaDeTrabajo> DiasDeTrabajo = new();
@@ -458,10 +457,28 @@
     {
         try
         {
-            var r = await Http.GetFromJsonAsync<WeatherApiResponse>($"https://api.openweathermap.org/data/2.5/forecast?q={Ciudad}&appid={ApiKey}&units=metric&lang=es");
-            if (r?.List != null) weatherForecast = r.List.GroupBy(f => DateTime.Parse(f.Dt_txt).Date).Take(5).Select(g => new WeatherDay { Date = g.Key, TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)), TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)), Description = g.First().Weather.First().Description, Icon = GetIcon(g.First().Weather.First().Main) }).ToList();
+            var response = await Http.GetFromJsonAsync<WeatherApiResponse>($"api/Clima?ciudad={Ciudad}");
+
+            if (response?.List != null)
+            {
+                weatherForecast = response.List
+                    .GroupBy(f => DateTime.Parse(f.Dt_txt).Date)
+                    .Take(5)
+                    .Select(g => new WeatherDay
+                    {
+                        Date = g.Key,
+                        TempMax = (int)Math.Round(g.Max(x => x.Main.Temp_max)),
+                        TempMin = (int)Math.Round(g.Min(x => x.Main.Temp_min)),
+                        Description = g.First().Weather.First().Description,
+                        Icon = GetIcon(g.First().Weather.First().Main)
+                    })
+                    .ToList();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando clima: {ex.Message}");
+        }
     }
 
     private async Task CargarDatosDashboard()
