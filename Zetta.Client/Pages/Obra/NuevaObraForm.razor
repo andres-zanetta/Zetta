@@ -1,14 +1,11 @@
 ﻿@page "/obras"
 @page "/obras/{ObraId:int}"
-@using Microsoft.AspNetCore.Components
-@using Zetta.Shared.DTOS.Obra
-@using Zetta.Shared.DTOS.Presupuesto
-@using Zetta.Shared.DTOS.Cliente
 @inject Zetta.Client.Servicios.IObraService ObraService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
+@attribute [Authorize]
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <button class="btn btn-secondary" @onclick="VolverAlInicio">← Volver al Menú</button>

@@ -1,13 +1,32 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 using System.Text.Json.Serialization;
 using Zetta.BD.DATA;
 using Zetta.BD.DATA.REPOSITORY;
 using Zetta.Server.Repositorios;
+using Zetta.Server.Util;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
 
 builder.Services.AddControllers();
 builder.Services.AddControllers().AddJsonOptions(
@@ -22,7 +41,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddAutoMapper(cfg =>
 {
-    cfg.AddMaps(AppDomain.CurrentDomain.GetAssemblies());
+    cfg.AddProfile<AutoMapperProfiles>();
 });
 
 
@@ -51,8 +70,9 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.UseRouting();
 app.MapRazorPages();
-
+app.UseAuthentication();
 app.UseAuthorization();
+
 
 app.MapControllers();
 app.MapFallbackToFile("index.html");

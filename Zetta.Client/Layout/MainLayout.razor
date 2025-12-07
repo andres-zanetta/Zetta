@@ -1,10 +1,30 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using Zetta.Client.Servicios
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
 
 <div class="page">
     <NavMenu />
 
     <main>
         <div class="top-row px-4">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="me-3 fw-bold">
+                        Hola, <span style="color:var(--orange);">@context.User.Identity.Name</span>
+                    </span>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="CerrarSesion">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    </button>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="login" class="btn btn-naranja btn-sm">
+                        <i class="bi bi-person-fill"></i> Iniciar Sesión
+                    </a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
@@ -12,3 +32,18 @@
         </article>
     </main>
 </div>
+
+@code {
+    private async Task CerrarSesion()
+    {
+        // 1. Borrar el token del almacenamiento local
+        await LocalStorage.RemoveItemAsync("token");
+
+        // 2. Avisar al proveedor de autenticación que salimos
+        var authProvider = (CustomAuthStateProvider)AuthStateProvider;
+        authProvider.NotificarLogout();
+
+        // 3. Redirigir al Login
+        Navigation.NavigateTo("/login");
+    }
+}

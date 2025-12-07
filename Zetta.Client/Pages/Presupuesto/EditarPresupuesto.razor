@@ -1,14 +1,11 @@
 ﻿@page "/presupuestos/editar/{Id:int}"
-@using Zetta.Shared.DTOS.PresItemDetalle
-@using Zetta.Shared.DTOS.Presupuesto
-@using Zetta.Shared.DTOS.ItemPresupuesto
-@using Zetta.Client.Pages.Item
 @inject Zetta.Client.Servicios.IPresupuestoServices PresupuestoService
 @inject Zetta.Client.Servicios.IClienteService ClienteService
 @inject Zetta.Client.Servicios.ItemPresupuestoService ItemService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager Navigation
 @implements IDisposable
+@attribute [Authorize]
 
 <div class="clientes-container">
     <header class="clientes-header text-center mb-4">

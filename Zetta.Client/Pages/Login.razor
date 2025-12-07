@@ -1,0 +1,83 @@
+﻿@page "/login"
+@inject HttpClient Http
+@inject Blazored.LocalStorage.ILocalStorageService LocalStorage
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Nav
+
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card bg-dark text-white border-warning shadow" style="width: 350px;">
+        <div class="card-header text-center border-secondary">
+            <h4 class="text-naranja m-0">Acceso Zetta</h4>
+        </div>
+        <div class="card-body">
+            <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                <DataAnnotationsValidator />
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre de Usuario</label>
+                    <InputText class="form-control bg-black text-white border-secondary"
+                               @bind-Value="loginModel.NombreU"
+                               placeholder="Ej: Juan" />
+                    <ValidationMessage For="@(() => loginModel.NombreU)" />
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label">DNI (Clave)</label>
+                    <input type="password"
+                           class="form-control bg-black text-white border-secondary"
+                           @bind="loginModel.DNI"
+                           placeholder="Ingrese su DNI" />
+                    <ValidationMessage For="@(() => loginModel.DNI)" />
+                </div>
+
+                <button type="submit" class="btn btn-naranja w-100">
+                    @(Cargando ? "Verificando..." : "Ingresar")
+                </button>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger mt-3 small text-center p-2">@error</div>
+                }
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginDTO loginModel = new LoginDTO();
+    private string error;
+    private bool Cargando = false;
+
+    private async Task HandleLogin()
+    {
+        Cargando = true;
+        error = null;
+        try
+        {
+            var result = await Http.PostAsJsonAsync("api/auth/login", loginModel);
+            if (result.IsSuccessStatusCode)
+            {
+                var sesion = await result.Content.ReadFromJsonAsync<SesionDTO>();
+
+                // Guardar token y notificar al sistema
+                await LocalStorage.SetItemAsync("token", sesion.Token);
+                ((CustomAuthStateProvider)AuthStateProvider).NotificarLogin(sesion.Token);
+
+                Nav.NavigateTo("/");
+            }
+            else
+            {
+                error = "Usuario o DNI incorrectos.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = "Error de conexión con el servidor.";
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            Cargando = false;
+        }
+    }
+}
